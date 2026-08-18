@@ -6,8 +6,9 @@
 <title>GvG — Admin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 <style>
-  body { background:#111; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 640px; margin: 0 auto; }
+  body { background:#111; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: 0 auto; }
   h2 { margin-bottom: 4px; }
+  h3 { margin-top: 28px; margin-bottom: 10px; color:#aaa; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
   .hint { color:#888; font-size: 13px; margin-bottom: 20px; }
   label { display:block; margin-bottom: 14px; font-size: 13px; color:#aaa; }
   input, textarea {
@@ -15,17 +16,47 @@
     padding:10px; font-size:14px; width: 100%; margin-top:6px; box-sizing: border-box;
     font-family: inherit;
   }
-  textarea { min-height: 160px; font-family: monospace; font-size: 13px; }
+  textarea { min-height: 90px; font-family: monospace; font-size: 13px; }
   button {
-    padding: 12px 18px; border:none; border-radius:8px; cursor:pointer;
-    color:#fff; font-weight:600; font-size:14px; margin-right: 10px; margin-top: 6px;
+    padding: 10px 16px; border:none; border-radius:8px; cursor:pointer;
+    color:#fff; font-weight:600; font-size:14px; margin-right: 8px; margin-top: 6px;
   }
   .primary { background:#2f6fb2; }
   .danger { background:#a4202a; }
+  .secondary { background:#333; }
   #status { font-size: 12px; color:#666; margin: 14px 0; }
   #locked { text-align:center; padding: 60px 0; }
   #panel { display:none; }
+
+  .chip-list { display:flex; flex-wrap:wrap; gap: 8px; min-height: 20px; }
+  .chip {
+    display:flex; align-items:center; gap: 6px; background:#242424;
+    border-radius: 20px; padding: 4px 6px 4px 12px; font-size: 13px;
+  }
+  .chip select {
+    background:#333; color:#eee; border:none; border-radius: 14px;
+    padding: 4px 8px; font-size: 12px; width:auto; margin:0;
+  }
+  .chip-remove {
+    background:#3a3a3a; color:#ccc; border:none; border-radius:50%;
+    width:20px; height:20px; line-height:1; cursor:pointer; padding:0;
+    font-size: 13px; margin:0;
+  }
+  .empty-hint { color:#555; font-size: 13px; font-style: italic; }
+
+  .squad-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .squad-edit-card { background:#1a1a1a; border-radius: 10px; padding: 12px; }
+  .squad-edit-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; }
+  .squad-edit-header strong { font-size: 14px; }
+  .squad-edit-header select {
+    width: auto; margin: 0; padding: 6px 8px; font-size: 12px;
+  }
+
+  details { margin-top: 28px; border-top: 1px solid #2a2a2a; padding-top: 14px; }
+  summary { cursor: pointer; color:#888; font-size: 13px; margin-bottom: 10px; }
   .example { color:#666; font-size:12px; margin-top: 8px; white-space: pre; }
+
+  #log { font-size:12px; color:#777; margin-top:20px; white-space:pre-wrap; }
 </style>
 </head>
 <body>
@@ -42,33 +73,56 @@
     <h2>Admin — Roster &amp; management</h2>
     <div id="status">connecting…</div>
 
-    <label>Squad roster (one squad per line)
-      <textarea id="roster-text">D1: Alice, Bob, Carol
-D2: Dave, Eve
-D3: Frank
-A1: Grace, Heidi
-A2: Ivan
-A3: Judy, Mallory</textarea>
-    </label>
-    <div class="example">Format: SquadId: name1, name2, ...
-Squad IDs starting with "D" are treated as Defense, "A" as Attack.</div>
+    <h3>1. Add participants</h3>
+    <div class="hint">Paste names, one per line or comma-separated - however you already have them.</div>
+    <textarea id="pool-input" placeholder="Alice
+Bob
+Carol, Dave, Eve"></textarea>
+    <button class="primary" onclick="addToPool()">Add to pool</button>
 
-    <div style="margin-top:16px;">
+    <h3>Unassigned</h3>
+    <div id="pool" class="chip-list"></div>
+
+    <h3>2. Squads - pick a squad for each name above, set role per squad</h3>
+    <div id="squads" class="squad-grid"></div>
+
+    <div style="margin-top:20px;">
       <button class="primary" onclick="saveRoster()">Save roster</button>
       <button class="danger" onclick="resetHistory()">Reset test data</button>
     </div>
 
-    <div id="log" style="font-size:12px; color:#777; margin-top:20px; white-space:pre-wrap;"></div>
+    <details>
+      <summary>Advanced: import/export as text</summary>
+      <textarea id="roster-text"></textarea>
+      <div class="example">Format: SquadId Role: name1, name2, ...
+Role is one of Defense / Attack / Flex (case-insensitive; defaults to Flex if omitted).</div>
+      <button class="secondary" onclick="importFromText()">Import from text (replaces squads below)</button>
+      <button class="secondary" onclick="exportToText()">Export current squads to text</button>
+    </details>
+
+    <div id="log"></div>
   </div>
 
 <script>
   let adminKey = '';
+  let initialized = false;
+  let pool = [];
+  let squads = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map(id => ({ squadId: id, side: 'Flex', members: [] }));
+
   const connection = new signalR.HubConnectionBuilder()
     .withUrl("/battleHub")
     .withAutomaticReconnect()
     .build();
 
-  connection.on("RosterUpdated", () => log("Roster updated (broadcast confirmed)."));
+  connection.on("RosterUpdated", roster => {
+    if (!initialized) {
+      loadRosterIntoUi(roster);
+      initialized = true;
+    } else {
+      log("Roster changed on the server (this save or another admin session). Reload the page to pull the latest if you didn't make this change yourself.");
+    }
+  });
+
   connection.on("HistoryReset", () => log("History reset (broadcast confirmed)."));
 
   function unlock() {
@@ -80,26 +134,115 @@ Squad IDs starting with "D" are treated as Defense, "A" as Attack.</div>
     connection.start()
       .then(() => setStatus("connected"))
       .catch(err => setStatus("connection failed: " + err));
+
+    renderPool();
+    renderSquads();
   }
 
-  function parseRoster(text) {
-    return text.split('\n')
-      .map(l => l.trim())
-      .filter(Boolean)
-      .map(line => {
-        const idx = line.indexOf(':');
-        const squadId = (idx >= 0 ? line.slice(0, idx) : line).trim();
-        const namesPart = idx >= 0 ? line.slice(idx + 1) : '';
-        const side = squadId.toUpperCase().startsWith('D') ? 'Defense' : 'Attack';
-        const members = namesPart.split(',').map(n => n.trim()).filter(Boolean);
-        return { squadId, side, members };
-      });
+  // --- Pool management ---
+
+  function addToPool() {
+    const raw = document.getElementById('pool-input').value;
+    const names = raw.split(/[\n,]/).map(n => n.trim()).filter(Boolean);
+    const existing = new Set([...pool, ...squads.flatMap(s => s.members)]);
+    names.forEach(n => {
+      if (!existing.has(n)) {
+        pool.push(n);
+        existing.add(n);
+      }
+    });
+    document.getElementById('pool-input').value = '';
+    renderPool();
   }
+
+  function removeFromPool(index) {
+    pool.splice(index, 1);
+    renderPool();
+  }
+
+  function assignFromPool(index, squadId) {
+    if (!squadId) return;
+    const name = pool[index];
+    pool.splice(index, 1);
+    const squad = squads.find(s => s.squadId === squadId);
+    if (squad) squad.members.push(name);
+    renderPool();
+    renderSquads();
+  }
+
+  function unassign(squadIndex, memberIndex) {
+    const name = squads[squadIndex].members.splice(memberIndex, 1)[0];
+    pool.push(name);
+    renderPool();
+    renderSquads();
+  }
+
+  function setSquadSide(squadIndex, value) {
+    squads[squadIndex].side = value;
+  }
+
+  // --- Rendering ---
+
+  function renderPool() {
+    const el = document.getElementById('pool');
+    if (pool.length === 0) {
+      el.innerHTML = '<span class="empty-hint">No unassigned names — paste some above.</span>';
+      return;
+    }
+    el.innerHTML = pool.map((name, i) => `
+      <div class="chip">
+        <span>${escapeHtml(name)}</span>
+        <select onchange="assignFromPool(${i}, this.value)">
+          <option value="">assign to…</option>
+          ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
+        </select>
+        <button class="chip-remove" onclick="removeFromPool(${i})" title="Remove">×</button>
+      </div>
+    `).join('');
+  }
+
+  function renderSquads() {
+    const el = document.getElementById('squads');
+    el.innerHTML = squads.map((sq, si) => `
+      <div class="squad-edit-card">
+        <div class="squad-edit-header">
+          <strong>${sq.squadId}</strong>
+          <select onchange="setSquadSide(${si}, this.value)">
+            <option value="Defense" ${sq.side === 'Defense' ? 'selected' : ''}>Defense</option>
+            <option value="Attack" ${sq.side === 'Attack' ? 'selected' : ''}>Attack</option>
+            <option value="Flex" ${sq.side === 'Flex' ? 'selected' : ''}>Flex</option>
+          </select>
+        </div>
+        <div class="chip-list">
+          ${sq.members.length > 0
+            ? sq.members.map((m, mi) => `
+                <div class="chip">
+                  <span>${escapeHtml(m)}</span>
+                  <button class="chip-remove" onclick="unassign(${si}, ${mi})" title="Move back to pool">×</button>
+                </div>
+              `).join('')
+            : '<span class="empty-hint">Empty</span>'}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function loadRosterIntoUi(roster) {
+    if (!roster || roster.length === 0) return;
+    const bySquadId = Object.fromEntries(roster.map(s => [s.squadId, s]));
+    squads = squads.map(s => bySquadId[s.squadId]
+      ? { squadId: s.squadId, side: bySquadId[s.squadId].side || 'Flex', members: [...(bySquadId[s.squadId].members || [])] }
+      : s);
+    renderPool();
+    renderSquads();
+  }
+
+  // --- Save / reset ---
 
   function saveRoster() {
-    const squads = parseRoster(document.getElementById('roster-text').value);
-    connection.invoke("UpdateRoster", { adminKey, squads })
-      .then(() => log(`Sent roster: ${squads.length} squads.`))
+    const payload = squads.map(s => ({ squadId: s.squadId, side: s.side, members: s.members }));
+    connection.invoke("UpdateRoster", { adminKey, squads: payload })
+      .then(() => log(`Saved roster: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${payload.length} squads.`))
       .catch(err => log("Error (likely wrong admin key): " + err));
   }
 
@@ -108,6 +251,53 @@ Squad IDs starting with "D" are treated as Defense, "A" as Attack.</div>
     connection.invoke("ResetHistory", { adminKey })
       .then(() => log("Reset requested."))
       .catch(err => log("Error (likely wrong admin key): " + err));
+  }
+
+  // --- Advanced text mode (same format as before, kept for bulk import/backup) ---
+
+  function normalizeSide(raw) {
+    const s = (raw || '').trim().toLowerCase();
+    if (s.startsWith('def')) return 'Defense';
+    if (s.startsWith('att') || s.startsWith('atk')) return 'Attack';
+    return 'Flex';
+  }
+
+  function parseRosterText(text) {
+    return text.split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(line => {
+        const idx = line.indexOf(':');
+        const header = (idx >= 0 ? line.slice(0, idx) : line).trim();
+        const namesPart = idx >= 0 ? line.slice(idx + 1) : '';
+        const headerParts = header.split(/\s+/);
+        const squadId = headerParts[0];
+        const side = normalizeSide(headerParts[1]);
+        const members = namesPart.split(',').map(n => n.trim()).filter(Boolean);
+        return { squadId, side, members };
+      });
+  }
+
+  function importFromText() {
+    const parsed = parseRosterText(document.getElementById('roster-text').value);
+    if (parsed.length === 0) return;
+    if (!confirm("Replace the squads below with what's in the text box?")) return;
+    squads = parsed;
+    pool = [];
+    renderPool();
+    renderSquads();
+    log("Imported from text.");
+  }
+
+  function exportToText() {
+    const text = squads
+      .map(s => `${s.squadId} ${s.side}: ${s.members.join(', ')}`)
+      .join('\n');
+    document.getElementById('roster-text').value = text;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   function setStatus(text) {

@@ -31,14 +31,21 @@
   <h2>Observer</h2>
   <div class="hint">Two taps per report: pick target squad once, then tap what you saw.</div>
 
-  <label>Your name
-    <input id="name" placeholder="e.g. Alex" autocomplete="off">
-  </label>
+  <div id="whoami-wrap" style="display:none;">
+    <label>Who are you?
+      <select id="whoami"><option value="">— pick your name —</option></select>
+    </label>
+  </div>
+  <div id="manual-name-wrap">
+    <label>Your name
+      <input id="name" placeholder="e.g. Alex" autocomplete="off">
+    </label>
+  </div>
 
   <label>Target squad
     <select id="squad">
-      <option>D1</option><option>D2</option><option>D3</option>
-      <option>A1</option><option>A2</option><option>A3</option>
+      <option>T1</option><option>T2</option><option>T3</option>
+      <option>T4</option><option>T5</option><option>T6</option>
     </select>
   </label>
 
@@ -81,7 +88,10 @@
 
   connection.on("Snapshot", items => log(`--- connected, ${items.length} recent events in history ---`));
 
-  connection.on("RosterUpdated", roster => populateSquadDropdown(roster));
+  connection.on("RosterUpdated", roster => {
+    populateSquadDropdown(roster);
+    populateWhoAmI(roster);
+  });
 
   connection.on("HistoryReset", () => log(`--- history was reset by admin ---`));
 
@@ -89,7 +99,7 @@
     .then(() => setStatus("connected"))
     .catch(err => setStatus("connection failed: " + err));
 
-  // Если ростер ещё не задан админом — остаются дефолтные D1-D3/A1-A3 из HTML.
+  // Если ростер ещё не задан админом — остаются дефолтные T1-T6 из HTML.
   function populateSquadDropdown(roster) {
     if (!roster || roster.length === 0) return;
     const select = document.getElementById('squad');
@@ -104,7 +114,35 @@
     if ([...select.options].some(o => o.value === current)) select.value = current;
   }
 
+  // Как только известен ростер — наблюдатель выбирает себя из списка вместо
+  // ручного ввода имени (та же логика, что и на player.html).
+  function populateWhoAmI(roster) {
+    const wrap = document.getElementById('whoami-wrap');
+    const manual = document.getElementById('manual-name-wrap');
+    const select = document.getElementById('whoami');
+
+    if (!roster || roster.length === 0) {
+      wrap.style.display = 'none';
+      manual.style.display = 'block';
+      return;
+    }
+
+    wrap.style.display = 'block';
+    manual.style.display = 'none';
+    select.innerHTML = '<option value="">— pick your name —</option>';
+    roster.forEach(sq => {
+      (sq.members || []).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = `${name} (${sq.squadId})`;
+        select.appendChild(opt);
+      });
+    });
+  }
+
   function getName() {
+    const whoami = document.getElementById('whoami');
+    if (whoami && whoami.value) return whoami.value;
     return document.getElementById('name').value.trim() || 'Unknown';
   }
 
