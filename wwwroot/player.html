@@ -137,7 +137,7 @@
     <button id="sos" onclick="sendSos()">SOS</button>
 
     <script>
-        // Пускаем Игроков, Лидеров и Админов
+
         const currentUser = requireAuth(['Player', 'Leader', 'Admin']);
         if (currentUser) {
             document.getElementById('user-info').textContent = `Боец: ${currentUser.username} | Отряд: ${currentUser.squadId || 'Нет'}`;

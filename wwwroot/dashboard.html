@@ -61,7 +61,7 @@
 
   connection.on("HistoryReset", () => { feed.innerHTML = ''; });
 
-  // Snapshot содержит вперемешку события и приказы — различаем по наличию поля reporterName.
+
   connection.on("Snapshot", items => {
     items.forEach(i => {
       if ('reporterName' in i) {

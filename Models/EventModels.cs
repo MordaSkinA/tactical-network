@@ -1,9 +1,5 @@
 namespace GvGPoc.Models;
 
-// POC-версия enum'ов из архитектурного документа (раздел 4, 12).
-// В реальной системе это будет привязано к конкретному Battle/Squad из БД —
-// здесь squad-id захардкожен строкой ("D1".."D3", "A1".."A3"), чтобы не тянуть БД.
-
 public enum UserRole
 {
     Admin,
@@ -69,7 +65,7 @@ public record CreateUserDto(
     string? SquadId
 );
 
-// --- Client -> Server ---
+// ОТ клиента
 
 public record ReportEventDto(
     string ReporterName,
@@ -89,12 +85,12 @@ public record SosDto(
     string SquadId
 );
 
-// --- Roster / management (упрощённый вариант вместо полноценного Phase 1 CRUD) ---
+
 
 public record SquadRosterDto(
     string SquadId,
-    string Side,       // "Attack" | "Defense"
-    string? LeaderName, // Имя назначенного Лидера отряда
+    string Side,       
+    string? LeaderName, 
     List<string> Members
 );
 
@@ -107,7 +103,7 @@ public record AdminActionDto(
     string AdminKey
 );
 
-// --- Server -> Client ---
+// ОТ сервера
 
 public record BattleEventPushDto(
     Guid EventId,

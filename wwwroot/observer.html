@@ -134,7 +134,7 @@
     <div id="log"></div>
 
     <script>
-        // Защита страницы: пускаем только Лидеров и Админов
+
         const currentUser = requireAuth(['Leader', 'Admin']);
         if (currentUser) {
             document.getElementById('user-info').innerHTML = `Вы вошли как: <strong>${currentUser.username}</strong> <br> Отряд: <strong>${currentUser.squadId || 'Не назначен'}</strong>`;
@@ -163,7 +163,7 @@
             connection.invoke("ReportEvent", {
                 reporterName: currentUser.username,
                 enemyRole: role,
-                targetSquadId: currentUser.squadId, // Автоматически берем отряд Лидера
+                targetSquadId: currentUser.squadId, 
                 note: null
             }).catch(err => log("Error: " + err));
         }
@@ -173,7 +173,7 @@
             connection.invoke("IssueOrder", {
                 issuerName: currentUser.username,
                 type: type,
-                targetSquadId: currentUser.squadId // Автоматически берем отряд Лидера
+                targetSquadId: currentUser.squadId 
             }).catch(err => log("Error: " + err));
         }
 

@@ -229,7 +229,7 @@
     </div>
 
     <script>
-        // Защита страницы: пускаем только Админов
+
         const currentUser = requireAuth(['Admin']);
 
         let pool = [];
@@ -254,7 +254,7 @@
             .then(() => log("SignalR Connected."))
             .catch(err => log("Connection failed: " + err));
 
-        // --- User Management ---
+
         async function createUser() {
             const adminKey = document.getElementById('master-key').value;
             const username = document.getElementById('new-user-name').value.trim();
@@ -283,7 +283,7 @@
             }
         }
 
-        // --- Pool management ---
+
         function addToPool() {
             const raw = document.getElementById('pool-input').value;
             const names = raw.split(/[\n,]/).map(n => n.trim()).filter(Boolean);
@@ -316,7 +316,7 @@
         function setSquadSide(squadIndex, value) { squads[squadIndex].side = value; }
         function setLeader(squadIndex, value) { squads[squadIndex].leaderName = value || null; }
 
-        // --- Rendering ---
+
         function renderPool() {
             const el = document.getElementById('pool');
             if (pool.length === 0) return el.innerHTML = '<span class="empty-hint">Пусто</span>';

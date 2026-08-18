@@ -23,9 +23,7 @@ public interface IBattleState
     IReadOnlyList<UserAccount> GetUsers();
 }
 
-// Singleton на всё время жизни процесса. При перезапуске сервера история теряется —
-// это осознанное ограничение POC, в реальной системе это заменяется на BattleEvents
-// в PostgreSQL + BattleStateProjector (см. архитектурный документ, разделы 3 и 9).
+
 public class InMemoryBattleState : IBattleState
 {
     private readonly ConcurrentQueue<object> _history = new();
@@ -34,18 +32,15 @@ public class InMemoryBattleState : IBattleState
     private readonly object _rosterFileLock = new();
     private readonly ConcurrentDictionary<string, UserAccount> _users = new(StringComparer.OrdinalIgnoreCase);
 
-    // Присвоение ссылки на список атомарно в .NET, для POC-масштаба этого достаточно
-    // вместо полноценной блокировки/конкурентной коллекции на чтение.
+
     private IReadOnlyList<SquadRosterDto> _roster;
 
-    // Событийная история POC-специфично остаётся только в памяти (см. README) —
-    // персист попросили именно для ростера, он не меняется каждую секунду в отличие
-    // от событий, поэтому простой JSON-файл на диске — адекватное решение без БД.
+
     public InMemoryBattleState(IHostEnvironment env)
     {
         _rosterFilePath = Path.Combine(env.ContentRootPath, "roster.json");
         _roster = LoadRosterFromDisk();
-        // Дефолтные аккаунты для тестирования
+        //аккаунты для тестирования
         CreateUser(new UserAccount { Username = "admin", PasswordHash = "admin123", Role = UserRole.Admin });
         CreateUser(new UserAccount { Username = "commander", PasswordHash = "cmd123", Role = UserRole.Commander });
         CreateUser(new UserAccount { Username = "leader_d1", PasswordHash = "lead123", Role = UserRole.Leader, SquadId = "D1" });
@@ -62,8 +57,7 @@ public class InMemoryBattleState : IBattleState
         }
         catch
         {
-            // POC: битый/несовместимый файл не должен ронять запуск сервера —
-            // просто стартуем с пустым ростером, админ пересоздаст через admin.html.
+
             return Array.Empty<SquadRosterDto>();
         }
     }
@@ -102,9 +96,8 @@ public class InMemoryBattleState : IBattleState
 
     public BattleEventPushDto AddSos(SosDto dto)
     {
-        // SOS переиспользует BattleEventPushDto: EnemyRole = null, Note = "SOS" —
-        // клиент отличает по Note. Для настоящей системы это стал бы отдельный
-        // BattleEventType.Sos в enum'е (см. архитектурный документ, раздел 4).
+        // переделать потом !!!
+
         var evt = new BattleEventPushDto(
             EventId: Guid.NewGuid(),
             ReporterName: dto.ReporterName,
@@ -136,10 +129,7 @@ public class InMemoryBattleState : IBattleState
             }
             catch
             {
-                // POC: если запись на диск не удалась (нет прав, диск занят и т.п.) —
-                // не роняем hub-вызов. Ростер применится в памяти на время работы
-                // процесса, но не переживёт рестарт — это лучше, чем упавший сервер
-                // посреди GvG.
+
             }
         }
     }
@@ -159,10 +149,8 @@ public class InMemoryBattleState : IBattleState
         }
     }
 
-    // Заглушка под EventRoutingService из архитектурного документа (раздел 13):
-    // в реальной системе здесь будут доменные правила эскалации (например,
-    // "TB рядом с healer squad = всегда Critical"). Для POC — простое правило,
-    // чтобы было видно на дашборде разницу в цвете между Warning и Critical.
+    // Зхаглушка 
+
     private static EventSeverity EscalateSeverity(ReportEventDto dto) =>
         dto.EnemyRole switch
         {
@@ -175,7 +163,6 @@ public class InMemoryBattleState : IBattleState
     {
         if (_users.TryGetValue(username, out var user))
         {
-            // В POC используем прямое сравнение паролей (в продакшене заменить на hash check)
             if (user.PasswordHash == password)
             {
                 return user;
