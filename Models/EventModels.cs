@@ -8,9 +8,8 @@ public enum EnemyRole
 {
     TwinBlades,
     Healer,
-    Bruiser,
-    Ranged,
-    Group
+    Tank,
+    Nameless,
 }
 
 public enum EventSeverity
