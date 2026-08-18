@@ -1,177 +1,187 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GvG — Observer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-<style>
-  body { background:#111; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 700px; margin: 0 auto; }
-  h2 { margin-bottom: 4px; }
-  .hint { color:#888; font-size: 13px; margin-bottom: 20px; }
-  label { display:block; margin-bottom: 12px; }
-  input, select {
-    background:#222; color:#eee; border:1px solid #444; border-radius:6px;
-    padding:8px; font-size:15px; margin-top:4px; width: 220px;
-  }
-  h3 { margin-top: 28px; margin-bottom: 10px; color:#aaa; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; }
-  button {
-    font-size: 17px; padding: 16px 18px; border:none; border-radius:10px;
-    cursor:pointer; color:#fff; min-width: 130px; font-weight: 600;
-  }
-  button:active { transform: scale(0.97); }
-  .enemy { background:#b23b3b; }
-  .order { background:#2f6fb2; }
-  #status { font-size: 12px; color:#666; margin-top: 20px; }
-  #log { font-size: 12px; color:#777; margin-top:14px; white-space:pre-wrap; max-height: 200px; overflow-y:auto; border-top:1px solid #333; padding-top:10px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG — Observer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .header-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .user-info {
+            background: #222;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border: 1px solid #444;
+        }
+
+        h3 {
+            margin-top: 28px;
+            margin-bottom: 10px;
+            color: #aaa;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button.action-btn {
+            font-size: 17px;
+            padding: 16px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #fff;
+            min-width: 130px;
+            font-weight: 600;
+        }
+
+            button.action-btn:active {
+                transform: scale(0.97);
+            }
+
+        .enemy {
+            background: #b23b3b;
+        }
+
+        .order {
+            background: #2f6fb2;
+        }
+
+        #status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        #log {
+            font-size: 12px;
+            color: #777;
+            margin-top: 14px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <h2>Observer</h2>
-  <div class="hint">Two taps per report: pick target squad once, then tap what you saw.</div>
+    <h2>Observer <button class="header-btn" onclick="logout()">Выйти</button></h2>
+    <div class="hint">Отправка репортов и приказов для вашего отряда.</div>
 
-  <div id="whoami-wrap" style="display:none;">
-    <label>Who are you?
-      <select id="whoami"><option value="">— pick your name —</option></select>
-    </label>
-  </div>
-  <div id="manual-name-wrap">
-    <label>Your name
-      <input id="name" placeholder="e.g. Alex" autocomplete="off">
-    </label>
-  </div>
+    <div class="user-info" id="user-info">
+        Загрузка профиля...
+    </div>
 
-  <label>Target squad
-    <select id="squad">
-      <option>T1</option><option>T2</option><option>T3</option>
-      <option>T4</option><option>T5</option><option>T6</option>
-    </select>
-  </label>
+    <h3>Enemy detected</h3>
+    <div class="row">
+        <button class="action-btn enemy" onclick="reportEnemy('TwinBlades')">ENEMY TB</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Tank')">ENEMY TANK</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Nameless')">ENEMY NAMELESS</button>
+    </div>
 
-  <h3>Enemy detected</h3>
-  <div class="row">
-    <button class="enemy" onclick="reportEnemy('TwinBlades')">ENEMY TB</button>
-    <button class="enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
-    <button class="enemy" onclick="reportEnemy('Tank')">ENEMY TANK</button>
-    <button class="enemy" onclick="reportEnemy('Nameless')">ENEMY NAMELESS</button>
-  </div>
+    <h3>Orders</h3>
+    <div class="row">
+        <button class="action-btn order" onclick="issueOrder('Push')">PUSH</button>
+        <button class="action-btn order" onclick="issueOrder('Hold')">HOLD</button>
+        <button class="action-btn order" onclick="issueOrder('FallBack')">FALL BACK</button>
+        <button class="action-btn order" onclick="issueOrder('Rotate')">ROTATE</button>
+        <button class="action-btn order" onclick="issueOrder('Defend')">DEFEND</button>
+        <button class="action-btn order" onclick="issueOrder('ProtectHealer')">PROTECT HEALER</button>
+    </div>
 
-  <h3>Orders</h3>
-  <div class="row">
-    <button class="order" onclick="issueOrder('Push')">PUSH</button>
-    <button class="order" onclick="issueOrder('Hold')">HOLD</button>
-    <button class="order" onclick="issueOrder('FallBack')">FALL BACK</button>
-    <button class="order" onclick="issueOrder('Rotate')">ROTATE</button>
-    <button class="order" onclick="issueOrder('Defend')">DEFEND</button>
-    <button class="order" onclick="issueOrder('ProtectHealer')">PROTECT HEALER</button>
-  </div>
+    <div id="status">connecting…</div>
+    <div id="log"></div>
 
-  <div id="status">connecting…</div>
-  <div id="log"></div>
+    <script>
+        // Защита страницы: пускаем только Лидеров и Админов
+        const currentUser = requireAuth(['Leader', 'Admin']);
+        if (currentUser) {
+            document.getElementById('user-info').innerHTML = `Вы вошли как: <strong>${currentUser.username}</strong> <br> Отряд: <strong>${currentUser.squadId || 'Не назначен'}</strong>`;
+        }
 
-<script>
-  const connection = new signalR.HubConnectionBuilder()
-    .withUrl("/battleHub")
-    .withAutomaticReconnect()
-    .build();
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/battleHub")
+            .withAutomaticReconnect()
+            .build();
 
-  connection.onreconnecting(() => setStatus("reconnecting…"));
-  connection.onreconnected(() => setStatus("connected"));
+        connection.onreconnecting(() => setStatus("reconnecting…"));
+        connection.onreconnected(() => setStatus("connected"));
 
-  connection.on("BattleEvent", evt =>
-    log(`[${evt.severity}] ${evt.enemyRole ?? evt.note ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`));
+        connection.on("BattleEvent", evt =>
+            log(`[${evt.severity}] ${evt.enemyRole ?? evt.note ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`));
 
-  connection.on("OrderIssued", order =>
-    log(`ORDER ${order.type} → ${order.targetSquadId} (by ${order.issuerName})`));
+        connection.on("OrderIssued", order =>
+            log(`ORDER ${order.type} → ${order.targetSquadId} (by ${order.issuerName})`));
 
-  connection.on("Snapshot", items => log(`--- connected, ${items.length} recent events in history ---`));
+        connection.start()
+            .then(() => setStatus("connected"))
+            .catch(err => setStatus("connection failed: " + err));
 
-  connection.on("RosterUpdated", roster => {
-    populateSquadDropdown(roster);
-    populateWhoAmI(roster);
-  });
+        function reportEnemy(role) {
+            if (!currentUser || !currentUser.squadId) return alert("У вас не назначен отряд!");
+            connection.invoke("ReportEvent", {
+                reporterName: currentUser.username,
+                enemyRole: role,
+                targetSquadId: currentUser.squadId, // Автоматически берем отряд Лидера
+                note: null
+            }).catch(err => log("Error: " + err));
+        }
 
-  connection.on("HistoryReset", () => log(`--- history was reset by admin ---`));
+        function issueOrder(type) {
+            if (!currentUser || !currentUser.squadId) return alert("У вас не назначен отряд!");
+            connection.invoke("IssueOrder", {
+                issuerName: currentUser.username,
+                type: type,
+                targetSquadId: currentUser.squadId // Автоматически берем отряд Лидера
+            }).catch(err => log("Error: " + err));
+        }
 
-  connection.start()
-    .then(() => setStatus("connected"))
-    .catch(err => setStatus("connection failed: " + err));
-
-  // Если ростер ещё не задан админом — остаются дефолтные T1-T6 из HTML.
-  function populateSquadDropdown(roster) {
-    if (!roster || roster.length === 0) return;
-    const select = document.getElementById('squad');
-    const current = select.value;
-    select.innerHTML = '';
-    roster.forEach(sq => {
-      const opt = document.createElement('option');
-      opt.value = sq.squadId;
-      opt.textContent = `${sq.squadId} (${sq.side})`;
-      select.appendChild(opt);
-    });
-    if ([...select.options].some(o => o.value === current)) select.value = current;
-  }
-
-  // Как только известен ростер — наблюдатель выбирает себя из списка вместо
-  // ручного ввода имени (та же логика, что и на player.html).
-  function populateWhoAmI(roster) {
-    const wrap = document.getElementById('whoami-wrap');
-    const manual = document.getElementById('manual-name-wrap');
-    const select = document.getElementById('whoami');
-
-    if (!roster || roster.length === 0) {
-      wrap.style.display = 'none';
-      manual.style.display = 'block';
-      return;
-    }
-
-    wrap.style.display = 'block';
-    manual.style.display = 'none';
-    select.innerHTML = '<option value="">— pick your name —</option>';
-    roster.forEach(sq => {
-      (sq.members || []).forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = `${name} (${sq.squadId})`;
-        select.appendChild(opt);
-      });
-    });
-  }
-
-  function getName() {
-    const whoami = document.getElementById('whoami');
-    if (whoami && whoami.value) return whoami.value;
-    return document.getElementById('name').value.trim() || 'Unknown';
-  }
-
-  function reportEnemy(role) {
-    const squad = document.getElementById('squad').value;
-    connection.invoke("ReportEvent", {
-      reporterName: getName(),
-      enemyRole: role,
-      targetSquadId: squad,
-      note: null
-    }).catch(err => log("Error: " + err));
-  }
-
-  function issueOrder(type) {
-    const squad = document.getElementById('squad').value;
-    connection.invoke("IssueOrder", {
-      issuerName: getName(),
-      type: type,
-      targetSquadId: squad
-    }).catch(err => log("Error: " + err));
-  }
-
-  function setStatus(text) {
-    document.getElementById('status').textContent = text;
-  }
-
-  function log(msg) {
-    const el = document.getElementById('log');
-    el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
-  }
-</script>
+        function setStatus(text) { document.getElementById('status').textContent = text; }
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
+        }
+    </script>
 </body>
 </html>

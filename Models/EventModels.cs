@@ -4,6 +4,14 @@ namespace GvGPoc.Models;
 // В реальной системе это будет привязано к конкретному Battle/Squad из БД —
 // здесь squad-id захардкожен строкой ("D1".."D3", "A1".."A3"), чтобы не тянуть БД.
 
+public enum UserRole
+{
+    Admin,
+    Commander,
+    Leader,
+    Player
+}
+
 public enum EnemyRole
 {
     TwinBlades,
@@ -31,6 +39,36 @@ public enum OrderType
     TargetTb
 }
 
+public class UserAccount
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Username { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty;
+    public UserRole Role { get; set; }
+    public string? SquadId { get; set; }
+}
+
+public record LoginDto(
+    string Username,
+    string Password
+);
+
+public record AuthResponseDto(
+    bool Success,
+    string? Message,
+    string? Username,
+    UserRole? Role,
+    string? SquadId
+);
+
+public record CreateUserDto(
+    string AdminKey,
+    string Username,
+    string Password,
+    UserRole Role,
+    string? SquadId
+);
+
 // --- Client -> Server ---
 
 public record ReportEventDto(
@@ -55,7 +93,8 @@ public record SosDto(
 
 public record SquadRosterDto(
     string SquadId,
-    string Side,       // "Attack" | "Defense" — просто строка в POC, не enum, чтобы не плодить конвертеры
+    string Side,       // "Attack" | "Defense"
+    string? LeaderName, // Имя назначенного Лидера отряда
     List<string> Members
 );
 
@@ -87,3 +126,5 @@ public record OrderPushDto(
     string TargetSquadId,
     DateTimeOffset IssuedAt
 );
+
+

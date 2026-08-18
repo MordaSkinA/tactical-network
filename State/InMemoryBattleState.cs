@@ -11,14 +11,16 @@ public interface IBattleState
     OrderPushDto AddOrder(IssueOrderDto dto);
     BattleEventPushDto AddSos(SosDto dto);
 
-    // Возвращает недавнюю историю для клиентов, которые только что подключились
-    // (аналог BattleSnapshotDto из архитектурного документа, упрощённый).
+    // История и ростер
     IReadOnlyList<object> GetRecentHistory();
-
     IReadOnlyList<SquadRosterDto> GetRoster();
     void SetRoster(IReadOnlyList<SquadRosterDto> roster);
-
     void ResetHistory();
+
+    // Пользователи и Авторизация
+    UserAccount? ValidateUser(string username, string password);
+    bool CreateUser(UserAccount newUser);
+    IReadOnlyList<UserAccount> GetUsers();
 }
 
 // Singleton на всё время жизни процесса. При перезапуске сервера история теряется —
@@ -28,9 +30,9 @@ public class InMemoryBattleState : IBattleState
 {
     private readonly ConcurrentQueue<object> _history = new();
     private const int MaxHistory = 200;
-
     private readonly string _rosterFilePath;
     private readonly object _rosterFileLock = new();
+    private readonly ConcurrentDictionary<string, UserAccount> _users = new(StringComparer.OrdinalIgnoreCase);
 
     // Присвоение ссылки на список атомарно в .NET, для POC-масштаба этого достаточно
     // вместо полноценной блокировки/конкурентной коллекции на чтение.
@@ -43,6 +45,10 @@ public class InMemoryBattleState : IBattleState
     {
         _rosterFilePath = Path.Combine(env.ContentRootPath, "roster.json");
         _roster = LoadRosterFromDisk();
+        // Дефолтные аккаунты для тестирования
+        CreateUser(new UserAccount { Username = "admin", PasswordHash = "admin123", Role = UserRole.Admin });
+        CreateUser(new UserAccount { Username = "commander", PasswordHash = "cmd123", Role = UserRole.Commander });
+        CreateUser(new UserAccount { Username = "leader_d1", PasswordHash = "lead123", Role = UserRole.Leader, SquadId = "D1" });
     }
 
     private IReadOnlyList<SquadRosterDto> LoadRosterFromDisk()
@@ -61,6 +67,8 @@ public class InMemoryBattleState : IBattleState
             return Array.Empty<SquadRosterDto>();
         }
     }
+
+    
 
     public BattleEventPushDto AddEvent(ReportEventDto dto)
     {
@@ -162,4 +170,28 @@ public class InMemoryBattleState : IBattleState
             EnemyRole.Healer => EventSeverity.Warning,
             _ => EventSeverity.Info
         };
+
+    public UserAccount? ValidateUser(string username, string password)
+    {
+        if (_users.TryGetValue(username, out var user))
+        {
+            // В POC используем прямое сравнение паролей (в продакшене заменить на hash check)
+            if (user.PasswordHash == password)
+            {
+                return user;
+            }
+        }
+        return null;
+    }
+
+    public bool CreateUser(UserAccount newUser)
+    {
+        return _users.TryAdd(newUser.Username, newUser);
+    }
+
+    public IReadOnlyList<UserAccount> GetUsers()
+    {
+        return _users.Values.ToList();
+    }
+
 }
