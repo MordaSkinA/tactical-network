@@ -7,16 +7,24 @@ public interface IBattleState
 {
     BattleEventPushDto AddEvent(ReportEventDto dto);
     OrderPushDto AddOrder(IssueOrderDto dto);
+    BattleEventPushDto AddSos(SosDto dto);
 
 
     IReadOnlyList<object> GetRecentHistory();
-}
 
+    IReadOnlyList<SquadRosterDto> GetRoster();
+    void SetRoster(IReadOnlyList<SquadRosterDto> roster);
+
+    void ResetHistory();
+}
 
 public class InMemoryBattleState : IBattleState
 {
     private readonly ConcurrentQueue<object> _history = new();
     private const int MaxHistory = 200;
+
+
+    private IReadOnlyList<SquadRosterDto> _roster = Array.Empty<SquadRosterDto>();
 
     public BattleEventPushDto AddEvent(ReportEventDto dto)
     {
@@ -48,7 +56,34 @@ public class InMemoryBattleState : IBattleState
         return order;
     }
 
+    public BattleEventPushDto AddSos(SosDto dto)
+    {
+        var evt = new BattleEventPushDto(
+            EventId: Guid.NewGuid(),
+            ReporterName: dto.ReporterName,
+            EnemyRole: null,
+            TargetSquadId: dto.SquadId,
+            Note: "SOS",
+            Severity: EventSeverity.Critical,
+            Timestamp: DateTimeOffset.UtcNow
+        );
+
+        Track(evt);
+        return evt;
+    }
+
     public IReadOnlyList<object> GetRecentHistory() => _history.ToArray();
+
+    public IReadOnlyList<SquadRosterDto> GetRoster() => _roster;
+
+    public void SetRoster(IReadOnlyList<SquadRosterDto> roster) => _roster = roster;
+
+    public void ResetHistory()
+    {
+        while (_history.TryDequeue(out _))
+        {
+        }
+    }
 
     private void Track(object item)
     {
@@ -57,8 +92,6 @@ public class InMemoryBattleState : IBattleState
         {
         }
     }
-
- 
 
     private static EventSeverity EscalateSeverity(ReportEventDto dto) =>
         dto.EnemyRole switch

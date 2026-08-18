@@ -30,8 +30,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors();
-app.UseDefaultFiles();   
-app.UseStaticFiles();    
+app.UseDefaultFiles(); 
+app.UseStaticFiles();  
 app.MapHub<BattleHub>("/battleHub");
 
 app.Run();

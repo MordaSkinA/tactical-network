@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GvG — Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<style>
+  body { background:#111; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 640px; margin: 0 auto; }
+  h2 { margin-bottom: 4px; }
+  .hint { color:#888; font-size: 13px; margin-bottom: 20px; }
+  label { display:block; margin-bottom: 14px; font-size: 13px; color:#aaa; }
+  input, textarea {
+    background:#222; color:#eee; border:1px solid #444; border-radius:6px;
+    padding:10px; font-size:14px; width: 100%; margin-top:6px; box-sizing: border-box;
+    font-family: inherit;
+  }
+  textarea { min-height: 160px; font-family: monospace; font-size: 13px; }
+  button {
+    padding: 12px 18px; border:none; border-radius:8px; cursor:pointer;
+    color:#fff; font-weight:600; font-size:14px; margin-right: 10px; margin-top: 6px;
+  }
+  .primary { background:#2f6fb2; }
+  .danger { background:#a4202a; }
+  #status { font-size: 12px; color:#666; margin: 14px 0; }
+  #locked { text-align:center; padding: 60px 0; }
+  #panel { display:none; }
+  .example { color:#666; font-size:12px; margin-top: 8px; white-space: pre; }
+</style>
+</head>
+<body>
+  <div id="locked">
+    <h2>Admin</h2>
+    <label>Admin key
+      <input id="admin-key" type="password" placeholder="shared guild admin key">
+    </label>
+    <button class="primary" onclick="unlock()">Unlock</button>
+    <div id="unlock-error" style="color:#e33; margin-top:10px; font-size:13px;"></div>
+  </div>
+
+  <div id="panel">
+    <h2>Admin — Roster &amp; management</h2>
+    <div id="status">connecting…</div>
+
+    <label>Squad roster (one squad per line)
+      <textarea id="roster-text">D1: Alice, Bob, Carol
+D2: Dave, Eve
+D3: Frank
+A1: Grace, Heidi
+A2: Ivan
+A3: Judy, Mallory</textarea>
+    </label>
+    <div class="example">Format: SquadId: name1, name2, ...
+Squad IDs starting with "D" are treated as Defense, "A" as Attack.</div>
+
+    <div style="margin-top:16px;">
+      <button class="primary" onclick="saveRoster()">Save roster</button>
+      <button class="danger" onclick="resetHistory()">Reset test data</button>
+    </div>
+
+    <div id="log" style="font-size:12px; color:#777; margin-top:20px; white-space:pre-wrap;"></div>
+  </div>
+
+<script>
+  let adminKey = '';
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/battleHub")
+    .withAutomaticReconnect()
+    .build();
+
+  connection.on("RosterUpdated", () => log("Roster updated (broadcast confirmed)."));
+  connection.on("HistoryReset", () => log("History reset (broadcast confirmed)."));
+
+  function unlock() {
+    adminKey = document.getElementById('admin-key').value;
+    if (!adminKey) return;
+    document.getElementById('locked').style.display = 'none';
+    document.getElementById('panel').style.display = 'block';
+
+    connection.start()
+      .then(() => setStatus("connected"))
+      .catch(err => setStatus("connection failed: " + err));
+  }
+
+  function parseRoster(text) {
+    return text.split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+      .map(line => {
+        const idx = line.indexOf(':');
+        const squadId = (idx >= 0 ? line.slice(0, idx) : line).trim();
+        const namesPart = idx >= 0 ? line.slice(idx + 1) : '';
+        const side = squadId.toUpperCase().startsWith('D') ? 'Defense' : 'Attack';
+        const members = namesPart.split(',').map(n => n.trim()).filter(Boolean);
+        return { squadId, side, members };
+      });
+  }
+
+  function saveRoster() {
+    const squads = parseRoster(document.getElementById('roster-text').value);
+    connection.invoke("UpdateRoster", { adminKey, squads })
+      .then(() => log(`Sent roster: ${squads.length} squads.`))
+      .catch(err => log("Error (likely wrong admin key): " + err));
+  }
+
+  function resetHistory() {
+    if (!confirm("Reset all events/orders on all connected screens?")) return;
+    connection.invoke("ResetHistory", { adminKey })
+      .then(() => log("Reset requested."))
+      .catch(err => log("Error (likely wrong admin key): " + err));
+  }
+
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+
+  function log(msg) {
+    const el = document.getElementById('log');
+    el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
+  }
+</script>
+</body>
+</html>

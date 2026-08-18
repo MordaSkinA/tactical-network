@@ -74,16 +74,35 @@
   connection.onreconnected(() => setStatus("connected"));
 
   connection.on("BattleEvent", evt =>
-    log(`[${evt.severity}] ${evt.enemyRole ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`));
+    log(`[${evt.severity}] ${evt.enemyRole ?? evt.note ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`));
 
   connection.on("OrderIssued", order =>
     log(`ORDER ${order.type} → ${order.targetSquadId} (by ${order.issuerName})`));
 
   connection.on("Snapshot", items => log(`--- connected, ${items.length} recent events in history ---`));
 
+  connection.on("RosterUpdated", roster => populateSquadDropdown(roster));
+
+  connection.on("HistoryReset", () => log(`--- history was reset by admin ---`));
+
   connection.start()
     .then(() => setStatus("connected"))
     .catch(err => setStatus("connection failed: " + err));
+
+  // Если ростер ещё не задан админом — остаются дефолтные D1-D3/A1-A3 из HTML.
+  function populateSquadDropdown(roster) {
+    if (!roster || roster.length === 0) return;
+    const select = document.getElementById('squad');
+    const current = select.value;
+    select.innerHTML = '';
+    roster.forEach(sq => {
+      const opt = document.createElement('option');
+      opt.value = sq.squadId;
+      opt.textContent = `${sq.squadId} (${sq.side})`;
+      select.appendChild(opt);
+    });
+    if ([...select.options].some(o => o.value === current)) select.value = current;
+  }
 
   function getName() {
     return document.getElementById('name').value.trim() || 'Unknown';

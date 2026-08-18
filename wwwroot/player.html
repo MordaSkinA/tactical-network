@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GvG — Player</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<style>
+  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+  #status { color:#666; font-size:12px; margin-bottom: 14px; }
+
+  .setup { margin-bottom: 24px; }
+  select, input {
+    background:#222; color:#eee; border:1px solid #444; border-radius:6px;
+    padding:10px; font-size:15px; width: 100%; margin-top:6px; box-sizing: border-box;
+  }
+  label { display:block; margin-bottom: 14px; font-size: 13px; color:#aaa; }
+
+  #order-banner {
+    background:#1a1a1a; border-radius: 12px; padding: 22px; text-align:center;
+    margin-bottom: 20px; border: 2px solid #333;
+  }
+  #order-banner .label { font-size: 12px; color:#888; text-transform: uppercase; letter-spacing: 0.06em; }
+  #order-banner .value { font-size: 30px; font-weight: 800; margin-top: 6px; }
+  #order-banner.has-order { border-color:#2f6fb2; }
+
+  #alerts { margin-bottom: 24px; }
+  .alert-item {
+    padding: 12px 14px; margin-bottom: 8px; border-radius: 8px;
+    border-left: 4px solid #555; background:#161616; font-size: 14px;
+  }
+  .Critical { border-left-color:#e33; }
+  .Warning  { border-left-color:#e8a33d; }
+  .Info     { border-left-color:#3d8ee8; }
+  .meta { color:#888; font-size:11px; margin-top: 3px; }
+
+  #sos {
+    width: 100%; padding: 20px; font-size: 20px; font-weight: 800; color:#fff;
+    background:#a4202a; border:none; border-radius:12px; cursor:pointer;
+  }
+  #sos:active { transform: scale(0.98); }
+  #sos:disabled { opacity: 0.5; }
+</style>
+</head>
+<body>
+  <div id="status">connecting…</div>
+
+  <div class="setup">
+    <label>Who are you?
+      <select id="whoami"><option value="">— pick your name —</option></select>
+    </label>
+    <div id="manual-fallback" style="display:none;">
+      <label>Your name
+        <input id="manual-name" placeholder="e.g. Alex">
+      </label>
+      <label>Your squad
+        <select id="manual-squad">
+          <option>D1</option><option>D2</option><option>D3</option>
+          <option>A1</option><option>A2</option><option>A3</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div id="order-banner">
+    <div class="label">Current order</div>
+    <div class="value" id="order-value">—</div>
+  </div>
+
+  <div id="alerts"></div>
+
+  <button id="sos" onclick="sendSos()">SOS</button>
+
+<script>
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/battleHub")
+    .withAutomaticReconnect()
+    .build();
+
+  let roster = [];
+
+  connection.onreconnecting(() => setStatus("reconnecting…"));
+  connection.onreconnected(() => setStatus("connected"));
+
+  connection.on("RosterUpdated", r => {
+    roster = r || [];
+    populateWhoAmI();
+  });
+
+  connection.on("BattleEvent", evt => {
+    if (evt.targetSquadId !== mySquad()) return;
+    addAlert(evt.severity, `${evt.enemyRole ?? evt.note ?? 'EVENT'}`, evt.timestamp);
+  });
+
+  connection.on("OrderIssued", order => {
+    if (order.targetSquadId !== mySquad()) return;
+    setOrder(order.type);
+  });
+
+  connection.on("Snapshot", items => {
+    // находим последний относящийся к нам приказ и последние алерты
+    items.forEach(i => {
+      if ('reporterName' in i) {
+        if (i.targetSquadId === mySquad()) addAlert(i.severity, i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
+      } else {
+        if (i.targetSquadId === mySquad()) setOrder(i.type);
+      }
+    });
+  });
+
+  connection.on("HistoryReset", () => {
+    document.getElementById('alerts').innerHTML = '';
+    setOrder(null);
+  });
+
+  connection.start()
+    .then(() => setStatus("connected"))
+    .catch(err => setStatus("connection failed: " + err));
+
+  function populateWhoAmI() {
+    const select = document.getElementById('whoami');
+    const manual = document.getElementById('manual-fallback');
+    if (roster.length === 0) {
+      // Ростер ещё не задан админом — работаем в ручном режиме (имя + squad вручную).
+      manual.style.display = 'block';
+      select.parentElement.style.display = 'none';
+      return;
+    }
+    select.parentElement.style.display = 'block';
+    manual.style.display = 'none';
+    select.innerHTML = '<option value="">— pick your name —</option>';
+    roster.forEach(sq => {
+      (sq.members || []).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = JSON.stringify({ name, squadId: sq.squadId });
+        opt.textContent = `${name} (${sq.squadId})`;
+        select.appendChild(opt);
+      });
+    });
+  }
+
+  function mySquad() {
+    const whoami = document.getElementById('whoami');
+    if (whoami.value) return JSON.parse(whoami.value).squadId;
+    return document.getElementById('manual-squad').value;
+  }
+
+  function myName() {
+    const whoami = document.getElementById('whoami');
+    if (whoami.value) return JSON.parse(whoami.value).name;
+    return document.getElementById('manual-name').value.trim() || 'Unknown';
+  }
+
+  function sendSos() {
+    connection.invoke("Sos", { reporterName: myName(), squadId: mySquad() })
+      .catch(err => console.error(err));
+  }
+
+  function setOrder(type) {
+    const el = document.getElementById('order-value');
+    const banner = document.getElementById('order-banner');
+    if (!type) {
+      el.textContent = '—';
+      banner.classList.remove('has-order');
+      return;
+    }
+    el.textContent = readableOrder(type);
+    banner.classList.add('has-order');
+  }
+
+  function readableOrder(type) {
+    // camelCase/PascalCase enum значение -> отображаемый текст
+    return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+  }
+
+  function addAlert(severity, title, ts) {
+    const el = document.getElementById('alerts');
+    const div = document.createElement('div');
+    div.className = 'alert-item ' + severity;
+    div.innerHTML = `${title}<div class="meta">${new Date(ts).toLocaleTimeString()}</div>`;
+    el.prepend(div);
+    // не даём ленте расти бесконечно на экране игрока — не его задача листать историю
+    while (el.children.length > 8) el.removeChild(el.lastChild);
+  }
+
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+</script>
+</body>
+</html>

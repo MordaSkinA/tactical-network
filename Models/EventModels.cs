@@ -4,8 +4,8 @@ public enum EnemyRole
 {
     TwinBlades,
     Healer,
-    Bruiser,
-    Ranged,
+    Tank,
+    Nameless,
     Group
 }
 
@@ -28,7 +28,7 @@ public enum OrderType
     TargetTb
 }
 
-// Килент сервак
+
 
 public record ReportEventDto(
     string ReporterName,
@@ -43,7 +43,29 @@ public record IssueOrderDto(
     string TargetSquadId
 );
 
-// сервак клиент
+public record SosDto(
+    string ReporterName,
+    string SquadId
+);
+
+
+
+public record SquadRosterDto(
+    string SquadId,
+    string Side,
+    List<string> Members
+);
+
+public record UpdateRosterDto(
+    string AdminKey,
+    List<SquadRosterDto> Squads
+);
+
+public record AdminActionDto(
+    string AdminKey
+);
+
+
 
 public record BattleEventPushDto(
     Guid EventId,

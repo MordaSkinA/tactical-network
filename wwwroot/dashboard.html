@@ -19,11 +19,19 @@
   .order-item { border-left-color:#8a4de8; }
   .title { font-weight: 600; font-size: 15px; }
   .meta { color:#888; font-size:12px; margin-top: 3px; }
+  #roster { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .squad-card { background:#161616; border-radius:8px; padding:10px 12px; }
+  .squad-card h4 { margin:0 0 4px 0; font-size:13px; color:#aaa; }
+  .squad-card .members { font-size:13px; color:#ccc; }
+  .squad-card.Defense { border-left: 3px solid #3d8ee8; }
+  .squad-card.Attack  { border-left: 3px solid #e8a33d; }
 </style>
 </head>
 <body>
   <h2>Main Commander — Live Feed</h2>
   <div id="status">connecting…</div>
+
+  <div id="roster"></div>
   <div id="feed"></div>
 
 <script>
@@ -38,17 +46,20 @@
   connection.onreconnected(() => setStatus("connected"));
 
   connection.on("BattleEvent", evt =>
-    addItem(evt.severity, `${evt.enemyRole ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
+    addItem(evt.severity, `${evt.enemyRole ?? evt.note ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
 
   connection.on("OrderIssued", order =>
     addItem('order-item', `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
 
+  connection.on("RosterUpdated", roster => renderRoster(roster));
 
+  connection.on("HistoryReset", () => { feed.innerHTML = ''; });
 
+  // Snapshot содержит вперемешку события и приказы — различаем по наличию поля reporterName.
   connection.on("Snapshot", items => {
     items.forEach(i => {
       if ('reporterName' in i) {
-        addItem(i.severity, `${i.enemyRole ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+        addItem(i.severity, `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
       } else {
         addItem('order-item', `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
       }
@@ -58,6 +69,17 @@
   connection.start()
     .then(() => setStatus("connected"))
     .catch(err => setStatus("connection failed: " + err));
+
+  function renderRoster(roster) {
+    const el = document.getElementById('roster');
+    el.innerHTML = '';
+    (roster || []).forEach(sq => {
+      const card = document.createElement('div');
+      card.className = 'squad-card ' + sq.side;
+      card.innerHTML = `<h4>${sq.squadId} · ${sq.side}</h4><div class="members">${(sq.members || []).join(', ') || '—'}</div>`;
+      el.appendChild(card);
+    });
+  }
 
   function setStatus(text) {
     document.getElementById('status').textContent = text;
