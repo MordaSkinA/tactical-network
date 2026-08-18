@@ -1,5 +1,5 @@
-wwwroot\player.html
-wwwroot\observer.html
-wwwroot\index.html
-wwwroot\dashboard.html
 wwwroot\admin.html
+wwwroot\dashboard.html
+wwwroot\index.html
+wwwroot\observer.html
+wwwroot\player.html
