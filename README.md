@@ -2,9 +2,9 @@
 
 ## Что это
 
-- `Server/` - ASP.NET Core 8 приложение с одним SignalR hub (`/battleHub`), broadcast всем подключённым.
-- `Server/wwwroot/observer.html` - панель наблюдателя
-- `Server/wwwroot/dashboard.html` - живая лента для главного коллера
+- `Tacnet` - ASP.NET Core 8 приложение с одним SignalR hub (`/battleHub`), broadcast всем подключённым.
+- `wwwroot/observer.html` - панель наблюдателя
+- `wwwroot/dashboard.html` - живая лента для главного коллера
 
 
 ## Запуск локально

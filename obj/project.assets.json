@@ -14,9 +14,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\faste\\OneDrive\\Документы\\PROJECTS\\repos\\tactical-network\\Tactical-network\\Server.csproj",
-      "projectName": "Server",
-      "projectPath": "C:\\Users\\faste\\OneDrive\\Документы\\PROJECTS\\repos\\tactical-network\\Tactical-network\\Server.csproj",
+      "projectUniqueName": "C:\\Users\\faste\\OneDrive\\Документы\\PROJECTS\\repos\\tactical-network\\Tactical-network\\tacnet.csproj",
+      "projectName": "tacnet",
+      "projectPath": "C:\\Users\\faste\\OneDrive\\Документы\\PROJECTS\\repos\\tactical-network\\Tactical-network\\tacnet.csproj",
       "packagesPath": "C:\\Users\\faste\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\faste\\OneDrive\\Документы\\PROJECTS\\repos\\tactical-network\\Tactical-network\\obj\\",
       "projectStyle": "PackageReference",
