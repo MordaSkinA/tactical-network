@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GvG — Observer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<style>
+  body { background:#111; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 700px; margin: 0 auto; }
+  h2 { margin-bottom: 4px; }
+  .hint { color:#888; font-size: 13px; margin-bottom: 20px; }
+  label { display:block; margin-bottom: 12px; }
+  input, select {
+    background:#222; color:#eee; border:1px solid #444; border-radius:6px;
+    padding:8px; font-size:15px; margin-top:4px; width: 220px;
+  }
+  h3 { margin-top: 28px; margin-bottom: 10px; color:#aaa; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  button {
+    font-size: 17px; padding: 16px 18px; border:none; border-radius:10px;
+    cursor:pointer; color:#fff; min-width: 130px; font-weight: 600;
+  }
+  button:active { transform: scale(0.97); }
+  .enemy { background:#b23b3b; }
+  .order { background:#2f6fb2; }
+  #status { font-size: 12px; color:#666; margin-top: 20px; }
+  #log { font-size: 12px; color:#777; margin-top:14px; white-space:pre-wrap; max-height: 200px; overflow-y:auto; border-top:1px solid #333; padding-top:10px; }
+</style>
+</head>
+<body>
+  <h2>Observer</h2>
+  <div class="hint">Two taps per report: pick target squad once, then tap what you saw.</div>
+
+  <label>Your name
+    <input id="name" placeholder="e.g. Alex" autocomplete="off">
+  </label>
+
+  <label>Target squad
+    <select id="squad">
+      <option>D1</option><option>D2</option><option>D3</option>
+      <option>A1</option><option>A2</option><option>A3</option>
+    </select>
+  </label>
+
+  <h3>Enemy detected</h3>
+  <div class="row">
+    <button class="enemy" onclick="reportEnemy('TwinBlades')">ENEMY TB</button>
+    <button class="enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
+    <button class="enemy" onclick="reportEnemy('Bruiser')">ENEMY BRUISER</button>
+    <button class="enemy" onclick="reportEnemy('Ranged')">ENEMY RANGED</button>
+    <button class="enemy" onclick="reportEnemy('Group')">ENEMY GROUP</button>
+  </div>
+
+  <h3>Orders</h3>
+  <div class="row">
+    <button class="order" onclick="issueOrder('Push')">PUSH</button>
+    <button class="order" onclick="issueOrder('Hold')">HOLD</button>
+    <button class="order" onclick="issueOrder('FallBack')">FALL BACK</button>
+    <button class="order" onclick="issueOrder('Rotate')">ROTATE</button>
+    <button class="order" onclick="issueOrder('Defend')">DEFEND</button>
+    <button class="order" onclick="issueOrder('ProtectHealer')">PROTECT HEALER</button>
+  </div>
+
+  <div id="status">connecting…</div>
+  <div id="log"></div>
+
+<script>
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/battleHub")
+    .withAutomaticReconnect()
+    .build();
+
+  connection.onreconnecting(() => setStatus("reconnecting…"));
+  connection.onreconnected(() => setStatus("connected"));
+
+  connection.on("BattleEvent", evt =>
+    log(`[${evt.severity}] ${evt.enemyRole ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`));
+
+  connection.on("OrderIssued", order =>
+    log(`ORDER ${order.type} → ${order.targetSquadId} (by ${order.issuerName})`));
+
+  connection.on("Snapshot", items => log(`--- connected, ${items.length} recent events in history ---`));
+
+  connection.start()
+    .then(() => setStatus("connected"))
+    .catch(err => setStatus("connection failed: " + err));
+
+  function getName() {
+    return document.getElementById('name').value.trim() || 'Unknown';
+  }
+
+  function reportEnemy(role) {
+    const squad = document.getElementById('squad').value;
+    connection.invoke("ReportEvent", {
+      reporterName: getName(),
+      enemyRole: role,
+      targetSquadId: squad,
+      note: null
+    }).catch(err => log("Error: " + err));
+  }
+
+  function issueOrder(type) {
+    const squad = document.getElementById('squad').value;
+    connection.invoke("IssueOrder", {
+      issuerName: getName(),
+      type: type,
+      targetSquadId: squad
+    }).catch(err => log("Error: " + err));
+  }
+
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+
+  function log(msg) {
+    const el = document.getElementById('log');
+    el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
+  }
+</script>
+</body>
+</html>

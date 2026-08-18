@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GvG — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<style>
+  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: 0 auto; }
+  h2 { margin-bottom: 2px; }
+  #status { color:#666; font-size:12px; margin-bottom: 18px; }
+  .feed-item {
+    padding: 12px 14px; margin-bottom: 8px; border-radius: 8px;
+    border-left: 4px solid #555; background:#1a1a1a;
+  }
+  .Critical { border-left-color:#e33; }
+  .Warning  { border-left-color:#e8a33d; }
+  .Info     { border-left-color:#3d8ee8; }
+  .order-item { border-left-color:#8a4de8; }
+  .title { font-weight: 600; font-size: 15px; }
+  .meta { color:#888; font-size:12px; margin-top: 3px; }
+</style>
+</head>
+<body>
+  <h2>Main Commander — Live Feed</h2>
+  <div id="status">connecting…</div>
+  <div id="feed"></div>
+
+<script>
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/battleHub")
+    .withAutomaticReconnect()
+    .build();
+
+  const feed = document.getElementById('feed');
+
+  connection.onreconnecting(() => setStatus("reconnecting…"));
+  connection.onreconnected(() => setStatus("connected"));
+
+  connection.on("BattleEvent", evt =>
+    addItem(evt.severity, `${evt.enemyRole ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
+
+  connection.on("OrderIssued", order =>
+    addItem('order-item', `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
+
+
+
+  connection.on("Snapshot", items => {
+    items.forEach(i => {
+      if ('reporterName' in i) {
+        addItem(i.severity, `${i.enemyRole ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+      } else {
+        addItem('order-item', `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+      }
+    });
+  });
+
+  connection.start()
+    .then(() => setStatus("connected"))
+    .catch(err => setStatus("connection failed: " + err));
+
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+
+  function addItem(cls, title, who, ts) {
+    const div = document.createElement('div');
+    div.className = 'feed-item ' + cls;
+    div.innerHTML = `<div class="title">${title}</div><div class="meta">${who} · ${new Date(ts).toLocaleTimeString()}</div>`;
+    feed.prepend(div);
+  }
+</script>
+</body>
+</html>

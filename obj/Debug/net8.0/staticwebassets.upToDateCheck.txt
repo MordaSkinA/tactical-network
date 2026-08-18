@@ -1,0 +1,3 @@
+wwwroot\dashboard.html
+wwwroot\index.html
+wwwroot\observer.html
