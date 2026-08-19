@@ -3,9 +3,7 @@
     "SquadId": "T1",
     "Side": "Flex",
     "LeaderName": null,
-    "Members": [
-      "morda"
-    ]
+    "Members": []
   },
   {
     "SquadId": "T2",
@@ -29,14 +27,15 @@
     "SquadId": "T5",
     "Side": "Flex",
     "LeaderName": null,
-    "Members": [
-      "SpillTheTea"
-    ]
+    "Members": []
   },
   {
     "SquadId": "T6",
     "Side": "Flex",
     "LeaderName": null,
-    "Members": []
+    "Members": [
+      "SpillTheTea",
+      "toad"
+    ]
   }
 ]

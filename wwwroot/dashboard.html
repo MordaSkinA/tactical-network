@@ -18,6 +18,15 @@
   .Warning  { border-left-color:#e8a33d; }
   .Info     { border-left-color:#3d8ee8; }
   .order-item { border-left-color:#8a4de8; }
+  .cat-critical    { border-left-color:#6e1c1c; }
+  .cat-attack      { border-left-color:#c1622b; }
+  .cat-attack-key  { border-left-color:#e8790f; }
+  .cat-defend      { border-left-color:#4c7a4f; }
+  .cat-hold        { border-left-color:#2e5230; }
+  .cat-protect     { border-left-color:#4fae82; }
+  .cat-tactic      { border-left-color:#2f6fb2; }
+  .cat-fallback    { border-left-color:#4a90c4; }
+  .cat-jungle      { border-left-color:#1e3a5f; }
   .title { font-weight: 600; font-size: 15px; }
   .meta { color:#888; font-size:12px; margin-top: 3px; }
   #roster { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
@@ -51,6 +60,22 @@
 
   const feed = document.getElementById('feed');
 
+  const ORDER_CATEGORIES = {
+    SquadWiped: 'critical',
+    PushBot: 'attack', PushMid: 'attack', PushTop: 'attack', AttackGoose: 'attack',
+    KillBoss: 'attack-key', Bomb: 'attack-key',
+    DefendBot: 'defend', DefendMid: 'defend', DefendTop: 'defend', DefendGoose: 'defend', DefendTree: 'defend',
+    Hold: 'hold',
+    ProtectHealer: 'protect',
+    Rotate: 'tactic',
+    FallBack: 'fallback',
+    BotJungle: 'jungle', TopJungle: 'jungle'
+  };
+  function orderClass(type) {
+    const category = ORDER_CATEGORIES[type];
+    return category ? 'cat-' + category : 'order-item';
+  }
+
   connection.onreconnecting(() => setStatus("reconnecting…"));
   connection.onreconnected(() => setStatus("connected"));
 
@@ -58,7 +83,7 @@
     addItem(evt.severity, `${evt.enemyRole ?? evt.note ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
 
   connection.on("OrderIssued", order =>
-    addItem('order-item', `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
+    addItem(orderClass(order.type), `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
 
   connection.on("RosterUpdated", roster => renderRoster(roster));
 
@@ -70,7 +95,7 @@
       if ('reporterName' in i) {
         addItem(i.severity, `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
       } else {
-        addItem('order-item', `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+        addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
       }
     });
   });

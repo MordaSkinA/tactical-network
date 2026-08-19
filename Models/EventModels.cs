@@ -25,14 +25,26 @@ public enum EventSeverity
 
 public enum OrderType
 {
-    Push,
+    PushBot,
+    PushMid,
+    PushTop,
+    AttackGoose,
     Hold,
     FallBack,
     Rotate,
-    Defend,
+    DefendBot,
+    DefendMid,
+    DefendTop,
+    DefendGoose,
+    DefendTree,
     ProtectHealer,
     TargetHealer,
-    TargetTb
+    TargetTb,
+    KillBoss,
+    BotJungle,
+    TopJungle,
+    Bomb,
+    SquadWiped
 }
 
 public class UserAccount

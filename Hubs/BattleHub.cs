@@ -77,7 +77,33 @@ public class BattleHub : Hub
     {
         RequireRole(UserRole.Admin);
         _state.SetRoster(dto.Squads);
+        SyncAccountSquadsWithRoster(dto.Squads);
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
+    }
+
+    // Ростер — источник правды по составу отрядов. При каждом сохранении
+    // приводим SquadId в аккаунтах Leader/Player в соответствие с ним,
+    // иначе после переноса игрока в другой отряд в ростере его аккаунт
+    // навсегда оставался привязан к squad, который был на момент создания.
+    // Сопоставление идёт по имени участника в ростере == логину аккаунта
+    // (без учёта регистра) — так это уже совпадает в обычном сценарии,
+    // когда логин создаётся по подсказке из имени в пуле.
+    private void SyncAccountSquadsWithRoster(IReadOnlyList<SquadRosterDto> squads)
+    {
+        var memberSquad = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var squad in squads)
+            foreach (var member in squad.Members)
+                memberSquad[member] = squad.SquadId;
+
+        foreach (var account in _accounts.All().ToList())
+        {
+            if (account.Role != UserRole.Leader && account.Role != UserRole.Player)
+                continue; // Commander/Admin не привязаны к ростеру
+
+            var newSquadId = memberSquad.TryGetValue(account.Username, out var sid) ? sid : null;
+            if (!string.Equals(account.SquadId, newSquadId, StringComparison.OrdinalIgnoreCase))
+                _accounts.Upsert(account.Username, account.Role, newSquadId, null);
+        }
     }
 
     public async Task ResetHistory()
@@ -130,11 +156,15 @@ public class BattleHub : Hub
         throw new HubException("Not authenticated.");
     }
 
-    private static string RequireSquad(SessionInfo session)
+    // Смотрим squad не из закэшированной при логине сессии, а свежий из
+    // аккаунта — иначе игрок, перенесённый админом в другой отряд, продолжал
+    // бы слать приказы/репорты в старый squad, пока не перелогинится.
+    private string RequireSquad(SessionInfo session)
     {
-        if (string.IsNullOrEmpty(session.SquadId))
+        var squadId = _accounts.Find(session.Username)?.SquadId;
+        if (string.IsNullOrEmpty(squadId))
             throw new HubException("Your account isn't assigned to a squad yet — ask your admin.");
-        return session.SquadId;
+        return squadId;
     }
 
     private void RequireNotRateLimited()

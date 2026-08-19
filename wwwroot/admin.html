@@ -285,6 +285,7 @@
         connection.on("RosterUpdated", roster => {
             if (!initialized) { loadRosterIntoUi(roster); initialized = true; }
             else log("Roster changed on the server. Reload if this wasn't you.");
+            refreshAccounts();
         });
 
         connection.on("HistoryReset", () => log("History archived and reset (broadcast confirmed)."));

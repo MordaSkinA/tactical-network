@@ -78,12 +78,53 @@
                 transform: scale(0.97);
             }
 
+        /* Опасность / враги — красный */
         .enemy {
             background: #b23b3b;
         }
 
-        .order {
+        /* Критическое событие (потеря отряда) — тёмно-бордовый */
+        .critical {
+            background: #6e1c1c;
+        }
+
+        /* Атака / натиск — оранжевый и терракотовый */
+        .attack {
+            background: #c1622b;
+        }
+
+        /* Ключевые агрессивные действия (бомба, босс) — яркий оранжевый */
+        .attack-key {
+            background: #e8790f;
+        }
+
+        /* Оборона позиций — приглушённый зелёный */
+        .defend {
+            background: #4c7a4f;
+        }
+
+        /* Удержание позиции — тёмно-зелёный */
+        .hold {
+            background: #2e5230;
+        }
+
+        /* Защита цели — светлый мятный */
+        .protect {
+            background: #4fae82;
+        }
+
+        /* Манёвры / тактика — синий и голубой */
+        .tactic {
             background: #2f6fb2;
+        }
+
+        .fallback {
+            background: #4a90c4;
+        }
+
+        /* Нейтральные зоны карты — тёмно-синий */
+        .jungle {
+            background: #1e3a5f;
         }
 
         #status {
@@ -130,16 +171,36 @@
         <button class="action-btn enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
         <button class="action-btn enemy" onclick="reportEnemy('Tank')">ENEMY TANK</button>
         <button class="action-btn enemy" onclick="reportEnemy('Nameless')">ENEMY NAMELESS</button>
+        <button class="action-btn critical" onclick="issueOrder('SquadWiped')">SQUAD WIPED</button>
     </div>
 
-    <h3>Orders</h3>
+    <h3>Push &amp; attack</h3>
     <div class="row">
-        <button class="action-btn order" onclick="issueOrder('Push')">PUSH</button>
-        <button class="action-btn order" onclick="issueOrder('Hold')">HOLD</button>
-        <button class="action-btn order" onclick="issueOrder('FallBack')">FALL BACK</button>
-        <button class="action-btn order" onclick="issueOrder('Rotate')">ROTATE</button>
-        <button class="action-btn order" onclick="issueOrder('Defend')">DEFEND</button>
-        <button class="action-btn order" onclick="issueOrder('ProtectHealer')">PROTECT HEALER</button>
+        <button class="action-btn attack" onclick="issueOrder('PushBot')">PUSH BOT</button>
+        <button class="action-btn attack" onclick="issueOrder('PushMid')">PUSH MID</button>
+        <button class="action-btn attack" onclick="issueOrder('PushTop')">PUSH TOP</button>
+        <button class="action-btn attack" onclick="issueOrder('AttackGoose')">ATTACK GOOSE</button>
+        <button class="action-btn attack-key" onclick="issueOrder('KillBoss')">KILL BOSS</button>
+        <button class="action-btn attack-key" onclick="issueOrder('Bomb')">BOMB</button>
+    </div>
+
+    <h3>Defend &amp; hold</h3>
+    <div class="row">
+        <button class="action-btn defend" onclick="issueOrder('DefendBot')">DEFEND BOT</button>
+        <button class="action-btn defend" onclick="issueOrder('DefendMid')">DEFEND MID</button>
+        <button class="action-btn defend" onclick="issueOrder('DefendTop')">DEFEND TOP</button>
+        <button class="action-btn defend" onclick="issueOrder('DefendGoose')">DEFEND GOOSE</button>
+        <button class="action-btn defend" onclick="issueOrder('DefendTree')">DEFEND TREE</button>
+        <button class="action-btn hold" onclick="issueOrder('Hold')">HOLD</button>
+        <button class="action-btn protect" onclick="issueOrder('ProtectHealer')">PROTECT HEALER</button>
+    </div>
+
+    <h3>Movement &amp; tactics</h3>
+    <div class="row">
+        <button class="action-btn tactic" onclick="issueOrder('Rotate')">ROTATE</button>
+        <button class="action-btn fallback" onclick="issueOrder('FallBack')">FALL BACK</button>
+        <button class="action-btn jungle" onclick="issueOrder('BotJungle')">BOT JUNGLE</button>
+        <button class="action-btn jungle" onclick="issueOrder('TopJungle')">TOP JUNGLE</button>
     </div>
 
     <div id="status">connecting…</div>
@@ -165,6 +226,18 @@
 
         connection.on("OrderIssued", order =>
             log(`ORDER ${order.type} → ${order.targetSquadId} (by ${order.issuerName})`));
+
+        connection.on("RosterUpdated", roster => updateSquadFromRoster(roster));
+
+        function updateSquadFromRoster(roster) {
+            if (!roster || !currentUser) return;
+            const mine = roster.find(sq => (sq.members || []).some(m => m.toLowerCase() === currentUser.username.toLowerCase()));
+            const newSquadId = mine ? mine.squadId : null;
+            if (newSquadId === currentUser.squadId) return;
+            currentUser.squadId = newSquadId;
+            localStorage.setItem('gvg_session', JSON.stringify(currentUser));
+            document.getElementById('user-info').innerHTML = `Вы вошли как: <strong>${currentUser.username}</strong> <br> Отряд: <strong>${currentUser.squadId || 'Не назначен'}</strong>`;
+        }
 
         connection.start()
             .then(() => setStatus("connected"))
