@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GvG Tactical Network — Login</title>
+    <title>GvG Tactical Network - Login</title>
     <style>
         body {
             background: #111;
@@ -64,14 +64,14 @@
     <h2>GvG Tactical Network</h2>
     <form id="login-form">
         <label>
-            Логин
+            Username
             <input id="username" autocomplete="username" required>
         </label>
         <label>
-            Пароль
+            Password
             <input id="password" type="password" autocomplete="current-password" required>
         </label>
-        <button type="submit">Войти</button>
+        <button type="submit">Log in</button>
         <div id="error"></div>
     </form>
 
@@ -95,10 +95,10 @@
         body: JSON.stringify({ username, password })
       });
 
-      if (res.status === 429) { errorEl.textContent = 'Слишком много попыток — подождите немного.'; return; }
+      if (res.status === 429) { errorEl.textContent = 'Too many attempts. Please wait a moment.'; return; }
 
       const data = await res.json();
-      if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Неверный логин или пароль.'; return; }
+      if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Invalid username or password.'; return; }
 
       localStorage.setItem('gvg_session', JSON.stringify({
         token: data.token,
@@ -108,7 +108,7 @@
       }));
       location.href = '/menu.html';
     } catch (err) {
-      errorEl.textContent = 'Ошибка соединения: ' + err;
+      errorEl.textContent = 'Connection error: ' + err;
     }
   });
     </script>

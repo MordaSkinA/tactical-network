@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GvG — Dashboard</title>
+<title>GvG - Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 <script src="/js/auth.js"></script>
 <style>
@@ -41,11 +41,11 @@
 </head>
 <body>
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-    <h2 style="margin: 0;">Main Commander - Live Feed</h2>
-    <a class="menu-nav-btn" href="/menu.html">☰ Меню</a>
-    <button onclick="logout()" style="font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Выйти</button>
+    <h2 style="margin: 0;">Main Commander. Live Feed</h2>
+    <a class="menu-nav-btn" href="/menu.html">Menu</a>
+    <button onclick="logout()" style="font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Log out</button>
   </div>
-  <div id="status">connecting…</div>
+  <div id="status">connecting...</div>
 
   <div id="roster"></div>
   <div id="feed"></div>
@@ -76,11 +76,11 @@
     return category ? 'cat-' + category : 'order-item';
   }
 
-  connection.onreconnecting(() => setStatus("reconnecting…"));
+  connection.onreconnecting(() => setStatus("reconnecting..."));
   connection.onreconnected(() => setStatus("connected"));
 
   connection.on("BattleEvent", evt =>
-    addItem(evt.severity, `${evt.enemyRole ?? evt.note ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
+    addItem(alertClass(evt), `${evt.enemyRole ?? evt.note ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
 
   connection.on("OrderIssued", order =>
     addItem(orderClass(order.type), `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
@@ -93,12 +93,17 @@
   connection.on("Snapshot", items => {
     items.forEach(i => {
       if ('reporterName' in i) {
-        addItem(i.severity, `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+        addItem(alertClass(i), `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
       } else {
         addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
       }
     });
   });
+
+  // Репорты врага 
+  function alertClass(evt) {
+    return evt.enemyRole != null ? 'Critical' : evt.severity;
+  }
 
   connection.start()
     .then(() => setStatus("connected"))
@@ -116,7 +121,7 @@
 
       const membersEl = document.createElement('div');
       membersEl.className = 'members';
-      membersEl.textContent = (sq.members || []).join(', ') || '—';
+      membersEl.textContent = (sq.members || []).join(', ') || '-';
 
       card.append(h4, membersEl);
       el.appendChild(card);

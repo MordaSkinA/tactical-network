@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GvG — Observer</title>
+    <title>Team Leader</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
     <style>
@@ -78,42 +78,42 @@
                 transform: scale(0.97);
             }
 
-        /* Опасность / враги — красный */
+        /* Danger / enemies - red */
         .enemy {
             background: #b23b3b;
         }
 
-        /* Критическое событие (потеря отряда) — тёмно-бордовый */
+        /* Critical event (squad wiped) - dark maroon */
         .critical {
             background: #6e1c1c;
         }
 
-        /* Атака / натиск — оранжевый и терракотовый */
+        /* Attack / push - orange and terracotta */
         .attack {
             background: #c1622b;
         }
 
-        /* Ключевые агрессивные действия (бомба, босс) — яркий оранжевый */
+        /* Key aggressive actions (bomb, boss) - bright orange */
         .attack-key {
             background: #e8790f;
         }
 
-        /* Оборона позиций — приглушённый зелёный */
+        /* Defending positions - muted green */
         .defend {
             background: #4c7a4f;
         }
 
-        /* Удержание позиции — тёмно-зелёный */
+        /* Holding a position - dark green */
         .hold {
             background: #2e5230;
         }
 
-        /* Защита цели — светлый мятный */
+        /* Protecting a target - light mint */
         .protect {
             background: #4fae82;
         }
 
-        /* Манёвры / тактика — синий и голубой */
+        /* Maneuvers / tactics - blue and cyan */
         .tactic {
             background: #2f6fb2;
         }
@@ -122,7 +122,7 @@
             background: #4a90c4;
         }
 
-        /* Нейтральные зоны карты — тёмно-синий */
+        /* Neutral map zones - dark blue */
         .jungle {
             background: #1e3a5f;
         }
@@ -158,14 +158,14 @@
     </style>
 </head>
 <body>
-    <h2>Observer <span><a class="menu-nav-btn" href="/menu.html">☰ Меню</a><button class="header-btn" onclick="logout()">Выйти</button></span></h2>
-    <div class="hint">Отправка репортов и приказов для вашего отряда.</div>
+    <h2>Team Leader <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
+    <div class="hint">Send reports and orders for your squad.</div>
 
     <div class="user-info" id="user-info">
-        Загрузка профиля...
+        Loading profile...
     </div>
 
-    <h3>Enemy detected</h3>
+    <h3>Enemy</h3>
     <div class="row">
         <button class="action-btn enemy" onclick="reportEnemy('TwinBlades')">ENEMY TB</button>
         <button class="action-btn enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
@@ -203,14 +203,14 @@
         <button class="action-btn jungle" onclick="issueOrder('TopJungle')">TOP JUNGLE</button>
     </div>
 
-    <div id="status">connecting…</div>
+    <div id="status">connecting...</div>
     <div id="log"></div>
 
     <script>
 
         const currentUser = requireAuth(['Leader', 'Admin']);
         if (currentUser) {
-            document.getElementById('user-info').innerHTML = `Вы вошли как: <strong>${currentUser.username}</strong> <br> Отряд: <strong>${currentUser.squadId || 'Не назначен'}</strong>`;
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId || 'Unassigned'}</strong>`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -218,7 +218,7 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.onreconnecting(() => setStatus("reconnecting…"));
+        connection.onreconnecting(() => setStatus("reconnecting..."));
         connection.onreconnected(() => setStatus("connected"));
 
         connection.on("BattleEvent", evt =>
@@ -236,7 +236,7 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').innerHTML = `Вы вошли как: <strong>${currentUser.username}</strong> <br> Отряд: <strong>${currentUser.squadId || 'Не назначен'}</strong>`;
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId || 'Unassigned'}</strong>`;
         }
 
         connection.start()

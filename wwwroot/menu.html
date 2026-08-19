@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GvG — Меню</title>
+    <title>GvG - Menu</title>
     <script src="/js/auth.js"></script>
     <style>
         body {
@@ -69,17 +69,17 @@
     </style>
 </head>
 <body>
-    <h2>Меню <button class="header-btn" onclick="logout()">Выйти</button></h2>
-    <div class="hint" id="hint">Загрузка...</div>
+    <h2>Menu <button class="header-btn" onclick="logout()">Log out</button></h2>
+    <div class="hint" id="hint">Loading...</div>
     <div class="tab-list" id="tab-list"></div>
 
     <script>
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin']);
 
         document.getElementById('hint').textContent =
-            `Вы вошли как ${currentUser.username} (${currentUser.role}). Доступные вкладки:`;
+            `Signed in as ${currentUser.username} (${currentUser.role}). Available tabs:`;
 
-        const labels = { Player: 'Player — свой отряд', Observer: 'Observer', Dashboard: 'Dashboard', Admin: 'Admin Panel' };
+        const labels = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel' };
 
         const tabs = getAccessibleTabs(currentUser.role);
         document.getElementById('tab-list').innerHTML = tabs.map(t => `

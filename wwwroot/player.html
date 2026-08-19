@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GvG — Player</title>
+    <title>GvG - Player</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
     <style>
@@ -168,16 +168,16 @@
 </head>
 <body>
     <div class="header">
-        <div id="status">connecting…</div>
-        <a class="menu-nav-btn" href="/menu.html">☰ Меню</a>
-        <button class="logout-btn" onclick="logout()">Выйти</button>
+        <div id="status">connecting...</div>
+        <a class="menu-nav-btn" href="/menu.html">Menu</a>
+        <button class="logout-btn" onclick="logout()">Log out</button>
     </div>
 
-    <div class="user-info" id="user-info">Загрузка...</div>
+    <div class="user-info" id="user-info">Loading...</div>
 
     <div id="order-banner">
         <div class="label">Current order</div>
-        <div class="value" id="order-value">—</div>
+        <div class="value" id="order-value">-</div>
     </div>
 
     <div id="alerts"></div>
@@ -188,7 +188,7 @@
 
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin']);
         if (currentUser) {
-            document.getElementById('user-info').textContent = `Боец: ${currentUser.username} | Отряд: ${currentUser.squadId || 'Нет'}`;
+            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId || 'None'}`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -196,12 +196,12 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.onreconnecting(() => setStatus("reconnecting…"));
+        connection.onreconnecting(() => setStatus("reconnecting..."));
         connection.onreconnected(() => setStatus("connected"));
 
         connection.on("BattleEvent", evt => {
             if (evt.targetSquadId !== currentUser.squadId) return;
-            addAlert(evt.severity, `${evt.enemyRole ?? evt.note ?? 'EVENT'}`, evt.timestamp);
+            addAlert(alertClass(evt), `${evt.enemyRole ?? evt.note ?? 'EVENT'}`, evt.timestamp);
         });
 
         connection.on("OrderIssued", order => {
@@ -212,12 +212,17 @@
         connection.on("Snapshot", items => {
             items.forEach(i => {
                 if ('reporterName' in i) {
-                    if (i.targetSquadId === currentUser.squadId) addAlert(i.severity, i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
+                    if (i.targetSquadId === currentUser.squadId) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
                 } else {
                     if (i.targetSquadId === currentUser.squadId) setOrder(i.type);
                 }
             });
         });
+
+
+        function alertClass(evt) {
+            return evt.enemyRole != null ? 'Critical' : evt.severity;
+        }
 
         connection.on("HistoryReset", () => {
             document.getElementById('alerts').innerHTML = '';
@@ -233,7 +238,7 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').textContent = `Боец: ${currentUser.username} | Отряд: ${currentUser.squadId || 'Нет'}`;
+            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId || 'None'}`;
         }
 
         connection.start()
@@ -262,7 +267,7 @@
             const banner = document.getElementById('order-banner');
             banner.classList.remove(...ALL_CATEGORY_CLASSES);
             if (!type) {
-                el.textContent = '—';
+                el.textContent = '-';
                 banner.classList.remove('has-order');
                 return;
             }

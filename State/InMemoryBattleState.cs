@@ -174,6 +174,8 @@ public class InMemoryBattleState : IBattleState
     private static EventSeverity EscalateSeverity(ReportEventDto dto) =>
         dto.EnemyRole switch {
             EnemyRole.TwinBlades => EventSeverity.Critical,
+            EnemyRole.Tank => EventSeverity.Critical,
+            EnemyRole.Nameless => EventSeverity.Warning,
             EnemyRole.Healer => EventSeverity.Warning,
             _ => EventSeverity.Info
         };

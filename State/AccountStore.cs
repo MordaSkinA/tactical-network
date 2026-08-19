@@ -15,9 +15,7 @@ public interface IAccountStore
     bool VerifyPassword(UserAccount account, string plainPassword);
 }
 
-// Пароли хэшируются (PBKDF2, встроено в .NET, без внешних библиотек) — раньше
-// PasswordHash содержал пароль в открытом виде. Аккаунты сохраняются в
-// accounts.json, переживают рестарт сервера.
+
 public class FileAccountStore : IAccountStore
 {
     private readonly string _filePath;
@@ -33,9 +31,7 @@ public class FileAccountStore : IAccountStore
         _filePath = Path.Combine(env.ContentRootPath, "accounts.json");
         _accounts = Load();
 
-        // Сеется один раз, если файла ещё нет — логин/пароль из appsettings.json
-        // (AdminSeedLogin/AdminSeedPassword). Смените пароль сразу после первого
-        // входа — прототип уже на публичном VPS.
+        // на один раз, данные в appsettings.json
         if (_accounts.Count == 0)
         {
             var seedLogin = config["AdminSeedLogin"] ?? "admin";

@@ -1,13 +1,5 @@
 [
   {
-    "Id": "2959a2de-1a7c-4b24-bf47-dccbeccd958d",
-    "Username": "admin",
-    "PasswordHash": "roi4msnGXKYxsgqqgs6oewQ3buwQkB1uAnA8xCdVEKs=",
-    "PasswordSalt": "Qop3GqkY25aXruvROGOYZg==",
-    "Role": 0,
-    "SquadId": null
-  },
-  {
     "Id": "861d862e-013b-4af5-bc07-27b3902c52f6",
     "Username": "morda",
     "PasswordHash": "xzBFG/i0kdAuBdOn9Avd4GpCXcEGIXhiR0pFOlwnqI0=",
@@ -38,5 +30,13 @@
     "PasswordSalt": "\u002Bx28F/7cc\u002BdBW\u002BhH59avDg==",
     "Role": 3,
     "SquadId": "T6"
+  },
+  {
+    "Id": "fac6ec59-4fc2-4a4c-87ff-404dc67dca52",
+    "Username": "admin",
+    "PasswordHash": "62NTxFprL6Lun8Bh8WAULoDMy90uHCoIoYpDbvAiL9M=",
+    "PasswordSalt": "adtCSyFqJwmupHoqwZ\u002Bs6A==",
+    "Role": 0,
+    "SquadId": null
   }
 ]

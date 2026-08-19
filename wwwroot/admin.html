@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GvG — Admin</title>
+    <title>GvG - Admin</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
     <style>
@@ -232,40 +232,40 @@
     </style>
 </head>
 <body>
-    <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">☰ Меню</a><button class="header-btn" onclick="logout()">Выйти</button></span></h2>
+    <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
 
-    <h3>1. Добавить участников в пул</h3>
-    <textarea id="pool-input" placeholder="Alice, Bob, Carol..."></textarea>
-    <button class="primary" onclick="addToPool()">В пул</button>
+    <h3>1. Add members to the pool</h3>
+    <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
+    <button class="primary" onclick="addToPool()">Add to pool</button>
 
-    <h3>Свободные игроки (Unassigned)</h3>
+    <h3>Free players (Unassigned)</h3>
     <div id="pool" class="chip-list"></div>
 
-    <h3>2. Отряды — распределите игроков, назначьте роль и лидера</h3>
-    <div class="hint">🎖 на имени — сделать лидером (доступ к панели Observer). 👤 — создать аккаунт игрока.</div>
+    <h3>2. Teams. Assign players, set role and leaders</h3>
+    <div class="hint">"L" icon on a name - make leader (grants access to the Team Leader panel). "P" - create a player account.</div>
     <div id="squads" class="squad-grid"></div>
 
     <div style="margin-top:20px;">
-        <button class="primary" onclick="saveRoster()">Сохранить ростер</button>
-        <button class="secondary" onclick="saveLogNow()">Сохранить лог сейчас</button>
-        <button class="danger" onclick="resetHistory()">Сбросить историю (с архивацией)</button>
+        <button class="primary" onclick="saveRoster()">Save roster</button>
+        <button class="secondary" onclick="saveLogNow()">Save log now</button>
+        <button class="danger" onclick="resetHistory()">Reset history (with archiving)</button>
     </div>
 
-    <h3>3. Аккаунты</h3>
+    <h3>3. Accounts</h3>
     <div id="accounts-list"></div>
 
     <details>
-        <summary>Добавить аккаунт Commander/Admin</summary>
-        <label>Логин <input id="new-acc-username"></label>
-        <label>Пароль <input id="new-acc-password" type="password"></label>
+        <summary>Add a Commander/Admin account</summary>
+        <label>Username <input id="new-acc-username"></label>
+        <label>Password <input id="new-acc-password" type="password"></label>
         <label>
-            Роль
+            Role
             <select id="new-acc-role">
                 <option value="Commander">Commander</option>
                 <option value="Admin">Admin</option>
             </select>
         </label>
-        <button class="primary" onclick="addStandaloneAccount()">Создать</button>
+        <button class="primary" onclick="addStandaloneAccount()">Create</button>
     </details>
 
     <div id="log"></div>
@@ -294,7 +294,7 @@
             .then(() => { log("Connected."); refreshAccounts(); })
             .catch(err => log("Connection failed: " + err));
 
-        // --- Pool ---
+        // пул
 
         function addToPool() {
             const raw = document.getElementById('pool-input').value;
@@ -325,15 +325,15 @@
 
         function setSquadSide(squadIndex, value) { squads[squadIndex].side = value; }
 
-        // --- Squad member quick actions: leader / player account ---
+        // лиды, игроки, аккаунты
 
         function makeAccount(name, squadId, role) {
-            const username = prompt(`Логин для ${name}:`, name.toLowerCase().replace(/\s+/g, '.'));
+            const username = prompt(`Username for ${name}:`, name.toLowerCase().replace(/\s+/g, '.'));
             if (!username) return;
-            const password = prompt(`Пароль для ${name}:`);
+            const password = prompt(`Password for ${name}:`);
             if (!password) return;
             connection.invoke("UpsertAccount", { username, role, squadId: squadId || null, password })
-                .then(() => { log(`Аккаунт создан: ${username} (${role}${squadId ? ', ' + squadId : ''})`); refreshAccounts(); })
+                .then(() => { log(`Account created: ${username} (${role}${squadId ? ', ' + squadId : ''})`); refreshAccounts(); })
                 .catch(err => log("Error: " + err));
         }
 
@@ -354,16 +354,16 @@
             if (action === 'make-player') makeAccount(squads[si].members[mi], squads[si].squadId, 'Player');
         });
 
-        // --- Rendering ---
+
 
         function renderPool() {
             const el = document.getElementById('pool');
-            if (pool.length === 0) { el.innerHTML = '<span class="empty-hint">Пусто</span>'; return; }
+            if (pool.length === 0) { el.innerHTML = '<span class="empty-hint">Empty</span>'; return; }
             el.innerHTML = pool.map((name, i) => `
           <div class="chip">
             <span>${escapeHtml(name)}</span>
             <select onchange="assignFromPool(${i}, this.value)">
-              <option value="">в отряд…</option>
+              <option value="">to squad...</option>
               ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
             </select>
             <button class="chip-remove" onclick="removeFromPool(${i})">×</button>
@@ -376,7 +376,7 @@
             el.innerHTML = squads.map((sq, si) => `
           <div class="squad-edit-card">
             <div class="squad-edit-header">
-              <strong>${sq.squadId}${sq.leaderName ? ' · 👑 ' + escapeHtml(sq.leaderName) : ''}</strong>
+              <strong>${sq.squadId}${sq.leaderName ? ' · Leader: ' + escapeHtml(sq.leaderName) : ''}</strong>
               <select onchange="setSquadSide(${si}, this.value)" style="width:auto; margin:0; padding:4px;">
                 <option value="Defense" ${sq.side === 'Defense' ? 'selected' : ''}>Defense</option>
                 <option value="Attack" ${sq.side === 'Attack' ? 'selected' : ''}>Attack</option>
@@ -388,9 +388,9 @@
                     ? sq.members.map((m, mi) => `
                     <div class="chip">
                       <span>${escapeHtml(m)}</span>
-                      <button class="chip-action leader" data-action="make-leader" data-squad-index="${si}" data-member-index="${mi}" title="Сделать лидером">🎖</button>
-                      <button class="chip-action player" data-action="make-player" data-squad-index="${si}" data-member-index="${mi}" title="Создать аккаунт игрока">👤</button>
-                      <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Убрать из отряда">×</button>
+                      <button class="chip-action leader" data-action="make-leader" data-squad-index="${si}" data-member-index="${mi}" title="Make leader">L</button>
+                      <button class="chip-action player" data-action="make-player" data-squad-index="${si}" data-member-index="${mi}" title="Create player account">P</button>
+                      <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Remove from squad">×</button>
                     </div>
                   `).join('')
                     : '<span class="empty-hint">Empty</span>'}
@@ -408,17 +408,17 @@
             renderPool(); renderSquads();
         }
 
-        // --- Save / reset / logs ---
+        // логи, очистка
 
         function saveRoster() {
             const payload = squads.map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members }));
             connection.invoke("UpdateRoster", { squads: payload })
-                .then(() => log(`Сохранено: ${payload.reduce((n, s) => n + s.members.length, 0)} человек в ${payload.length} отрядах.`))
+                .then(() => log(`Saved: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${payload.length} squads.`))
                 .catch(err => log("Error: " + err));
         }
 
         function resetHistory() {
-            if (!confirm("История будет заархивирована в файл на сервере, затем очищена у всех. Продолжить?")) return;
+            if (!confirm("History will be archived to a file on the server, then cleared for everyone. Continue?")) return;
             connection.invoke("ResetHistory")
                 .then(() => log("Reset requested."))
                 .catch(err => log("Error: " + err));
@@ -426,24 +426,24 @@
 
         function saveLogNow() {
             connection.invoke("SaveLogSnapshot")
-                .then(fileName => log(`Log saved: logs/${fileName} (история не очищена)`))
+                .then(fileName => log(`Log saved: logs/${fileName} (history not cleared)`))
                 .catch(err => log("Error: " + err));
         }
 
-        // --- Accounts ---
+        // аккаунты
 
         async function refreshAccounts() {
             try {
                 const accounts = await connection.invoke("ListAccounts");
                 const el = document.getElementById('accounts-list');
-                if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">Аккаунтов пока нет.</span>'; return; }
-                el.innerHTML = '<table><tr><th>Логин</th><th>Роль</th><th>Отряд</th><th></th></tr>' +
+                if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
+                el.innerHTML = '<table><tr><th>Username</th><th>Role</th><th>Squad</th><th></th></tr>' +
                     accounts.map(a => `
               <tr>
                 <td>${escapeHtml(a.username)}</td>
                 <td>${a.role}</td>
-                <td>${a.squadId || '—'}</td>
-                <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Удалить">×</button></td>
+                <td>${a.squadId || '-'}</td>
+                <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
               </tr>
             `).join('') + '</table>';
             } catch (err) {
@@ -455,7 +455,7 @@
             const btn = e.target.closest('button[data-delete-username]');
             if (!btn) return;
             const username = btn.dataset.deleteUsername;
-            if (!confirm(`Удалить аккаунт "${username}"?`)) return;
+            if (!confirm(`Delete account "${username}"?`)) return;
             connection.invoke("DeleteAccount", username)
                 .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
                 .catch(err => log("Error: " + err));
@@ -465,7 +465,7 @@
             const username = document.getElementById('new-acc-username').value.trim();
             const password = document.getElementById('new-acc-password').value;
             const role = document.getElementById('new-acc-role').value;
-            if (!username || !password) { log("Заполните логин и пароль."); return; }
+            if (!username || !password) { log("Fill in the username and password."); return; }
 
             connection.invoke("UpsertAccount", { username, role, squadId: null, password })
                 .then(() => {

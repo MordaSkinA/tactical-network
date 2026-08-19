@@ -12,8 +12,7 @@ public interface ISessionStore
     void Remove(string token);
 }
 
-// In-memory — рестарт сервера разлогинивает всех. Приемлемо для гильдийного
-// инструмента такого масштаба.
+
 public class InMemorySessionStore : ISessionStore
 {
     private readonly ConcurrentDictionary<string, SessionInfo> _sessions = new();
