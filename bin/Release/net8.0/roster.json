@@ -1,68 +1,41 @@
 [
   {
     "SquadId": "T1",
-    "Side": "Attack",
-    "Members": [
-      "XiuRouyan",
-      "Foxx\u7EA2\u71D5",
-      "RetiredTwo / QiuJiaYi",
-      "RetiredThree(cali)",
-      "Lyeon"
-    ]
+    "Side": "Flex",
+    "LeaderName": null,
+    "Members": []
   },
   {
     "SquadId": "T2",
-    "Side": "Attack",
-    "Members": [
-      "EarlEarlEarl",
-      "WIFE",
-      "Hexa (NL is Brainded)",
-      "sYrn",
-      "Shiro\u767D\u5341\u4E5D"
-    ]
+    "Side": "Flex",
+    "LeaderName": null,
+    "Members": []
   },
   {
     "SquadId": "T3",
-    "Side": "Attack",
-    "Members": [
-      "SweetieIsHere",
-      "BaNished ( art of 306 ms ) / \u6740\u795EInhaya | 0025177004",
-      "Xi\u00F9m\u011Bi",
-      "Socksfullof: Deluge of Fists",
-      "Clori"
-    ]
+    "Side": "Flex",
+    "LeaderName": null,
+    "Members": []
   },
   {
     "SquadId": "T4",
-    "Side": "Defense",
-    "Members": [
-      "\u6DF1\u767D\u8272\u53F6",
-      "Miyuki",
-      "ChillyDove",
-      "Ailia",
-      "\u5999\u4EAD (\uD835\uDD2A\uD835\uDD22\uD835\uDD29\uD835\uDD31\uD835\uDD26\uD835\uDD2B\uD835\uDD24)"
-    ]
+    "Side": "Flex",
+    "LeaderName": null,
+    "Members": []
   },
   {
     "SquadId": "T5",
     "Side": "Flex",
-    "Members": [
-      "Nana",
-      "\u8BB8\u9065 Xan",
-      "SpillTheTea",
-      "Haru",
-      "R\u00E4vrn"
-    ]
+    "LeaderName": null,
+    "Members": []
   },
   {
     "SquadId": "T6",
-    "Side": "Defense",
+    "Side": "Flex",
+    "LeaderName": null,
     "Members": [
-      "Encleaver",
       "toad",
-      "minz",
-      "Raquinn",
-      "Ninaer"
+      "SpillTheTea"
     ]
   }
 ]

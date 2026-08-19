@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Tacnet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1b0381dda44223a23852f75dd9f9cd2c0d3abf9d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb5e40f257c52038f151d707c58103df86e06756")]
 [assembly: System.Reflection.AssemblyProductAttribute("Tacnet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Tacnet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
