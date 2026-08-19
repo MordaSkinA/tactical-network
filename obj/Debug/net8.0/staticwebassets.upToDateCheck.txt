@@ -1,5 +1,7 @@
-wwwroot\admin.html
-wwwroot\player.html
-wwwroot\index.html
 wwwroot\observer.html
+wwwroot\menu.html
+wwwroot\index.html
+wwwroot\js\auth.js
+wwwroot\admin.html
 wwwroot\dashboard.html
+wwwroot\player.html

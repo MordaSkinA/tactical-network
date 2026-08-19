@@ -102,10 +102,22 @@
             border-top: 1px solid #333;
             padding-top: 10px;
         }
+
+        .menu-nav-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
-    <h2>Observer <button class="header-btn" onclick="logout()">Выйти</button></h2>
+    <h2>Observer <span><a class="menu-nav-btn" href="/menu.html">☰ Меню</a><button class="header-btn" onclick="logout()">Выйти</button></span></h2>
     <div class="hint">Отправка репортов и приказов для вашего отряда.</div>
 
     <div class="user-info" id="user-info">
@@ -141,7 +153,7 @@
         }
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/battleHub")
+            .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
             .withAutomaticReconnect()
             .build();
 
@@ -159,22 +171,13 @@
             .catch(err => setStatus("connection failed: " + err));
 
         function reportEnemy(role) {
-            if (!currentUser || !currentUser.squadId) return alert("У вас не назначен отряд!");
-            connection.invoke("ReportEvent", {
-                reporterName: currentUser.username,
-                enemyRole: role,
-                targetSquadId: currentUser.squadId, 
-                note: null
-            }).catch(err => log("Error: " + err));
+            connection.invoke("ReportEvent", { enemyRole: role, note: null })
+                .catch(err => log("Error: " + err));
         }
 
         function issueOrder(type) {
-            if (!currentUser || !currentUser.squadId) return alert("У вас не назначен отряд!");
-            connection.invoke("IssueOrder", {
-                issuerName: currentUser.username,
-                type: type,
-                targetSquadId: currentUser.squadId 
-            }).catch(err => log("Error: " + err));
+            connection.invoke("IssueOrder", { type: type })
+                .catch(err => log("Error: " + err));
         }
 
         function setStatus(text) { document.getElementById('status').textContent = text; }

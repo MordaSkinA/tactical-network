@@ -7,58 +7,139 @@ namespace GvGPoc.Hubs;
 public class BattleHub : Hub
 {
     private readonly IBattleState _state;
-    private readonly string _adminKey;
+    private readonly ISessionStore _sessions;
+    private readonly IAccountStore _accounts;
+    private readonly HubActionRateLimiter _rateLimiter;
 
-    public BattleHub(IBattleState state, IConfiguration config)
+    public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter)
     {
         _state = state;
-        _adminKey = config["AdminKey"] ?? "gvg-admin";
+        _sessions = sessions;
+        _accounts = accounts;
+        _rateLimiter = rateLimiter;
     }
 
     public override async Task OnConnectedAsync()
     {
+        var token = Context.GetHttpContext()?.Request.Query["access_token"].ToString();
+        var session = string.IsNullOrEmpty(token) ? null : _sessions.Get(token);
+
+        if (session is null)
+        {
+            Context.Abort();
+            return;
+        }
+
+        Context.Items["session"] = session;
+
         await Clients.Caller.SendAsync("Snapshot", _state.GetRecentHistory());
         await Clients.Caller.SendAsync("RosterUpdated", _state.GetRoster());
         await base.OnConnectedAsync();
     }
 
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        _rateLimiter.Reset(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
+    }
+
     public async Task ReportEvent(ReportEventDto dto)
     {
-        var evt = _state.AddEvent(dto);
+        var session = RequireRole(UserRole.Leader);
+        var squadId = RequireSquad(session);
+        RequireNotRateLimited();
+
+        var evt = _state.AddEvent(dto, session.Username, squadId);
         await Clients.All.SendAsync("BattleEvent", evt);
     }
 
     public async Task IssueOrder(IssueOrderDto dto)
     {
-        var order = _state.AddOrder(dto);
+        var session = RequireRole(UserRole.Leader);
+        var squadId = RequireSquad(session);
+        RequireNotRateLimited();
+
+        var order = _state.AddOrder(dto, session.Username, squadId);
         await Clients.All.SendAsync("OrderIssued", order);
     }
 
-    public async Task Sos(SosDto dto)
+    public async Task Sos()
     {
-        var evt = _state.AddSos(dto);
+        var session = RequireRole(UserRole.Player, UserRole.Leader);
+        var squadId = RequireSquad(session);
+        RequireNotRateLimited();
+
+        var evt = _state.AddSos(session.Username, squadId);
         await Clients.All.SendAsync("BattleEvent", evt);
     }
 
     public async Task UpdateRoster(UpdateRosterDto dto)
     {
-        RequireAdmin(dto.AdminKey);
+        RequireRole(UserRole.Admin);
         _state.SetRoster(dto.Squads);
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
     }
 
-    public async Task ResetHistory(AdminActionDto dto)
+    public async Task ResetHistory()
     {
-        RequireAdmin(dto.AdminKey);
+        RequireRole(UserRole.Admin);
         _state.ResetHistory();
         await Clients.All.SendAsync("HistoryReset");
     }
 
-    private void RequireAdmin(string providedKey)
+    public Task<string> SaveLogSnapshot()
     {
-        if (providedKey != _adminKey)
+        RequireRole(UserRole.Admin);
+        return Task.FromResult(_state.SaveLogSnapshot());
+    }
+
+    public Task<List<AccountSummaryDto>> ListAccounts()
+    {
+        RequireRole(UserRole.Admin);
+        var summaries = _accounts.All()
+            .Select(a => new AccountSummaryDto(a.Username, a.Role, a.SquadId))
+            .OrderBy(a => a.Role).ThenBy(a => a.Username)
+            .ToList();
+        return Task.FromResult(summaries);
+    }
+
+    public Task UpsertAccount(UpsertAccountDto dto)
+    {
+        RequireRole(UserRole.Admin);
+        if (string.IsNullOrWhiteSpace(dto.Username))
+            throw new HubException("Username is required.");
+
+        _accounts.Upsert(dto.Username.Trim(), dto.Role, dto.SquadId, dto.Password);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAccount(string username)
+    {
+        RequireRole(UserRole.Admin);
+        _accounts.Delete(username);
+        return Task.CompletedTask;
+    }
+
+    private SessionInfo RequireRole(params UserRole[] allowedRoles)
+    {
+        if (Context.Items.TryGetValue("session", out var raw) && raw is SessionInfo session)
         {
-            throw new HubException("Invalid admin key.");
+            if (allowedRoles.Contains(session.Role)) return session;
+            throw new HubException($"Your account role ({session.Role}) doesn't have access to this action.");
         }
+        throw new HubException("Not authenticated.");
+    }
+
+    private static string RequireSquad(SessionInfo session)
+    {
+        if (string.IsNullOrEmpty(session.SquadId))
+            throw new HubException("Your account isn't assigned to a squad yet — ask your admin.");
+        return session.SquadId;
+    }
+
+    private void RequireNotRateLimited()
+    {
+        if (!_rateLimiter.Allow(Context.ConnectionId))
+            throw new HubException("You're sending actions too fast — slow down a bit.");
     }
 }

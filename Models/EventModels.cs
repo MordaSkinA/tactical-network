@@ -13,7 +13,7 @@ public enum EnemyRole
     TwinBlades,
     Healer,
     Tank,
-    Nameless,
+    Nameless
 }
 
 public enum EventSeverity
@@ -40,70 +40,29 @@ public class UserAccount
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
+    public string PasswordSalt { get; set; } = string.Empty;
     public UserRole Role { get; set; }
     public string? SquadId { get; set; }
 }
 
-public record LoginDto(
-    string Username,
-    string Password
-);
+// --- Auth ---
 
-public record AuthResponseDto(
-    bool Success,
-    string? Message,
-    string? Username,
-    UserRole? Role,
-    string? SquadId
-);
+public record LoginDto(string Username, string Password);
 
-public record CreateUserDto(
-    string AdminKey,
-    string Username,
-    string Password,
-    UserRole Role,
-    string? SquadId
-);
+public record AuthResponseDto(bool Success, string? Message, string? Token, string? Username, UserRole? Role, string? SquadId);
 
-// ОТ клиента
+public record LogoutDto(string Token);
 
-public record ReportEventDto(
-    string ReporterName,
-    EnemyRole? EnemyRole,
-    string TargetSquadId,
-    string? Note
-);
+// --- Client -> Server (battle actions) ---
+// Имя и целевой сквад больше не приходят от клиента — берутся из сессии,
+// привязанной к токену при логине (см. BattleHub.RequireRole/RequireSquad).
+// Раньше клиент мог прислать любое имя — теперь физически не может.
 
-public record IssueOrderDto(
-    string IssuerName,
-    OrderType Type,
-    string TargetSquadId
-);
+public record ReportEventDto(EnemyRole? EnemyRole, string? Note);
 
-public record SosDto(
-    string ReporterName,
-    string SquadId
-);
+public record IssueOrderDto(OrderType Type);
 
-
-
-public record SquadRosterDto(
-    string SquadId,
-    string Side,       
-    string? LeaderName, 
-    List<string> Members
-);
-
-public record UpdateRosterDto(
-    string AdminKey,
-    List<SquadRosterDto> Squads
-);
-
-public record AdminActionDto(
-    string AdminKey
-);
-
-// ОТ сервера
+// --- Server -> Client ---
 
 public record BattleEventPushDto(
     Guid EventId,
@@ -123,4 +82,21 @@ public record OrderPushDto(
     DateTimeOffset IssuedAt
 );
 
+// --- Roster ---
 
+public record SquadRosterDto(
+    string SquadId,
+    string Side,
+    string? LeaderName,
+    List<string> Members
+);
+
+public record UpdateRosterDto(
+    List<SquadRosterDto> Squads
+);
+
+// --- Accounts (только через Hub, только для залогиненного Admin — не REST + общий ключ) ---
+
+public record AccountSummaryDto(string Username, UserRole Role, string? SquadId);
+
+public record UpsertAccountDto(string Username, UserRole Role, string? SquadId, string? Password);

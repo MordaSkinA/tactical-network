@@ -1,0 +1,42 @@
+[
+  {
+    "Id": "2959a2de-1a7c-4b24-bf47-dccbeccd958d",
+    "Username": "admin",
+    "PasswordHash": "roi4msnGXKYxsgqqgs6oewQ3buwQkB1uAnA8xCdVEKs=",
+    "PasswordSalt": "Qop3GqkY25aXruvROGOYZg==",
+    "Role": 0,
+    "SquadId": null
+  },
+  {
+    "Id": "861d862e-013b-4af5-bc07-27b3902c52f6",
+    "Username": "morda",
+    "PasswordHash": "xzBFG/i0kdAuBdOn9Avd4GpCXcEGIXhiR0pFOlwnqI0=",
+    "PasswordSalt": "pmFKfcqXNNjF7xvf8tQPFQ==",
+    "Role": 0,
+    "SquadId": null
+  },
+  {
+    "Id": "333cb561-4c4e-4c82-a746-19cf52e50d6c",
+    "Username": "spillthetea",
+    "PasswordHash": "HZg\u002BfNlIw/ZQA8hEyebvrzo3WPfbjrSlHtbFhL5eKqc=",
+    "PasswordSalt": "u6SZ\u002Bh/Fy/IvduCGCw20pg==",
+    "Role": 3,
+    "SquadId": "T5"
+  },
+  {
+    "Id": "d2aae7af-cfb7-40d3-988d-c9fdcbb46b08",
+    "Username": "toad",
+    "PasswordHash": "cKlUN9tBmFYbG9sNNkBkPut6ViQUURWzODoafbocj3o=",
+    "PasswordSalt": "PscDlDsBIUKWXbX63qApBQ==",
+    "Role": 2,
+    "SquadId": "T6"
+  },
+  {
+    "Id": "1f2a5026-20e8-475e-915b-09bdac5d36f2",
+    "Username": "xiao",
+    "PasswordHash": "M\u002BUmkSkSUp8vntXJpG0od\u002B8nmoJKpc5pNGt5Z\u002B2ApR8=",
+    "PasswordSalt": "4e2wsIFhdj0zam0moHTztg==",
+    "Role": 1,
+    "SquadId": null
+  }
+]

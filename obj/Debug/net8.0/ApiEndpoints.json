@@ -2,14 +2,14 @@
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
     "Method": "\u003C\u003CMain\u003E$\u003Eb__0_4",
-    "RelativePath": "api/auth/create",
+    "RelativePath": "api/auth/login",
     "HttpMethod": "POST",
     "IsController": false,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "dto",
-        "Type": "GvGPoc.Models.CreateUserDto",
+        "Name": "req",
+        "Type": "GvGPoc.Models.LoginDto",
         "IsRequired": true
       }
     ],
@@ -23,15 +23,15 @@
   },
   {
     "ContainingType": "Program\u002B\u003C\u003Ec",
-    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_3",
-    "RelativePath": "api/auth/login",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_5",
+    "RelativePath": "api/auth/logout",
     "HttpMethod": "POST",
     "IsController": false,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "login",
-        "Type": "GvGPoc.Models.LoginDto",
+        "Name": "req",
+        "Type": "GvGPoc.Models.LogoutDto",
         "IsRequired": true
       }
     ],

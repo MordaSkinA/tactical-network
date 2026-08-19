@@ -87,24 +87,11 @@
             background: #333;
         }
 
-        .logout-btn {
-            background: #333;
+        .header-btn {
             font-size: 12px;
             padding: 6px 12px;
+            background: #333;
         }
-
-        .auth-card {
-            background: #1a1a1a;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            margin-bottom: 20px;
-        }
-
-            .auth-card h4 {
-                margin-top: 0;
-                color: #00bcd4;
-            }
 
         .chip-list {
             display: flex;
@@ -134,7 +121,7 @@
                 margin: 0;
             }
 
-        .chip-remove {
+        .chip-remove, .chip-action {
             background: #3a3a3a;
             color: #ccc;
             border: none;
@@ -144,6 +131,24 @@
             line-height: 1;
             cursor: pointer;
             padding: 0;
+            font-size: 12px;
+            margin: 0;
+        }
+
+            .chip-action.leader {
+                background: #4a3a1a;
+                color: #e8c07d;
+            }
+
+            .chip-action.player {
+                background: #1a3a4a;
+                color: #7dc0e8;
+            }
+
+        .empty-hint {
+            color: #555;
+            font-size: 13px;
+            font-style: italic;
         }
 
         .squad-grid {
@@ -181,55 +186,91 @@
             margin-top: 20px;
             white-space: pre-wrap;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+            table th {
+                color: #888;
+                text-align: left;
+                padding: 4px 8px;
+            }
+
+            table td {
+                padding: 6px 8px;
+                border-top: 1px solid #2a2a2a;
+            }
+
+        details {
+            margin-top: 20px;
+            border-top: 1px solid #2a2a2a;
+            padding-top: 14px;
+        }
+
+        summary {
+            cursor: pointer;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .menu-nav-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
-    <h2>Admin Panel <button class="logout-btn" onclick="logout()">Выйти</button></h2>
+    <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">☰ Меню</a><button class="header-btn" onclick="logout()">Выйти</button></span></h2>
 
-    <div class="auth-card">
+    <h3>1. Добавить участников в пул</h3>
+    <textarea id="pool-input" placeholder="Alice, Bob, Carol..."></textarea>
+    <button class="primary" onclick="addToPool()">В пул</button>
+
+    <h3>Свободные игроки (Unassigned)</h3>
+    <div id="pool" class="chip-list"></div>
+
+    <h3>2. Отряды — распределите игроков, назначьте роль и лидера</h3>
+    <div class="hint">🎖 на имени — сделать лидером (доступ к панели Observer). 👤 — создать аккаунт игрока.</div>
+    <div id="squads" class="squad-grid"></div>
+
+    <div style="margin-top:20px;">
+        <button class="primary" onclick="saveRoster()">Сохранить ростер</button>
+        <button class="secondary" onclick="saveLogNow()">Сохранить лог сейчас</button>
+        <button class="danger" onclick="resetHistory()">Сбросить историю (с архивацией)</button>
+    </div>
+
+    <h3>3. Аккаунты</h3>
+    <div id="accounts-list"></div>
+
+    <details>
+        <summary>Добавить аккаунт Commander/Admin</summary>
+        <label>Логин <input id="new-acc-username"></label>
+        <label>Пароль <input id="new-acc-password" type="password"></label>
         <label>
-            Мастер-ключ сервера (нужен для сохранения данных):
-            <input type="password" id="master-key" placeholder="gvg-admin" value="gvg-admin">
-        </label>
-    </div>
-
-    <div class="auth-card">
-        <h4>Создать пользователя</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <input type="text" id="new-user-name" placeholder="Логин (Username)">
-            <input type="password" id="new-user-pass" placeholder="Пароль">
-            <select id="new-user-role">
-                <option value="Player">Игрок (Player)</option>
-                <option value="Leader">Лидер отряда (Leader)</option>
-                <option value="Commander">Командир (Commander)</option>
-                <option value="Admin">Админ (Admin)</option>
+            Роль
+            <select id="new-acc-role">
+                <option value="Commander">Commander</option>
+                <option value="Admin">Admin</option>
             </select>
-            <input type="text" id="new-user-squad" placeholder="Отряд (например, T1) - только для Игроков/Лидеров">
-        </div>
-        <button class="primary" onclick="createUser()" style="margin-top:10px;">Создать аккаунт</button>
-    </div>
+        </label>
+        <button class="primary" onclick="addStandaloneAccount()">Создать</button>
+    </details>
 
-    <div id="panel">
-        <h3>1. Добавить участников в пул</h3>
-        <textarea id="pool-input" placeholder="Alice, Bob, Carol..."></textarea>
-        <button class="primary" onclick="addToPool()">В пул</button>
-
-        <h3>Свободные игроки (Unassigned)</h3>
-        <div id="pool" class="chip-list"></div>
-
-        <h3>2. Отряды (Squads) - Распределите игроков и выберите Лидеров</h3>
-        <div id="squads" class="squad-grid"></div>
-
-        <div style="margin-top:20px;">
-            <button class="primary" onclick="saveRoster()">Сохранить Ростер</button>
-            <button class="danger" onclick="resetHistory()">Сбросить историю боя</button>
-        </div>
-
-        <div id="log"></div>
-    </div>
+    <div id="log"></div>
 
     <script>
-
         const currentUser = requireAuth(['Admin']);
 
         let pool = [];
@@ -237,60 +278,28 @@
         let initialized = false;
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/battleHub")
+            .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
             .withAutomaticReconnect()
             .build();
 
         connection.on("RosterUpdated", roster => {
-            if (!initialized) {
-                loadRosterIntoUi(roster);
-                initialized = true;
-            }
+            if (!initialized) { loadRosterIntoUi(roster); initialized = true; }
+            else log("Roster changed on the server. Reload if this wasn't you.");
         });
 
-        connection.on("HistoryReset", () => log("History reset (broadcast confirmed)."));
+        connection.on("HistoryReset", () => log("History archived and reset (broadcast confirmed)."));
 
         connection.start()
-            .then(() => log("SignalR Connected."))
+            .then(() => { log("Connected."); refreshAccounts(); })
             .catch(err => log("Connection failed: " + err));
 
-
-        async function createUser() {
-            const adminKey = document.getElementById('master-key').value;
-            const username = document.getElementById('new-user-name').value.trim();
-            const password = document.getElementById('new-user-pass').value;
-            const role = document.getElementById('new-user-role').value;
-            let squadId = document.getElementById('new-user-squad').value.trim();
-            if (!squadId) squadId = null;
-
-            if (!username || !password) return alert("Логин и пароль обязательны");
-
-            try {
-                const res = await fetch('/api/auth/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ adminKey, username, password, role, squadId })
-                });
-                if (res.ok) {
-                    alert("Пользователь успешно создан!");
-                    document.getElementById('new-user-name').value = '';
-                    document.getElementById('new-user-pass').value = '';
-                } else {
-                    alert("Ошибка создания (возможно неверный мастер-ключ или пользователь существует)");
-                }
-            } catch (e) {
-                alert("Ошибка сети");
-            }
-        }
-
+        // --- Pool ---
 
         function addToPool() {
             const raw = document.getElementById('pool-input').value;
             const names = raw.split(/[\n,]/).map(n => n.trim()).filter(Boolean);
             const existing = new Set([...pool, ...squads.flatMap(s => s.members)]);
-            names.forEach(n => {
-                if (!existing.has(n)) { pool.push(n); existing.add(n); }
-            });
+            names.forEach(n => { if (!existing.has(n)) { pool.push(n); existing.add(n); } });
             document.getElementById('pool-input').value = '';
             renderPool();
         }
@@ -314,12 +323,41 @@
         }
 
         function setSquadSide(squadIndex, value) { squads[squadIndex].side = value; }
-        function setLeader(squadIndex, value) { squads[squadIndex].leaderName = value || null; }
 
+        // --- Squad member quick actions: leader / player account ---
+
+        function makeAccount(name, squadId, role) {
+            const username = prompt(`Логин для ${name}:`, name.toLowerCase().replace(/\s+/g, '.'));
+            if (!username) return;
+            const password = prompt(`Пароль для ${name}:`);
+            if (!password) return;
+            connection.invoke("UpsertAccount", { username, role, squadId: squadId || null, password })
+                .then(() => { log(`Аккаунт создан: ${username} (${role}${squadId ? ', ' + squadId : ''})`); refreshAccounts(); })
+                .catch(err => log("Error: " + err));
+        }
+
+        document.getElementById('squads').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const si = Number(btn.dataset.squadIndex);
+            const mi = btn.dataset.memberIndex !== undefined ? Number(btn.dataset.memberIndex) : null;
+
+            if (action === 'unassign') unassign(si, mi);
+            if (action === 'make-leader') {
+                const name = squads[si].members[mi];
+                squads[si].leaderName = name;
+                renderSquads();
+                makeAccount(name, squads[si].squadId, 'Leader');
+            }
+            if (action === 'make-player') makeAccount(squads[si].members[mi], squads[si].squadId, 'Player');
+        });
+
+        // --- Rendering ---
 
         function renderPool() {
             const el = document.getElementById('pool');
-            if (pool.length === 0) return el.innerHTML = '<span class="empty-hint">Пусто</span>';
+            if (pool.length === 0) { el.innerHTML = '<span class="empty-hint">Пусто</span>'; return; }
             el.innerHTML = pool.map((name, i) => `
           <div class="chip">
             <span>${escapeHtml(name)}</span>
@@ -337,23 +375,21 @@
             el.innerHTML = squads.map((sq, si) => `
           <div class="squad-edit-card">
             <div class="squad-edit-header">
-              <strong>${sq.squadId}</strong>
-              <select onchange="setSquadSide(${si}, this.value)" style="width:auto; margin:0; padding: 4px;">
+              <strong>${sq.squadId}${sq.leaderName ? ' · 👑 ' + escapeHtml(sq.leaderName) : ''}</strong>
+              <select onchange="setSquadSide(${si}, this.value)" style="width:auto; margin:0; padding:4px;">
                 <option value="Defense" ${sq.side === 'Defense' ? 'selected' : ''}>Defense</option>
                 <option value="Attack" ${sq.side === 'Attack' ? 'selected' : ''}>Attack</option>
                 <option value="Flex" ${sq.side === 'Flex' ? 'selected' : ''}>Flex</option>
               </select>
             </div>
-            <select class="leader-select" onchange="setLeader(${si}, this.value)">
-               <option value="">-- Без Лидера --</option>
-               ${sq.members.map(m => `<option value="${escapeHtml(m)}" ${sq.leaderName === m ? 'selected' : ''}>👑 ${escapeHtml(m)}</option>`).join('')}
-            </select>
             <div class="chip-list">
               ${sq.members.length > 0
                     ? sq.members.map((m, mi) => `
                     <div class="chip">
                       <span>${escapeHtml(m)}</span>
-                      <button class="chip-remove" onclick="unassign(${si}, ${mi})">×</button>
+                      <button class="chip-action leader" data-action="make-leader" data-squad-index="${si}" data-member-index="${mi}" title="Сделать лидером">🎖</button>
+                      <button class="chip-action player" data-action="make-player" data-squad-index="${si}" data-member-index="${mi}" title="Создать аккаунт игрока">👤</button>
+                      <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Убрать из отряда">×</button>
                     </div>
                   `).join('')
                     : '<span class="empty-hint">Empty</span>'}
@@ -371,19 +407,72 @@
             renderPool(); renderSquads();
         }
 
+        // --- Save / reset / logs ---
+
         function saveRoster() {
-            const adminKey = document.getElementById('master-key').value;
             const payload = squads.map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members }));
-            connection.invoke("UpdateRoster", { adminKey, squads: payload })
-                .then(() => log(`Saved roster.`))
+            connection.invoke("UpdateRoster", { squads: payload })
+                .then(() => log(`Сохранено: ${payload.reduce((n, s) => n + s.members.length, 0)} человек в ${payload.length} отрядах.`))
                 .catch(err => log("Error: " + err));
         }
 
         function resetHistory() {
-            const adminKey = document.getElementById('master-key').value;
-            if (!confirm("Reset all events/orders on all connected screens?")) return;
-            connection.invoke("ResetHistory", { adminKey })
+            if (!confirm("История будет заархивирована в файл на сервере, затем очищена у всех. Продолжить?")) return;
+            connection.invoke("ResetHistory")
                 .then(() => log("Reset requested."))
+                .catch(err => log("Error: " + err));
+        }
+
+        function saveLogNow() {
+            connection.invoke("SaveLogSnapshot")
+                .then(fileName => log(`Log saved: logs/${fileName} (история не очищена)`))
+                .catch(err => log("Error: " + err));
+        }
+
+        // --- Accounts ---
+
+        async function refreshAccounts() {
+            try {
+                const accounts = await connection.invoke("ListAccounts");
+                const el = document.getElementById('accounts-list');
+                if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">Аккаунтов пока нет.</span>'; return; }
+                el.innerHTML = '<table><tr><th>Логин</th><th>Роль</th><th>Отряд</th><th></th></tr>' +
+                    accounts.map(a => `
+              <tr>
+                <td>${escapeHtml(a.username)}</td>
+                <td>${a.role}</td>
+                <td>${a.squadId || '—'}</td>
+                <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Удалить">×</button></td>
+              </tr>
+            `).join('') + '</table>';
+            } catch (err) {
+                log("Failed to load accounts: " + err);
+            }
+        }
+
+        document.getElementById('accounts-list').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-delete-username]');
+            if (!btn) return;
+            const username = btn.dataset.deleteUsername;
+            if (!confirm(`Удалить аккаунт "${username}"?`)) return;
+            connection.invoke("DeleteAccount", username)
+                .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
+                .catch(err => log("Error: " + err));
+        });
+
+        function addStandaloneAccount() {
+            const username = document.getElementById('new-acc-username').value.trim();
+            const password = document.getElementById('new-acc-password').value;
+            const role = document.getElementById('new-acc-role').value;
+            if (!username || !password) { log("Заполните логин и пароль."); return; }
+
+            connection.invoke("UpsertAccount", { username, role, squadId: null, password })
+                .then(() => {
+                    log(`Account created: ${username} (${role})`);
+                    document.getElementById('new-acc-username').value = '';
+                    document.getElementById('new-acc-password').value = '';
+                    refreshAccounts();
+                })
                 .catch(err => log("Error: " + err));
         }
 

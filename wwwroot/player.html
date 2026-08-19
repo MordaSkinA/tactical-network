@@ -28,7 +28,7 @@
             font-size: 12px;
         }
 
-        .logout-btn {
+        .logout-btn, .menu-nav-btn {
             font-size: 11px;
             padding: 4px 8px;
             background: #333;
@@ -36,6 +36,8 @@
             border-radius: 4px;
             color: #fff;
             cursor: pointer;
+            text-decoration: none;
+            margin-right: 6px;
         }
 
         .user-info {
@@ -122,6 +124,7 @@
 <body>
     <div class="header">
         <div id="status">connecting…</div>
+        <a class="menu-nav-btn" href="/menu.html">☰ Меню</a>
         <button class="logout-btn" onclick="logout()">Выйти</button>
     </div>
 
@@ -138,13 +141,13 @@
 
     <script>
 
-        const currentUser = requireAuth(['Player', 'Leader', 'Admin']);
+        const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin']);
         if (currentUser) {
             document.getElementById('user-info').textContent = `Боец: ${currentUser.username} | Отряд: ${currentUser.squadId || 'Нет'}`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/battleHub")
+            .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
             .withAutomaticReconnect()
             .build();
 
@@ -181,9 +184,7 @@
             .catch(err => setStatus("connection failed: " + err));
 
         function sendSos() {
-            if (!currentUser || !currentUser.squadId) return alert("У вас не назначен отряд!");
-            connection.invoke("Sos", { reporterName: currentUser.username, squadId: currentUser.squadId })
-                .catch(err => console.error(err));
+            connection.invoke("Sos").catch(err => console.error(err));
         }
 
         function setOrder(type) {
@@ -202,7 +203,15 @@
             const el = document.getElementById('alerts');
             const div = document.createElement('div');
             div.className = 'alert-item ' + severity;
-            div.innerHTML = `${title}<div class="meta">${new Date(ts).toLocaleTimeString()}</div>`;
+
+            const titleEl = document.createElement('div');
+            titleEl.textContent = title;
+
+            const metaEl = document.createElement('div');
+            metaEl.className = 'meta';
+            metaEl.textContent = new Date(ts).toLocaleTimeString();
+
+            div.append(titleEl, metaEl);
             el.prepend(div);
             while (el.children.length > 8) el.removeChild(el.lastChild);
         }

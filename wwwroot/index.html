@@ -1,41 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GvG Tactical Network — POC</title>
-<style>
-  body { background:#111; color:#eee; font-family: system-ui, sans-serif; padding: 40px; max-width: 480px; margin: 0 auto; text-align:center; }
-  h2 { margin-bottom: 30px; }
-  a {
-    display:block; padding: 20px; margin-bottom: 16px; border-radius: 10px;
-    background:#222; color:#eee; text-decoration:none; font-size: 18px; font-weight:600;
-  }
-  a:hover { background:#2c2c2c; }
-  .desc { color:#888; font-size: 13px; font-weight: 400; margin-top: 6px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG Tactical Network — Login</title>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            padding: 60px 20px;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        input {
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            background: #2f6fb2;
+            margin-top: 6px;
+        }
+
+        #error {
+            color: #e33;
+            font-size: 13px;
+            margin-top: 12px;
+            text-align: center;
+            min-height: 16px;
+        }
+    </style>
 </head>
 <body>
-  <h2>GvG Tactical Network — POC</h2>
+    <h2>GvG Tactical Network</h2>
+    <form id="login-form">
+        <label>
+            Логин
+            <input id="username" autocomplete="username" required>
+        </label>
+        <label>
+            Пароль
+            <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit">Войти</button>
+        <div id="error"></div>
+    </form>
 
-  <a href="/observer.html">
-    Observer
-    <div class="desc">Report enemy sightings and issue orders</div>
-  </a>
+    <script>
+  const existing = localStorage.getItem('gvg_session');
+  if (existing) {
+    try { JSON.parse(existing); location.href = '/menu.html'; } catch { localStorage.removeItem('gvg_session'); }
+  }
 
-  <a href="/player.html">
-    Player
-    <div class="desc">See alerts and the current order for your squad</div>
-  </a>
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorEl = document.getElementById('error');
+    errorEl.textContent = '';
 
-  <a href="/dashboard.html">
-    Dashboard
-    <div class="desc">Live feed for Main Commander</div>
-  </a>
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
 
-  <a href="/admin.html">
-    Admin
-    <div class="desc">Set up squads and rosters (needs admin key)</div>
-  </a>
+      if (res.status === 429) { errorEl.textContent = 'Слишком много попыток — подождите немного.'; return; }
+
+      const data = await res.json();
+      if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Неверный логин или пароль.'; return; }
+
+      localStorage.setItem('gvg_session', JSON.stringify({
+        token: data.token,
+        username: data.username,
+        role: data.role,
+        squadId: data.squadId
+      }));
+      location.href = '/menu.html';
+    } catch (err) {
+      errorEl.textContent = 'Ошибка соединения: ' + err;
+    }
+  });
+    </script>
 </body>
 </html>
