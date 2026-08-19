@@ -151,6 +151,5 @@ cloudflared tunnel --url https://localhost:5001
 
 <div align="center">
 
-Пет-проект / внутренний инструмент гильдии. Не публичный релиз.
 
 </div>
