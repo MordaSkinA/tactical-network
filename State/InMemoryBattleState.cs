@@ -18,7 +18,10 @@ public interface IBattleState
     void SetRoster(IReadOnlyList<SquadRosterDto> roster);
 
     string SaveLogSnapshot();
-    void ResetHistory();
+
+    BattleStatusDto GetBattleStatus();
+    BattleStatusDto StartBattle();
+    void EndBattle();
 }
 
 public class InMemoryBattleState : IBattleState
@@ -32,6 +35,9 @@ public class InMemoryBattleState : IBattleState
     private readonly object _logFileLock = new();
 
     private IReadOnlyList<SquadRosterDto> _roster;
+
+    private bool _battleActive;
+    private DateTimeOffset? _battleStartedAt;
 
     public InMemoryBattleState(IHostEnvironment env)
     {
@@ -155,12 +161,23 @@ public class InMemoryBattleState : IBattleState
         return sb.ToString();
     }
 
-    public void ResetHistory()
+    public BattleStatusDto GetBattleStatus() => new(_battleActive, _battleStartedAt);
+
+    public BattleStatusDto StartBattle()
+    {
+        _battleActive = true;
+        _battleStartedAt = DateTimeOffset.UtcNow;
+        return GetBattleStatus();
+    }
+
+    public void EndBattle()
     {
         if (!_history.IsEmpty) SaveLogSnapshot();
         while (_history.TryDequeue(out _))
         {
         }
+        _battleActive = false;
+        _battleStartedAt = null;
     }
 
     private void Track(object item)

@@ -93,6 +93,10 @@ public record OrderPushDto(
     DateTimeOffset IssuedAt
 );
 
+// Battle
+
+public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
+
 // Roster 
 
 public record SquadRosterDto(

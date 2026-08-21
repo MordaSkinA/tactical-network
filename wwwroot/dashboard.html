@@ -9,7 +9,10 @@
 <style>
   body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: 0 auto; }
   h2 { margin-bottom: 2px; }
-  #status { color:#666; font-size:12px; margin-bottom: 18px; }
+  #status { color:#666; font-size:12px; margin-bottom: 4px; }
+  #battle-status { font-size:13px; font-weight:600; margin-bottom: 18px; padding: 8px 12px; border-radius: 6px; display:inline-block; }
+  #battle-status.active   { background:#1a2e1a; color:#7dd87d; }
+  #battle-status.inactive { background:#2a2a2a; color:#999; }
   .feed-item {
     padding: 12px 14px; margin-bottom: 8px; border-radius: 8px;
     border-left: 4px solid #555; background:#1a1a1a;
@@ -46,6 +49,7 @@
     <button onclick="logout()" style="font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Log out</button>
   </div>
   <div id="status">connecting...</div>
+  <div id="battle-status" class="inactive">No active battle</div>
 
   <div id="roster"></div>
   <div id="feed"></div>
@@ -89,6 +93,8 @@
 
   connection.on("HistoryReset", () => { feed.innerHTML = ''; });
 
+  connection.on("BattleStatusChanged", status => renderBattleStatus(status));
+
 
   connection.on("Snapshot", items => {
     items.forEach(i => {
@@ -130,6 +136,26 @@
 
   function setStatus(text) {
     document.getElementById('status').textContent = text;
+  }
+
+  let battleStartedAt = null;
+  let battleClockTimer = null;
+
+  function renderBattleStatus(status) {
+    const el = document.getElementById('battle-status');
+    clearInterval(battleClockTimer);
+
+    if (status && status.isActive) {
+      battleStartedAt = new Date(status.startedAt);
+      const update = () => { el.textContent = `Battle in progress since ${battleStartedAt.toLocaleTimeString()}`; };
+      update();
+      battleClockTimer = setInterval(update, 30000);
+      el.className = 'active';
+    } else {
+      battleStartedAt = null;
+      el.textContent = 'No active battle';
+      el.className = 'inactive';
+    }
   }
 
   function addItem(cls, title, who, ts) {

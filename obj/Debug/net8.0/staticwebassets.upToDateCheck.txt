@@ -1,8 +1,8 @@
-wwwroot\observer.html
 wwwroot\discord-register.html
-wwwroot\admin.html
-wwwroot\js\auth.js
-wwwroot\player.html
 wwwroot\index.html
+wwwroot\observer.html
+wwwroot\player.html
+wwwroot\admin.html
 wwwroot\dashboard.html
+wwwroot\js\auth.js
 wwwroot\menu.html

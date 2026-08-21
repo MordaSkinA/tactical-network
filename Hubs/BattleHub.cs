@@ -19,6 +19,11 @@ public class BattleHub : Hub
         _rateLimiter = rateLimiter;
     }
 
+    // Группы SignalR
+    private const string CommanderGroup = "role-commander";
+    private const string AdminGroup = "role-admin";
+    private static string SquadGroup(string squadId) => "squad-" + squadId;
+
     public override async Task OnConnectedAsync()
     {
         var token = Context.GetHttpContext()?.Request.Query["access_token"].ToString();
@@ -32,8 +37,19 @@ public class BattleHub : Hub
 
         Context.Items["session"] = session;
 
+        
+        var squadId = _accounts.Find(session.Username)?.SquadId;
+        if (!string.IsNullOrEmpty(squadId))
+            await Groups.AddToGroupAsync(Context.ConnectionId, SquadGroup(squadId));
+
+        if (session.Role == UserRole.Commander)
+            await Groups.AddToGroupAsync(Context.ConnectionId, CommanderGroup);
+        if (session.Role == UserRole.Admin)
+            await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroup);
+
         await Clients.Caller.SendAsync("Snapshot", _state.GetRecentHistory());
         await Clients.Caller.SendAsync("RosterUpdated", _state.GetRoster());
+        await Clients.Caller.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
         await base.OnConnectedAsync();
     }
 
@@ -50,7 +66,7 @@ public class BattleHub : Hub
         RequireNotRateLimited();
 
         var evt = _state.AddEvent(dto, session.Username, squadId);
-        await Clients.All.SendAsync("BattleEvent", evt);
+        await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("BattleEvent", evt);
     }
 
     public async Task IssueOrder(IssueOrderDto dto)
@@ -60,7 +76,7 @@ public class BattleHub : Hub
         RequireNotRateLimited();
 
         var order = _state.AddOrder(dto, session.Username, squadId);
-        await Clients.All.SendAsync("OrderIssued", order);
+        await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
     }
 
     public async Task Sos()
@@ -70,7 +86,7 @@ public class BattleHub : Hub
         RequireNotRateLimited();
 
         var evt = _state.AddSos(session.Username, squadId);
-        await Clients.All.SendAsync("BattleEvent", evt);
+        await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("BattleEvent", evt);
     }
 
     public async Task UpdateRoster(UpdateRosterDto dto)
@@ -100,11 +116,21 @@ public class BattleHub : Hub
         }
     }
 
-    public async Task ResetHistory()
+    public async Task StartBattle()
     {
         RequireRole(UserRole.Admin);
-        _state.ResetHistory();
+        var status = _state.StartBattle();
+        await Clients.All.SendAsync("BattleStatusChanged", status);
+    }
+
+    
+    // лог и очистка
+    public async Task EndBattle()
+    {
+        RequireRole(UserRole.Admin);
+        _state.EndBattle();
         await Clients.All.SendAsync("HistoryReset");
+        await Clients.All.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
     }
 
     public Task<string> SaveLogSnapshot()

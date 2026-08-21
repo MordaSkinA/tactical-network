@@ -93,6 +93,25 @@
             background: #333;
         }
 
+        #battle-status {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        #battle-status.active {
+            background: #1a2e1a;
+            color: #7dd87d;
+        }
+
+        #battle-status.inactive {
+            background: #2a2a2a;
+            color: #999;
+        }
+
         .chip-list {
             display: flex;
             flex-wrap: wrap;
@@ -234,6 +253,8 @@
 <body>
     <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
 
+    <div id="battle-status" class="inactive">No active battle</div>
+
     <h3>1. Add members to the pool</h3>
     <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
     <button class="primary" onclick="addToPool()">Add to pool</button>
@@ -248,7 +269,12 @@
     <div style="margin-top:20px;">
         <button class="primary" onclick="saveRoster()">Save roster</button>
         <button class="secondary" onclick="saveLogNow()">Save log now</button>
-        <button class="danger" onclick="resetHistory()">Reset history (with archiving)</button>
+    </div>
+
+    <h3>Battle</h3>
+    <div>
+        <button class="primary" onclick="startBattle()">Start Battle</button>
+        <button class="danger" onclick="endBattle()">End Battle (archive &amp; clear)</button>
     </div>
 
     <h3>3. Accounts</h3>
@@ -289,6 +315,7 @@
         });
 
         connection.on("HistoryReset", () => log("History archived and reset (broadcast confirmed)."));
+        connection.on("BattleStatusChanged", status => renderBattleStatus(status));
 
         connection.start()
             .then(() => { log("Connected."); refreshAccounts(); })
@@ -417,11 +444,37 @@
                 .catch(err => log("Error: " + err));
         }
 
-        function resetHistory() {
-            if (!confirm("History will be archived to a file on the server, then cleared for everyone. Continue?")) return;
-            connection.invoke("ResetHistory")
-                .then(() => log("Reset requested."))
+        function startBattle() {
+            connection.invoke("StartBattle")
+                .then(() => log("Battle started."))
                 .catch(err => log("Error: " + err));
+        }
+
+        function endBattle() {
+            if (!confirm("History will be archived to a file on the server, then cleared for everyone. Continue?")) return;
+            connection.invoke("EndBattle")
+                .then(() => log("Battle ended, history archived."))
+                .catch(err => log("Error: " + err));
+        }
+
+        let battleStartedAt = null;
+        let battleClockTimer = null;
+
+        function renderBattleStatus(status) {
+            const el = document.getElementById('battle-status');
+            clearInterval(battleClockTimer);
+
+            if (status && status.isActive) {
+                battleStartedAt = new Date(status.startedAt);
+                const update = () => { el.textContent = `Battle in progress since ${battleStartedAt.toLocaleTimeString()}`; };
+                update();
+                battleClockTimer = setInterval(update, 30000);
+                el.className = 'active';
+            } else {
+                battleStartedAt = null;
+                el.textContent = 'No active battle';
+                el.className = 'inactive';
+            }
         }
 
         function saveLogNow() {
