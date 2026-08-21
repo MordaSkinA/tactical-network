@@ -10,13 +10,15 @@ public class BattleHub : Hub
     private readonly ISessionStore _sessions;
     private readonly IAccountStore _accounts;
     private readonly HubActionRateLimiter _rateLimiter;
+    private readonly IConnectionTracker _connections;
 
-    public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter)
+    public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter, IConnectionTracker connections)
     {
         _state = state;
         _sessions = sessions;
         _accounts = accounts;
         _rateLimiter = rateLimiter;
+        _connections = connections;
     }
 
     // Группы SignalR
@@ -36,8 +38,8 @@ public class BattleHub : Hub
         }
 
         Context.Items["session"] = session;
+        _connections.Add(session.Username, Context.ConnectionId);
 
-        
         var squadId = _accounts.Find(session.Username)?.SquadId;
         if (!string.IsNullOrEmpty(squadId))
             await Groups.AddToGroupAsync(Context.ConnectionId, SquadGroup(squadId));
@@ -56,6 +58,7 @@ public class BattleHub : Hub
     public override Task OnDisconnectedAsync(Exception? exception)
     {
         _rateLimiter.Reset(Context.ConnectionId);
+        _connections.Remove(Context.ConnectionId);
         return base.OnDisconnectedAsync(exception);
     }
 
@@ -93,12 +96,12 @@ public class BattleHub : Hub
     {
         RequireRole(UserRole.Admin);
         _state.SetRoster(dto.Squads);
-        SyncAccountSquadsWithRoster(dto.Squads);
+        await SyncAccountSquadsWithRoster(dto.Squads);
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
     }
 
 
-    private void SyncAccountSquadsWithRoster(IReadOnlyList<SquadRosterDto> squads)
+    private async Task SyncAccountSquadsWithRoster(IReadOnlyList<SquadRosterDto> squads)
     {
         var memberSquad = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var squad in squads)
@@ -110,9 +113,21 @@ public class BattleHub : Hub
             if (account.Role != UserRole.Leader && account.Role != UserRole.Player)
                 continue; // Commander/Admin не привязаны к ростеру
 
+            var oldSquadId = account.SquadId;
             var newSquadId = memberSquad.TryGetValue(account.Username, out var sid) ? sid : null;
-            if (!string.Equals(account.SquadId, newSquadId, StringComparison.OrdinalIgnoreCase))
-                _accounts.Upsert(account.Username, account.Role, newSquadId, null);
+            if (string.Equals(oldSquadId, newSquadId, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            _accounts.Upsert(account.Username, account.Role, newSquadId, null);
+
+            // смена групп SignalR для всех подключений этого аккаунта
+            foreach (var connectionId in _connections.GetConnections(account.Username))
+            {
+                if (!string.IsNullOrEmpty(oldSquadId))
+                    await Groups.RemoveFromGroupAsync(connectionId, SquadGroup(oldSquadId));
+                if (!string.IsNullOrEmpty(newSquadId))
+                    await Groups.AddToGroupAsync(connectionId, SquadGroup(newSquadId));
+            }
         }
     }
 

@@ -27,6 +27,7 @@ builder.Services.AddSingleton<IBattleState, InMemoryBattleState>();
 builder.Services.AddSingleton<IAccountStore, FileAccountStore>();
 builder.Services.AddSingleton<ISessionStore, InMemorySessionStore>();
 builder.Services.AddSingleton<IPendingDiscordStore, InMemoryPendingDiscordStore>();
+builder.Services.AddSingleton<IConnectionTracker, InMemoryConnectionTracker>();
 builder.Services.AddSingleton<HubActionRateLimiter>();
 builder.Services.AddSingleton<LoginAttemptRateLimiter>();
 builder.Services.AddHttpClient();
