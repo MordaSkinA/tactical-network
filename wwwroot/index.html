@@ -58,6 +58,27 @@
             text-align: center;
             min-height: 16px;
         }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            color: #555;
+            font-size: 12px;
+            margin: 22px 0;
+        }
+
+            .divider::before, .divider::after {
+                content: "";
+                flex: 1;
+                border-bottom: 1px solid #333;
+            }
+
+            .divider::before { margin-right: 10px; }
+            .divider::after { margin-left: 10px; }
+
+        #discord-login-btn {
+            background: #5865F2;
+        }
     </style>
 </head>
 <body>
@@ -74,6 +95,9 @@
         <button type="submit">Log in</button>
         <div id="error"></div>
     </form>
+
+    <div class="divider">or</div>
+    <button id="discord-login-btn" type="button" onclick="loginWithDiscord()">Войти через Discord</button>
 
     <script>
   const existing = localStorage.getItem('gvg_session');
@@ -111,6 +135,27 @@
       errorEl.textContent = 'Connection error: ' + err;
     }
   });
+
+  async function loginWithDiscord() {
+    try {
+      const [startRes, cfgRes] = await Promise.all([
+        fetch('/api/auth/discord/login-start'),
+        fetch('/api/auth/discord/config')
+      ]);
+      const { state } = await startRes.json();
+      const cfg = await cfgRes.json();
+      const params = new URLSearchParams({
+        client_id: cfg.clientId,
+        redirect_uri: cfg.redirectUri,
+        response_type: 'code',
+        scope: 'identify guilds',
+        state
+      });
+      location.href = 'https://discord.com/api/oauth2/authorize?' + params.toString();
+    } catch (err) {
+      document.getElementById('error').textContent = 'Connection error: ' + err;
+    }
+  }
     </script>
 </body>
 </html>

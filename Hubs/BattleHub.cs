@@ -117,7 +117,7 @@ public class BattleHub : Hub
     {
         RequireRole(UserRole.Admin);
         var summaries = _accounts.All()
-            .Select(a => new AccountSummaryDto(a.Username, a.Role, a.SquadId))
+            .Select(a => new AccountSummaryDto(a.Username, a.Role, a.SquadId, a.DiscordUsername))
             .OrderBy(a => a.Role).ThenBy(a => a.Username)
             .ToList();
         return Task.FromResult(summaries);
@@ -130,6 +130,33 @@ public class BattleHub : Hub
             throw new HubException("Username is required.");
 
         _accounts.Upsert(dto.Username.Trim(), dto.Role, dto.SquadId, dto.Password);
+        return Task.CompletedTask;
+    }
+
+    public Task<MyAccountDto> GetMyAccount()
+    {
+        var session = RequireAuthenticated();
+        var account = _accounts.Find(session.Username);
+        return Task.FromResult(new MyAccountDto(
+            session.Username,
+            session.Role,
+            session.SquadId,
+            account?.DiscordId is not null,
+            account?.DiscordUsername
+        ));
+    }
+
+    public Task ChangePassword(ChangePasswordDto dto)
+    {
+        var session = RequireAuthenticated();
+        var account = _accounts.Find(session.Username);
+        if (account is null) throw new HubException("Account not found.");
+        if (!_accounts.VerifyPassword(account, dto.OldPassword))
+            throw new HubException("Current password is incorrect.");
+        if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 4)
+            throw new HubException("New password is too short.");
+
+        _accounts.Upsert(account.Username, account.Role, account.SquadId, dto.NewPassword);
         return Task.CompletedTask;
     }
 
@@ -152,6 +179,12 @@ public class BattleHub : Hub
             if (allowedRoles.Contains(session.Role)) return session;
             throw new HubException($"Your account role ({session.Role}) doesn't have access to this action.");
         }
+        throw new HubException("Not authenticated.");
+    }
+
+    private SessionInfo RequireAuthenticated()
+    {
+        if (Context.Items.TryGetValue("session", out var raw) && raw is SessionInfo session) return session;
         throw new HubException("Not authenticated.");
     }
 

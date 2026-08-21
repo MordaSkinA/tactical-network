@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG Tactical Network - Discord</title>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            padding: 60px 20px;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 26px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        input {
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            background: #5865F2;
+            margin-top: 6px;
+        }
+
+        #error {
+            color: #e33;
+            font-size: 13px;
+            margin-top: 12px;
+            text-align: center;
+            min-height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Почти готово</h2>
+    <div class="hint" id="hint">Discord подтверждён. Укажите ник — по нему вас найдёт админ, чтобы добавить в отряд.</div>
+    <form id="nick-form">
+        <label>
+            Ник
+            <input id="nickname" autocomplete="off" required maxlength="24">
+        </label>
+        <button type="submit">Продолжить</button>
+        <div id="error"></div>
+    </form>
+
+    <script>
+        const params = new URLSearchParams(location.search);
+        const pendingToken = params.get('pendingToken');
+        const discordUsername = params.get('discordUsername');
+
+        if (!pendingToken) {
+            document.getElementById('hint').textContent = 'Сессия регистрации не найдена. Вернитесь на страницу входа и попробуйте снова.';
+            document.getElementById('nick-form').style.display = 'none';
+        } else if (discordUsername) {
+            document.getElementById('hint').textContent =
+                'Discord подтверждён: ' + discordUsername + '. Укажите ник — по нему вас найдёт админ, чтобы добавить в отряд.';
+            document.getElementById('nickname').value = discordUsername.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
+        }
+
+        document.getElementById('nick-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nickname = document.getElementById('nickname').value.trim();
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = '';
+
+            try {
+                const res = await fetch('/api/auth/discord/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pendingToken, nickname })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Не удалось создать аккаунт.'; return; }
+
+                localStorage.setItem('gvg_session', JSON.stringify({
+                    token: data.token,
+                    username: data.username,
+                    role: data.role,
+                    squadId: data.squadId
+                }));
+                location.href = '/menu.html';
+            } catch (err) {
+                errorEl.textContent = 'Connection error: ' + err;
+            }
+        });
+    </script>
+</body>
+</html>

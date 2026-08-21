@@ -64,3 +64,4 @@ C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tacti
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-025838.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-030233.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-030235.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\appsettings.Development.json

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Tacnet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f332bbc92b60e52528e23d5b462b69f9b458457d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3dad600e88ce9ff05fb2f89486b345ac7ce755e6")]
 [assembly: System.Reflection.AssemblyProductAttribute("Tacnet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Tacnet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

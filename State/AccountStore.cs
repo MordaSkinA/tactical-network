@@ -13,6 +13,9 @@ public interface IAccountStore
     void Upsert(string username, UserRole role, string? squadId, string? plainPassword);
     void Delete(string username);
     bool VerifyPassword(UserAccount account, string plainPassword);
+    UserAccount? FindByDiscordId(string discordId);
+    void LinkDiscord(string username, string discordId, string discordUsername);
+
 }
 
 
@@ -121,5 +124,28 @@ public class FileAccountStore : IAccountStore
         var expected = Convert.FromBase64String(account.PasswordHash);
         var actual = Rfc2898DeriveBytes.Pbkdf2(plainPassword, saltBytes, Pbkdf2Iterations, HashAlgorithmName.SHA256, HashSizeBytes);
         return CryptographicOperations.FixedTimeEquals(expected, actual);
+    }
+
+    public UserAccount? FindByDiscordId(string discordId) => _accounts.FirstOrDefault(a => a.DiscordId == discordId);
+
+    public void LinkDiscord(string username, string discordId, string discordUsername)
+    {
+        var existing = Find(username) ?? throw new InvalidOperationException("Account not found.");
+
+        var updated = new UserAccount {
+            Id = existing.Id,
+            Username = existing.Username,
+            Role = existing.Role,
+            SquadId = existing.SquadId,
+            PasswordHash = existing.PasswordHash,
+            PasswordSalt = existing.PasswordSalt,
+            DiscordId = discordId,
+            DiscordUsername = discordUsername
+        };
+        _accounts = _accounts
+            .Where(a => a.Id != existing.Id)
+            .Append(updated)
+            .ToList();
+        Save();
     }
 }

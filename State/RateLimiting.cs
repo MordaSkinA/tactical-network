@@ -30,13 +30,13 @@ public class SimpleRateLimiter
     public void Reset(string key) => _hits.TryRemove(key, out _);
 }
 
-// Максимум 5 действий (репорт/приказ/SOS) за 3 секунды с одного подключения.
+// Максимум 5 действий за 3 секунды с одного подключения
 public class HubActionRateLimiter : SimpleRateLimiter
 {
     public HubActionRateLimiter() : base(maxHits: 5, window: TimeSpan.FromSeconds(3)) { }
 }
 
-// Максимум 5 попыток логина за 30 секунд с одного IP.
+// Максимум 5 попыток логина за 30 секунд с одного IP
 public class LoginAttemptRateLimiter : SimpleRateLimiter
 {
     public LoginAttemptRateLimiter() : base(maxHits: 5, window: TimeSpan.FromSeconds(30)) { }

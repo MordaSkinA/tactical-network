@@ -328,7 +328,7 @@
         // лиды, игроки, аккаунты
 
         function makeAccount(name, squadId, role) {
-            const username = prompt(`Username for ${name}:`, name.toLowerCase().replace(/\s+/g, '.'));
+            const username = prompt(`Username for ${name}:`, name);
             if (!username) return;
             const password = prompt(`Password for ${name}:`);
             if (!password) return;
@@ -437,28 +437,49 @@
                 const accounts = await connection.invoke("ListAccounts");
                 const el = document.getElementById('accounts-list');
                 if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
-                el.innerHTML = '<table><tr><th>Username</th><th>Role</th><th>Squad</th><th></th></tr>' +
-                    accounts.map(a => `
+                el.innerHTML = '<table><tr><th>Username</th><th>Discord</th><th>Role</th><th>Squad</th><th></th></tr>' +
+                    accounts.map(a => {
+                        const unassigned = !a.squadId && (a.role === 'Player' || a.role === 'Leader');
+                        const inPoolOrSquad = pool.includes(a.username) || squads.some(s => s.members.includes(a.username));
+                        const addBtn = unassigned && !inPoolOrSquad
+                            ? `<button class="chip-action player" data-add-to-pool="${escapeHtml(a.username)}" title="Add to pool">+</button>`
+                            : '';
+                        return `
               <tr>
                 <td>${escapeHtml(a.username)}</td>
+                <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">—</span>'}</td>
                 <td>${a.role}</td>
                 <td>${a.squadId || '-'}</td>
-                <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
+                <td>${addBtn}<button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
               </tr>
-            `).join('') + '</table>';
+            `;
+                    }).join('') + '</table>';
             } catch (err) {
                 log("Failed to load accounts: " + err);
             }
         }
 
         document.getElementById('accounts-list').addEventListener('click', e => {
-            const btn = e.target.closest('button[data-delete-username]');
-            if (!btn) return;
-            const username = btn.dataset.deleteUsername;
-            if (!confirm(`Delete account "${username}"?`)) return;
-            connection.invoke("DeleteAccount", username)
-                .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
-                .catch(err => log("Error: " + err));
+            const deleteBtn = e.target.closest('button[data-delete-username]');
+            if (deleteBtn) {
+                const username = deleteBtn.dataset.deleteUsername;
+                if (!confirm(`Delete account "${username}"?`)) return;
+                connection.invoke("DeleteAccount", username)
+                    .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
+                    .catch(err => log("Error: " + err));
+                return;
+            }
+
+            const addBtn = e.target.closest('button[data-add-to-pool]');
+            if (addBtn) {
+                const username = addBtn.dataset.addToPool;
+                if (!pool.includes(username) && !squads.some(s => s.members.includes(username))) {
+                    pool.push(username);
+                    renderPool();
+                    log(`Added to pool: ${username}`);
+                    refreshAccounts();
+                }
+            }
         });
 
         function addStandaloneAccount() {

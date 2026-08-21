@@ -20,7 +20,7 @@ function requireAuth(allowedRoles) {
     return session;
 }
 
-// Вкладка Player доступна всем ролям, остальные — по иерархии доступа.
+
 const TABS = [
     { url: '/player.html', label: 'Player', roles: ['Player', 'Leader', 'Commander', 'Admin'] },
     { url: '/observer.html', label: 'Observer', roles: ['Leader', 'Admin'] },

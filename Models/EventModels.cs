@@ -55,9 +55,11 @@ public class UserAccount
     public string PasswordSalt { get; set; } = string.Empty;
     public UserRole Role { get; set; }
     public string? SquadId { get; set; }
+    public string? DiscordId { get; set; }
+    public string? DiscordUsername { get; set; }
 }
 
-// --- Auth ---
+// Auth
 
 public record LoginDto(string Username, string Password);
 
@@ -65,16 +67,13 @@ public record AuthResponseDto(bool Success, string? Message, string? Token, stri
 
 public record LogoutDto(string Token);
 
-// --- Client -> Server (battle actions) ---
-// Имя и целевой сквад больше не приходят от клиента — берутся из сессии,
-// привязанной к токену при логине (см. BattleHub.RequireRole/RequireSquad).
-// Раньше клиент мог прислать любое имя — теперь физически не может.
+// Client  Server 
 
 public record ReportEventDto(EnemyRole? EnemyRole, string? Note);
 
 public record IssueOrderDto(OrderType Type);
 
-// --- Server -> Client ---
+// Server  Client 
 
 public record BattleEventPushDto(
     Guid EventId,
@@ -94,7 +93,7 @@ public record OrderPushDto(
     DateTimeOffset IssuedAt
 );
 
-// --- Roster ---
+// Roster 
 
 public record SquadRosterDto(
     string SquadId,
@@ -107,8 +106,16 @@ public record UpdateRosterDto(
     List<SquadRosterDto> Squads
 );
 
-// --- Accounts (только через Hub, только для залогиненного Admin — не REST + общий ключ) ---
+// Accounts 
 
-public record AccountSummaryDto(string Username, UserRole Role, string? SquadId);
+public record AccountSummaryDto(string Username, UserRole Role, string? SquadId, string? DiscordUsername);
 
 public record UpsertAccountDto(string Username, UserRole Role, string? SquadId, string? Password);
+public record ChangePasswordDto(string OldPassword, string NewPassword);
+public record DiscordConfigDto(string ClientId, string RedirectUri);
+public record MyAccountDto(string Username, UserRole Role, string? SquadId, bool DiscordLinked, string? DiscordUsername);
+
+// Discord self-service login/registration 
+
+public record DiscordLoginStartDto(string State);
+public record DiscordRegisterDto(string PendingToken, string Nickname);
