@@ -14,3 +14,6 @@
 .vs/ProjectEvaluation/server.projects.v10.bin
 .vs/ProjectEvaluation/server.metadata.v10.bin
 appsettings.json
+roster.json
+accounts.json
+/logs
