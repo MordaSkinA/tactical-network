@@ -391,20 +391,20 @@
     <div id="accounts-list"></div>
 
     <h3>4. Discord channels (webhooks)</h3>
-    <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed — right-click a channel in Discord → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL.</div>
+    <div class="hint">Paste one webhook URL per channel you want to send to. In Discord - Edit Channel - Integrations - Webhooks - New Webhook - Copy URL.</div>
     <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
     <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
     <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
     <div id="discord-channels-list" style="margin-top:10px;"></div>
 
     <h3>5. Emoji for roles &amp; tags</h3>
-    <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it — it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed (♜↑ top, ♜ center, ♜↓ bottom) and aren't customizable here.</div>
+    <div class="hint">In Discord type <code>\:youremoji:</code> in any channel and send it, it'll turn into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed and aren't customizable here</div>
     <div id="emoji-role-inputs"></div>
     <div id="emoji-tag-inputs" style="margin-top:10px;"></div>
     <button class="secondary" onclick="saveEmojiSettings()">Save emoji</button>
 
     <h3>6. Send a Discord message</h3>
-    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text (@nickname).</div>
+    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text @nickname</div>
     <label>Channel
         <select id="dc-send-channel"></select>
     </label>
@@ -413,10 +413,10 @@
     <label>Also ping specific people
         <select id="dc-recipients" multiple size="6"></select>
     </label>
-    <label>Message <textarea id="dc-message" placeholder="Boss spawns in 5 minutes, form up at mid!"></textarea></label>
+    <label>Message <textarea id="dc-message" placeholder="Hello, hello, hello..."></textarea></label>
     <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
 
-    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster (uses each squad's label, tags and each player's role/bulwark below) and ping everyone in the selected squads above.</div>
+    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected squads above.</div>
     <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
     <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
 
@@ -863,7 +863,7 @@
 
         function renderDiscordSendChannelOptions() {
             const sel = document.getElementById('dc-send-channel');
-            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet — add one above</option>'; return; }
+            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet - add one above</option>'; return; }
             sel.innerHTML = discordChannels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
         }
 
@@ -919,9 +919,9 @@
             let squadIds = [...dcSelectedSquads];
             if (squadIds.length === 0) {
                 squadIds = squads.filter(s => s.members.length > 0).map(s => s.squadId);
-                log(`No squads selected — defaulting to all ${squadIds.length} non-empty squad(s).`);
+                log(`No squads selected - defaulting to all ${squadIds.length} non-empty squad(s).`);
             }
-            if (squadIds.length === 0) { log("Roster is empty — build it in section 2 first."); return; }
+            if (squadIds.length === 0) { log("Roster is empty - build it in section 2 first."); return; }
             if (!confirm(`Send the Team composition post for ${squadIds.length} squad(s) to Discord now? This will really ping everyone in them.`)) return;
 
             connection.invoke("SendRosterMessage", { channelId, squadIds })
@@ -943,7 +943,7 @@
                 lines.push('');
             });
             document.getElementById('dc-message').value = lines.join('\n').trim();
-            log('Preview filled into the message box below — this is a preview only, use "Send team composition" to actually send it with real pings.');
+            log('Preview filled into the message box below - this is a preview only, use "Send team composition" to actually send it with real pings.');
         }
 
         function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }

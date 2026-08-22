@@ -68,14 +68,14 @@
     </style>
 </head>
 <body>
-    <h2>Почти готово</h2>
-    <div class="hint" id="hint">Discord подтверждён. Укажите ник — по нему вас найдёт админ, чтобы добавить в отряд.</div>
+    <h2>Almost ready</h2>
+    <div class="hint" id="hint">Discord verified. Please specify your nickname, admins will use it to add you to a squad.</div>
     <form id="nick-form">
         <label>
-            Ник
+            Nickname
             <input id="nickname" autocomplete="off" required maxlength="24">
         </label>
-        <button type="submit">Продолжить</button>
+        <button type="submit">Continue</button>
         <div id="error"></div>
     </form>
 
@@ -85,11 +85,11 @@
         const discordUsername = params.get('discordUsername');
 
         if (!pendingToken) {
-            document.getElementById('hint').textContent = 'Сессия регистрации не найдена. Вернитесь на страницу входа и попробуйте снова.';
+            document.getElementById('hint').textContent = 'Session not found. Please return to the login page and try again.';
             document.getElementById('nick-form').style.display = 'none';
         } else if (discordUsername) {
             document.getElementById('hint').textContent =
-                'Discord подтверждён: ' + discordUsername + '. Укажите ник — по нему вас найдёт админ, чтобы добавить в отряд.';
+                'Discord verified: ' + discordUsername + '. Please specify your nickname — admins will use it to add you to a squad.';
             document.getElementById('nickname').value = discordUsername.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
         }
 
@@ -106,7 +106,7 @@
                     body: JSON.stringify({ pendingToken, nickname })
                 });
                 const data = await res.json();
-                if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Не удалось создать аккаунт.'; return; }
+                if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Failed to create account.'; return; }
 
                 localStorage.setItem('gvg_session', JSON.stringify({
                     token: data.token,
