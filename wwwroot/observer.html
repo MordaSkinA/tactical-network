@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Team Leader</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .header-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .user-info {
+            background: #222;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border: 1px solid #444;
+        }
+
+        h3 {
+            margin-top: 28px;
+            margin-bottom: 10px;
+            color: #aaa;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button.action-btn {
+            font-size: 17px;
+            padding: 16px 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #fff;
+            min-width: 130px;
+            font-weight: 600;
+        }
+
+            button.action-btn:active {
+                transform: scale(0.97);
+            }
+
+        /* Danger / enemies - red */
+        .enemy {
+            background: #b23b3b;
+        }
+
+        /* Critical event (squad wiped) - dark maroon */
+        .critical {
+            background: #6e1c1c;
+        }
+
+        /* Attack / push - orange and terracotta */
+        .attack {
+            background: #c1622b;
+        }
+
+        /* Key aggressive actions (bomb, boss) - bright orange */
+        .attack-key {
+            background: #e8790f;
+        }
+
+        /* Defending positions - muted green */
+        .defend {
+            background: #4c7a4f;
+        }
+
+        /* Holding a position - dark green */
+        .hold {
+            background: #2e5230;
+        }
+
+        /* Protecting a target - light mint */
+        .protect {
+            background: #4fae82;
+        }
+
+        /* Maneuvers / tactics - blue and cyan */
+        .tactic {
+            background: #2f6fb2;
+        }
+
+        .fallback {
+            background: #4a90c4;
+        }
+
+        /* Neutral map zones - dark blue */
+        .jungle {
+            background: #1e3a5f;
+        }
+
+        #order-banner {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            margin-top: 24px;
+            margin-bottom: 16px;
+            border: 2px solid #333;
+        }
+
+        #order-banner .label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        #order-banner .value {
+            font-size: 26px;
+            font-weight: 800;
+            margin-top: 6px;
+        }
+
+        #order-banner.has-order { border-color: #2f6fb2; }
+        #order-banner.cat-critical    { border-color: #6e1c1c; background: #241212; }
+        #order-banner.cat-attack      { border-color: #c1622b; background: #241a10; }
+        #order-banner.cat-attack-key  { border-color: #e8790f; background: #26190a; }
+        #order-banner.cat-defend      { border-color: #4c7a4f; background: #142217; }
+        #order-banner.cat-hold        { border-color: #2e5230; background: #101d12; }
+        #order-banner.cat-protect     { border-color: #4fae82; background: #10241a; }
+        #order-banner.cat-tactic      { border-color: #2f6fb2; background: #101a26; }
+        #order-banner.cat-fallback    { border-color: #4a90c4; background: #0f1c24; }
+        #order-banner.cat-jungle      { border-color: #1e3a5f; background: #0c1622; }
+
+        #alerts { margin-bottom: 16px; }
+
+        .alert-item {
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 4px solid #555;
+            background: #161616;
+            font-size: 14px;
+        }
+
+        .alert-item .meta {
+            color: #888;
+            font-size: 11px;
+            margin-top: 3px;
+        }
+
+        .Critical       { border-left-color: #e33; }
+        .Warning        { border-left-color: #e8a33d; }
+        .Info           { border-left-color: #3d8ee8; }
+        .cat-critical   { border-left-color: #6e1c1c; }
+        .cat-attack     { border-left-color: #c1622b; }
+        .cat-attack-key { border-left-color: #e8790f; }
+        .cat-defend     { border-left-color: #4c7a4f; }
+        .cat-hold       { border-left-color: #2e5230; }
+        .cat-protect    { border-left-color: #4fae82; }
+        .cat-tactic     { border-left-color: #2f6fb2; }
+        .cat-fallback   { border-left-color: #4a90c4; }
+        .cat-jungle     { border-left-color: #1e3a5f; }
+
+        #status {
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        #log {
+            font-size: 12px;
+            color: #777;
+            margin-top: 14px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+
+        .menu-nav-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Team Leader <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
+    <div class="hint">Report enemy sightings and your squad's status.</div>
+
+    <div class="user-info" id="user-info">
+        Loading profile...
+    </div>
+
+    <h3>Enemy</h3>
+    <div class="row">
+        <button class="action-btn enemy" onclick="reportEnemy('TwinBlades')">ENEMY TB</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Tank')">ENEMY TANK</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Nameless')">ENEMY NAMELESS</button>
+    </div>
+
+    <h3>Squad status</h3>
+    <div class="row">
+        <button class="action-btn critical" onclick="reportStatus('SquadWiped')">SQUAD WIPED</button>
+        <button class="action-btn defend" onclick="reportStatus('Regrouped')">REGROUPED</button>
+        <button class="action-btn protect" onclick="reportStatus('NeedHealing')">NEED HEALING</button>
+        <button class="action-btn fallback" onclick="reportStatus('Retreating')">RETREATING</button>
+        <button class="action-btn attack-key" onclick="reportStatus('ObjectiveSecured')">OBJECTIVE SECURED</button>
+    </div>
+
+    <h3>Incoming orders</h3>
+    <div id="order-banner">
+        <div class="label">Current order</div>
+        <div class="value" id="order-value">-</div>
+    </div>
+
+    <div id="alerts"></div>
+
+    <div id="status">connecting...</div>
+    <div id="log"></div>
+
+    <script>
+
+        const currentUser = requireAuth(['Leader', 'Admin']);
+        if (currentUser) {
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
+        }
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
+            .withAutomaticReconnect()
+            .build();
+
+        const ORDER_CATEGORIES = {
+            PushBot: 'attack', PushMid: 'attack', PushTop: 'attack', AttackGoose: 'attack',
+            KillBoss: 'attack-key', Bomb: 'attack-key',
+            DefendBot: 'defend', DefendMid: 'defend', DefendTop: 'defend', DefendGoose: 'defend', DefendTree: 'defend',
+            Hold: 'hold',
+            ProtectHealer: 'protect',
+            Rotate: 'tactic',
+            FallBack: 'fallback',
+            BotJungle: 'jungle', TopJungle: 'jungle'
+        };
+        const STATUS_CLASSES = {
+            SquadWiped: 'cat-critical', Regrouped: 'cat-defend', NeedHealing: 'cat-protect',
+            Retreating: 'cat-fallback', ObjectiveSecured: 'cat-attack-key'
+        };
+        const ALL_CATEGORY_CLASSES = ['cat-critical', 'cat-attack', 'cat-attack-key', 'cat-defend', 'cat-hold', 'cat-protect', 'cat-tactic', 'cat-fallback', 'cat-jungle'];
+
+        function alertClass(evt) {
+            return evt.enemyRole != null ? 'Critical' : evt.severity;
+        }
+
+        function setOrder(type) {
+            const el = document.getElementById('order-value');
+            const banner = document.getElementById('order-banner');
+            banner.classList.remove(...ALL_CATEGORY_CLASSES);
+            if (!type) {
+                el.textContent = '-';
+                banner.classList.remove('has-order');
+                return;
+            }
+            el.textContent = type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+            banner.classList.add('has-order');
+            const category = ORDER_CATEGORIES[type] || 'tactic';
+            banner.classList.add('cat-' + category);
+        }
+
+        function addAlert(cls, title, ts) {
+            const el = document.getElementById('alerts');
+            const div = document.createElement('div');
+            div.className = 'alert-item ' + cls;
+
+            const titleEl = document.createElement('div');
+            titleEl.textContent = title;
+
+            const metaEl = document.createElement('div');
+            metaEl.className = 'meta';
+            metaEl.textContent = new Date(ts).toLocaleTimeString();
+
+            div.append(titleEl, metaEl);
+            el.prepend(div);
+            while (el.children.length > 8) el.removeChild(el.lastChild);
+        }
+
+        connection.onreconnecting(() => setStatus("reconnecting..."));
+        connection.onreconnected(() => setStatus("connected"));
+
+        connection.on("BattleEvent", evt => {
+            log(`[${evt.severity}] ${evt.enemyRole ?? evt.note ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`);
+            if (evt.targetSquadId !== currentUser.squadId) return;
+            addAlert(alertClass(evt), evt.enemyRole ?? evt.note ?? 'EVENT', evt.timestamp);
+        });
+
+        connection.on("OrderIssued", order => {
+            log(`ORDER ${order.type} → ${order.targetSquadId} (by ${order.issuerName})`);
+            if (order.targetSquadId !== currentUser.squadId) return;
+            setOrder(order.type);
+        });
+
+        connection.on("SquadStatusChanged", status => {
+            log(`STATUS ${status.type} → ${status.targetSquadId} (by ${status.reporterName})`);
+            if (status.targetSquadId !== currentUser.squadId) return;
+            addAlert(STATUS_CLASSES[status.type] || 'Warning', `STATUS: ${status.type}`, status.timestamp);
+        });
+
+        connection.on("Snapshot", items => items.forEach(applySnapshotItem));
+
+        function applySnapshotItem(i) {
+            if (i.targetSquadId !== currentUser.squadId) return;
+            if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
+            else if ('orderId' in i) setOrder(i.type);
+            else addAlert(STATUS_CLASSES[i.type] || 'Warning', `STATUS: ${i.type}`, i.timestamp);
+        }
+
+        connection.on("HistoryReset", () => {
+            document.getElementById('alerts').innerHTML = '';
+            setOrder(null);
+        });
+
+        connection.on("RosterUpdated", roster => updateSquadFromRoster(roster));
+
+        function updateSquadFromRoster(roster) {
+            if (!roster || !currentUser) return;
+            const mine = roster.find(sq => (sq.members || []).some(m => (m.nickname || '').toLowerCase() === currentUser.username.toLowerCase()));
+            const newSquadId = mine ? mine.squadId : null;
+            if (newSquadId === currentUser.squadId) return;
+            currentUser.squadId = newSquadId;
+            localStorage.setItem('gvg_session', JSON.stringify(currentUser));
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
+        }
+
+        connection.start()
+            .then(() => setStatus("connected"))
+            .catch(err => setStatus("connection failed: " + err));
+
+        function reportEnemy(role) {
+            connection.invoke("ReportEvent", { enemyRole: role, note: null })
+                .catch(err => log("Error: " + err));
+        }
+
+        function reportStatus(type) {
+            connection.invoke("ReportSquadStatus", { type: type })
+                .catch(err => log("Error: " + err));
+        }
+
+        function setStatus(text) { document.getElementById('status').textContent = text; }
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
+        }
+    </script>
+</body>
+</html>

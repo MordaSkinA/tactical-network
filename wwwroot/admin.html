@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG - Admin</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            padding: 20px;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 28px;
+            margin-bottom: 10px;
+            color: #aaa;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 14px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        input, textarea, select {
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 6px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 90px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-top: 6px;
+        }
+
+        .primary {
+            background: #2f6fb2;
+        }
+
+        .danger {
+            background: #a4202a;
+        }
+
+        .secondary {
+            background: #333;
+        }
+
+        .header-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+        }
+
+        #battle-status {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        #battle-status.active {
+            background: #1a2e1a;
+            color: #7dd87d;
+        }
+
+        #battle-status.inactive {
+            background: #2a2a2a;
+            color: #999;
+        }
+
+        .chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 20px;
+        }
+
+        .chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #242424;
+            border-radius: 20px;
+            padding: 4px 6px 4px 12px;
+            font-size: 13px;
+        }
+
+            .chip select {
+                background: #333;
+                color: #eee;
+                border: none;
+                border-radius: 14px;
+                padding: 4px 8px;
+                font-size: 12px;
+                width: auto;
+                margin: 0;
+            }
+
+        .chip-remove, .chip-action {
+            background: #3a3a3a;
+            color: #ccc;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            font-size: 12px;
+            margin: 0;
+        }
+
+            .chip-action.leader {
+                background: #4a3a1a;
+                color: #e8c07d;
+            }
+
+            .chip-action.player {
+                background: #1a3a4a;
+                color: #7dc0e8;
+            }
+
+            .chip-action.bulwark {
+                background: #3a2f10;
+                color: #8a7020;
+            }
+
+            .chip-action.bulwark.active {
+                background: #7a5c10;
+                color: #ffd76b;
+            }
+
+        .member-chip {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #242424;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .member-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .member-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .role-select {
+            background: #333;
+            color: #eee;
+            border: none;
+            border-radius: 6px;
+            padding: 3px 6px;
+            font-size: 11px;
+            width: auto;
+            margin: 0;
+        }
+
+        .tag-dropdown {
+            position: relative;
+            font-size: 11px;
+        }
+
+            .tag-dropdown summary {
+                list-style: none;
+                cursor: pointer;
+                background: #333;
+                color: #ccc;
+                border-radius: 6px;
+                padding: 3px 8px;
+                user-select: none;
+            }
+
+                .tag-dropdown summary::-webkit-details-marker {
+                    display: none;
+                }
+
+            .tag-dropdown[open] summary {
+                background: #3a3a3a;
+            }
+
+            .tag-dropdown .tag-options {
+                position: absolute;
+                z-index: 5;
+                top: 100%;
+                left: 0;
+                margin-top: 4px;
+                background: #2a2a2a;
+                border: 1px solid #444;
+                border-radius: 8px;
+                padding: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                white-space: nowrap;
+            }
+
+                .tag-dropdown .tag-options label {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: #ddd;
+                    font-size: 12px;
+                    margin: 0;
+                }
+
+        .squad-toggle-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #242424;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            border: 1px solid #333;
+        }
+
+            .squad-toggle-chip.selected {
+                background: #2f6fb2;
+                border-color: #4a8fd6;
+            }
+
+        .empty-hint {
+            color: #555;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        .squad-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .squad-edit-card {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid #333;
+        }
+
+        .squad-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .leader-select {
+            font-size: 12px;
+            padding: 4px;
+            background: #222;
+            border: 1px solid #444;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        #log {
+            font-size: 12px;
+            color: #777;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+            table th {
+                color: #888;
+                text-align: left;
+                padding: 4px 8px;
+            }
+
+            table td {
+                padding: 6px 8px;
+                border-top: 1px solid #2a2a2a;
+            }
+
+        details {
+            margin-top: 20px;
+            border-top: 1px solid #2a2a2a;
+            padding-top: 14px;
+        }
+
+        summary {
+            cursor: pointer;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .menu-nav-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
+
+    <div id="battle-status" class="inactive">No active battle</div>
+
+    <h3>1. Add members to the pool</h3>
+    <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
+    <button class="primary" onclick="addToPool()">Add to pool</button>
+
+    <h3>Free players (Unassigned)</h3>
+    <div id="pool" class="chip-list"></div>
+
+    <h3>2. Teams. Assign players, set role and leaders</h3>
+    <div class="hint">"L" icon on a name - make leader (grants access to the Team Leader panel). "P" - create a player account.</div>
+    <div id="squads" class="squad-grid"></div>
+
+    <h3 id="reserves-heading">Reserves</h3>
+    <div class="hint">Players moved here are pulled out of their team entirely. They show up as their own list for the Commander too, and can't be targeted by combat orders.</div>
+    <div id="reserves" class="chip-list"></div>
+
+    <div style="margin-top:20px;">
+        <button class="primary" onclick="saveRoster()">Save roster</button>
+        <button class="secondary" onclick="saveLogNow()">Save log now</button>
+    </div>
+
+    <h3>Battle</h3>
+    <div>
+        <button class="primary" onclick="startBattle()">Start Battle</button>
+        <button class="danger" onclick="endBattle()">End Battle (archive &amp; clear)</button>
+    </div>
+
+    <h3>3. Accounts</h3>
+    <div id="accounts-list"></div>
+
+    <h3>4. Discord channels (webhooks)</h3>
+    <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed — right-click a channel in Discord → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL.</div>
+    <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
+    <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
+    <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
+    <div id="discord-channels-list" style="margin-top:10px;"></div>
+
+    <h3>5. Emoji for roles &amp; tags</h3>
+    <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it — it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed (♜↑ top, ♜ center, ♜↓ bottom) and aren't customizable here.</div>
+    <div id="emoji-role-inputs"></div>
+    <div id="emoji-tag-inputs" style="margin-top:10px;"></div>
+    <button class="secondary" onclick="saveEmojiSettings()">Save emoji</button>
+
+    <h3>6. Send a Discord message</h3>
+    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text (@nickname).</div>
+    <label>Channel
+        <select id="dc-send-channel"></select>
+    </label>
+    <label>Ping whole squads (click to toggle)</label>
+    <div id="dc-squad-toggles" class="chip-list" style="margin-bottom:14px;"></div>
+    <label>Also ping specific people
+        <select id="dc-recipients" multiple size="6"></select>
+    </label>
+    <label>Message <textarea id="dc-message" placeholder="Boss spawns in 5 minutes, form up at mid!"></textarea></label>
+    <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
+
+    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster (uses each squad's label, tags and each player's role/bulwark below) and ping everyone in the selected squads above.</div>
+    <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
+    <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
+
+    <details>
+        <summary>Add a Commander/Admin account</summary>
+        <label>Username <input id="new-acc-username"></label>
+        <label>Password <input id="new-acc-password" type="password"></label>
+        <label>
+            Role
+            <select id="new-acc-role">
+                <option value="Commander">Commander</option>
+                <option value="Admin">Admin</option>
+            </select>
+        </label>
+        <button class="primary" onclick="addStandaloneAccount()">Create</button>
+    </details>
+
+    <div id="log"></div>
+
+    <script>
+        const currentUser = requireAuth(['Admin']);
+
+        let pool = [];
+        let squads = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map(id => ({ squadId: id, side: 'Flex', leaderName: null, members: [], label: '', tags: [] }));
+        const RESERVE_SQUAD_ID = 'RESERVE';
+        let reserves = { squadId: RESERVE_SQUAD_ID, side: 'Flex', leaderName: null, members: [], label: 'Reserves', tags: [] };
+        let roleEmoji = { Dps: '⚔️', Tank: '🛡️', Healer: '💚' };
+        // Backup teg больше не вешается на отряд — используем его эмодзи как значок раздела Reserves.
+        let tagEmoji = { Jungle: '🌲', Boss: '👹', Backup: '🔁' };
+        const BULWARK_SYMBOL = { None: '', Bottom: ' ♜↓', Center: ' ♜', Top: ' ♜↑' };
+        let initialized = false;
+        let memberPresets = {};
+        let discordChannels = [];
+        let dcSelectedSquads = new Set();
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("RosterUpdated", roster => {
+            if (!initialized) { loadRosterIntoUi(roster); initialized = true; }
+            else log("Roster changed on the server. Reload if this wasn't you.");
+            refreshAccounts();
+        });
+
+        connection.on("HistoryReset", () => log("History archived and reset (broadcast confirmed)."));
+        connection.on("BattleStatusChanged", status => renderBattleStatus(status));
+
+        connection.start()
+            .then(() => { log("Connected."); refreshAccounts(); refreshMemberPresets(); refreshDiscordChannels(); refreshEmojiSettings(); })
+            .catch(err => log("Connection failed: " + err));
+
+        // запомненные роль/булварк игрока
+
+        async function refreshMemberPresets() {
+            try { memberPresets = await connection.invoke("GetMemberPresets"); }
+            catch (err) { log("Failed to load remembered roles/bulwark: " + err); }
+        }
+
+        // кастомные эмодзи ролей/тегов
+
+        async function refreshEmojiSettings() {
+            try {
+                const settings = await connection.invoke("GetEmojiSettings");
+                roleEmoji = Object.fromEntries(settings.roles.map(r => [r.role, r.emoji]));
+                tagEmoji = Object.fromEntries(settings.tags.map(t => [t.tag, t.emoji]));
+                renderEmojiInputs();
+                renderSquads();
+                renderReserves();
+            } catch (err) { log("Failed to load emoji settings: " + err); }
+        }
+
+        function renderEmojiInputs() {
+            const roleEl = document.getElementById('emoji-role-inputs');
+            roleEl.innerHTML = Object.keys(roleEmoji).map(role => `
+          <label>${role} emoji <input id="emoji-role-${role}" value="${escapeHtml(roleEmoji[role] || '')}" placeholder="default"></label>
+        `).join('');
+
+            const tagLabel = { Jungle: 'Jungle', Boss: 'Boss', Backup: 'Reserves' };
+            const tagEl = document.getElementById('emoji-tag-inputs');
+            tagEl.innerHTML = Object.keys(tagEmoji).map(tag => `
+          <label>${tagLabel[tag] || tag} emoji <input id="emoji-tag-${tag}" value="${escapeHtml(tagEmoji[tag] || '')}" placeholder="default"></label>
+        `).join('');
+        }
+
+        function saveEmojiSettings() {
+            const roles = Object.keys(roleEmoji).map(role => ({ role, emoji: document.getElementById(`emoji-role-${role}`).value.trim() }));
+            const tags = Object.keys(tagEmoji).map(tag => ({ tag, emoji: document.getElementById(`emoji-tag-${tag}`).value.trim() }));
+            connection.invoke("UpdateEmojiSettings", { roles, tags })
+                .then(settings => {
+                    roleEmoji = Object.fromEntries(settings.roles.map(r => [r.role, r.emoji]));
+                    tagEmoji = Object.fromEntries(settings.tags.map(t => [t.tag, t.emoji]));
+                    renderEmojiInputs();
+                    renderSquads();
+                    renderReserves();
+                    log("Emoji settings saved.");
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        // пул
+
+        function addToPool() {
+            const raw = document.getElementById('pool-input').value;
+            const names = raw.split(/[\n,]/).map(n => n.trim()).filter(Boolean);
+            const existing = new Set([...pool, ...squads.flatMap(s => s.members.map(m => m.nickname)), ...reserves.members.map(m => m.nickname)]);
+            names.forEach(n => { if (!existing.has(n)) { pool.push(n); existing.add(n); } });
+            document.getElementById('pool-input').value = '';
+            renderPool();
+        }
+
+        function removeFromPool(index) { pool.splice(index, 1); renderPool(); }
+
+        function squadOrReserveById(squadId) {
+            return squadId === RESERVE_SQUAD_ID ? reserves : squads.find(s => s.squadId === squadId);
+        }
+
+        function assignFromPool(index, squadId) {
+            if (!squadId) return;
+            const name = pool[index];
+            pool.splice(index, 1);
+            const target = squadOrReserveById(squadId);
+            if (target) {
+                const preset = memberPresets[name];
+                target.members.push({
+                    nickname: name,
+                    role: preset ? preset.role : 'Dps',
+                    bulwark: preset ? preset.bulwark : 'None'
+                });
+            }
+            renderPool(); renderSquads(); renderReserves();
+        }
+
+        function unassign(squadIndex, memberIndex) {
+            const member = squads[squadIndex].members.splice(memberIndex, 1)[0];
+            if (squads[squadIndex].leaderName === member.nickname) squads[squadIndex].leaderName = null;
+            pool.push(member.nickname);
+            renderPool(); renderSquads();
+        }
+
+        // Резерв: перевод игрока между отрядом/резервом/пулом
+
+        function moveMemberToReserve(squadIndex, memberIndex) {
+            const squad = squads[squadIndex];
+            const member = squad.members.splice(memberIndex, 1)[0];
+            if (squad.leaderName === member.nickname) squad.leaderName = null;
+            reserves.members.push(member);
+            renderSquads(); renderReserves();
+        }
+
+        function moveReserveMemberToSquad(memberIndex, squadId) {
+            if (!squadId) return;
+            const member = reserves.members.splice(memberIndex, 1)[0];
+            const target = squads.find(s => s.squadId === squadId);
+            if (target) target.members.push(member);
+            renderSquads(); renderReserves();
+        }
+
+        function removeFromReserve(memberIndex) {
+            const member = reserves.members.splice(memberIndex, 1)[0];
+            pool.push(member.nickname);
+            renderPool(); renderReserves();
+        }
+
+        function setReserveMemberRole(mi, role) { reserves.members[mi].role = role; }
+        function setReserveMemberBulwark(mi, bulwark) { reserves.members[mi].bulwark = bulwark; }
+
+        function setSquadSide(squadIndex, value) { squads[squadIndex].side = value; }
+        function setSquadLabel(squadIndex, value) { squads[squadIndex].label = value; renderDiscordSquadToggles(); }
+
+        function toggleSquadTag(squadIndex, tag) {
+            const squad = squads[squadIndex];
+            const idx = squad.tags.indexOf(tag);
+            if (idx >= 0) squad.tags.splice(idx, 1); else squad.tags.push(tag);
+            const summaryEl = document.getElementById(`squad-tag-summary-${squadIndex}`);
+            if (summaryEl) summaryEl.textContent = tagsSummaryText(squad.tags);
+        }
+
+        // лиды, игроки, аккаунты
+
+        function makeAccount(name, squadId, role) {
+            const username = prompt(`Username for ${name}:`, name);
+            if (!username) return;
+            const password = prompt(`Password for ${name}:`);
+            if (!password) return;
+            connection.invoke("UpsertAccount", { username, role, squadId: squadId || null, password })
+                .then(() => { log(`Account created: ${username} (${role}${squadId ? ', ' + squadId : ''})`); refreshAccounts(); })
+                .catch(err => log("Error: " + err));
+        }
+
+        document.getElementById('squads').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const si = Number(btn.dataset.squadIndex);
+            const mi = btn.dataset.memberIndex !== undefined ? Number(btn.dataset.memberIndex) : null;
+
+            if (action === 'unassign') unassign(si, mi);
+            if (action === 'make-leader') {
+                const name = squads[si].members[mi].nickname;
+                squads[si].leaderName = name;
+                renderSquads();
+                makeAccount(name, squads[si].squadId, 'Leader');
+            }
+            if (action === 'make-player') makeAccount(squads[si].members[mi].nickname, squads[si].squadId, 'Player');
+            if (action === 'to-reserve') moveMemberToReserve(si, mi);
+        });
+
+        function setMemberRole(si, mi, role) {
+            squads[si].members[mi].role = role;
+        }
+
+        function setMemberBulwark(si, mi, bulwark) {
+            squads[si].members[mi].bulwark = bulwark;
+        }
+
+        function tagsSummaryText(tags) {
+            return tags && tags.length > 0 ? tags.join(', ') : 'Tags ▾';
+        }
+
+
+
+        function renderPool() {
+            const el = document.getElementById('pool');
+            if (pool.length === 0) { el.innerHTML = '<span class="empty-hint">Empty</span>'; return; }
+            el.innerHTML = pool.map((name, i) => `
+          <div class="chip">
+            <span>${escapeHtml(name)}</span>
+            <select onchange="assignFromPool(${i}, this.value)">
+              <option value="">to squad...</option>
+              ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
+              <option value="${RESERVE_SQUAD_ID}">${tagEmoji.Backup || ''} Reserves</option>
+            </select>
+            <button class="chip-remove" onclick="removeFromPool(${i})">×</button>
+          </div>
+        `).join('');
+            renderDiscordRecipientOptions();
+        }
+
+        function renderSquads() {
+            const el = document.getElementById('squads');
+            el.innerHTML = squads.map((sq, si) => `
+          <div class="squad-edit-card">
+            <div class="squad-edit-header">
+              <strong>${sq.squadId}${sq.leaderName ? ' · Leader: ' + escapeHtml(sq.leaderName) : ''}</strong>
+              <select onchange="setSquadSide(${si}, this.value)" style="width:auto; margin:0; padding:4px;">
+                <option value="Defense" ${sq.side === 'Defense' ? 'selected' : ''}>Defense</option>
+                <option value="Attack" ${sq.side === 'Attack' ? 'selected' : ''}>Attack</option>
+                <option value="Flex" ${sq.side === 'Flex' ? 'selected' : ''}>Flex</option>
+              </select>
+            </div>
+            <input type="text" placeholder="Team label for Discord post, e.g. J3 + B or Pressure" value="${escapeHtml(sq.label || '')}"
+                   oninput="setSquadLabel(${si}, this.value)" style="margin:0 0 8px 0;">
+            <details class="tag-dropdown" style="margin-bottom:10px;">
+              <summary id="squad-tag-summary-${si}">${tagsSummaryText(sq.tags)}</summary>
+              <div class="tag-options">
+                <label><input type="checkbox" ${sq.tags.includes('Jungle') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Jungle')"> ${tagEmoji.Jungle || ''} Jungle</label>
+                <label><input type="checkbox" ${sq.tags.includes('Boss') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Boss')"> ${tagEmoji.Boss || ''} Boss</label>
+              </div>
+            </details>
+            <div class="chip-list">
+              ${sq.members.length > 0
+                    ? sq.members.map((m, mi) => `
+                    <div class="member-chip">
+                      <div class="member-top">
+                        <span>${escapeHtml(m.nickname)}</span>
+                        <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Remove from squad">×</button>
+                      </div>
+                      <div class="member-controls">
+                        <select class="role-select" onchange="setMemberRole(${si}, ${mi}, this.value)" title="Role">
+                          <option value="Dps" ${m.role === 'Dps' ? 'selected' : ''}>${roleEmoji.Dps || ''} DPS</option>
+                          <option value="Tank" ${m.role === 'Tank' ? 'selected' : ''}>${roleEmoji.Tank || ''} TANK</option>
+                          <option value="Healer" ${m.role === 'Healer' ? 'selected' : ''}>${roleEmoji.Healer || ''} HEALER</option>
+                        </select>
+                        <select class="role-select" onchange="setMemberBulwark(${si}, ${mi}, this.value)" title="Bulwark position">
+                          <option value="None" ${m.bulwark === 'None' ? 'selected' : ''}>No bulwark</option>
+                          <option value="Top" ${m.bulwark === 'Top' ? 'selected' : ''}>♜↑ Top bulwark</option>
+                          <option value="Center" ${m.bulwark === 'Center' ? 'selected' : ''}>♜ Center bulwark</option>
+                          <option value="Bottom" ${m.bulwark === 'Bottom' ? 'selected' : ''}>♜↓ Bottom bulwark</option>
+                        </select>
+                        <button class="chip-action leader" data-action="make-leader" data-squad-index="${si}" data-member-index="${mi}" title="Make leader">L</button>
+                        <button class="chip-action player" data-action="make-player" data-squad-index="${si}" data-member-index="${mi}" title="Create player account">P</button>
+                        <button class="chip-action" data-action="to-reserve" data-squad-index="${si}" data-member-index="${mi}" title="Move to Reserves">${tagEmoji.Backup || '↩'}</button>
+                      </div>
+                    </div>
+                  `).join('')
+                    : '<span class="empty-hint">Empty</span>'}
+            </div>
+          </div>
+        `).join('');
+            renderDiscordSquadToggles();
+            renderDiscordRecipientOptions();
+        }
+
+        function renderReserves() {
+            const el = document.getElementById('reserves');
+            const heading = document.getElementById('reserves-heading');
+            if (heading) heading.textContent = `${tagEmoji.Backup || ''} Reserves`.trim();
+            if (reserves.members.length === 0) { el.innerHTML = '<span class="empty-hint">Empty</span>'; return; }
+            el.innerHTML = reserves.members.map((m, mi) => `
+          <div class="member-chip">
+            <div class="member-top">
+              <span>${escapeHtml(m.nickname)}</span>
+              <button class="chip-remove" onclick="removeFromReserve(${mi})" title="Back to pool">×</button>
+            </div>
+            <div class="member-controls">
+              <select class="role-select" onchange="setReserveMemberRole(${mi}, this.value)" title="Role">
+                <option value="Dps" ${m.role === 'Dps' ? 'selected' : ''}>${roleEmoji.Dps || ''} DPS</option>
+                <option value="Tank" ${m.role === 'Tank' ? 'selected' : ''}>${roleEmoji.Tank || ''} TANK</option>
+                <option value="Healer" ${m.role === 'Healer' ? 'selected' : ''}>${roleEmoji.Healer || ''} HEALER</option>
+              </select>
+              <select class="role-select" onchange="setReserveMemberBulwark(${mi}, this.value)" title="Bulwark position">
+                <option value="None" ${m.bulwark === 'None' ? 'selected' : ''}>No bulwark</option>
+                <option value="Top" ${m.bulwark === 'Top' ? 'selected' : ''}>♜↑ Top bulwark</option>
+                <option value="Center" ${m.bulwark === 'Center' ? 'selected' : ''}>♜ Center bulwark</option>
+                <option value="Bottom" ${m.bulwark === 'Bottom' ? 'selected' : ''}>♜↓ Bottom bulwark</option>
+              </select>
+              <select onchange="moveReserveMemberToSquad(${mi}, this.value); this.value=''" title="Move to squad">
+                <option value="">to squad...</option>
+                ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        `).join('');
+        }
+
+        function loadRosterIntoUi(roster) {
+            if (!roster || roster.length === 0) return;
+            const bySquadId = Object.fromEntries(roster.map(s => [s.squadId, s]));
+            squads = squads.map(s => bySquadId[s.squadId]
+                ? {
+                    squadId: s.squadId,
+                    side: bySquadId[s.squadId].side || 'Flex',
+                    leaderName: bySquadId[s.squadId].leaderName || null,
+                    label: bySquadId[s.squadId].label || '',
+                    tags: [...(bySquadId[s.squadId].tags || [])],
+                    members: (bySquadId[s.squadId].members || []).map(m => ({
+                        nickname: m.nickname,
+                        role: m.role || 'Dps',
+                        bulwark: m.bulwark || 'None'
+                    }))
+                }
+                : s);
+            const reserveEntry = bySquadId[RESERVE_SQUAD_ID];
+            reserves = {
+                squadId: RESERVE_SQUAD_ID,
+                side: 'Flex',
+                leaderName: null,
+                label: 'Reserves',
+                tags: [],
+                members: (reserveEntry?.members || []).map(m => ({
+                    nickname: m.nickname,
+                    role: m.role || 'Dps',
+                    bulwark: m.bulwark || 'None'
+                }))
+            };
+            renderPool(); renderSquads(); renderReserves();
+        }
+
+        // логи, очистка
+
+        function saveRoster() {
+            const payload = [...squads, reserves].map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members, label: s.label || null, tags: s.tags }));
+            connection.invoke("UpdateRoster", { squads: payload })
+                .then(() => {
+                    log(`Saved: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${squads.length} squads + reserves.`);
+                    refreshMemberPresets();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        function startBattle() {
+            connection.invoke("StartBattle")
+                .then(() => log("Battle started."))
+                .catch(err => log("Error: " + err));
+        }
+
+        function endBattle() {
+            if (!confirm("History will be archived to a file on the server, then cleared for everyone. Continue?")) return;
+            connection.invoke("EndBattle")
+                .then(() => log("Battle ended, history archived."))
+                .catch(err => log("Error: " + err));
+        }
+
+        let battleStartedAt = null;
+        let battleClockTimer = null;
+
+        function renderBattleStatus(status) {
+            const el = document.getElementById('battle-status');
+            clearInterval(battleClockTimer);
+
+            if (status && status.isActive) {
+                battleStartedAt = new Date(status.startedAt);
+                const update = () => { el.textContent = `Battle in progress since ${battleStartedAt.toLocaleTimeString()}`; };
+                update();
+                battleClockTimer = setInterval(update, 30000);
+                el.className = 'active';
+            } else {
+                battleStartedAt = null;
+                el.textContent = 'No active battle';
+                el.className = 'inactive';
+            }
+        }
+
+        function saveLogNow() {
+            connection.invoke("SaveLogSnapshot")
+                .then(fileName => log(`Log saved: logs/${fileName} (history not cleared)`))
+                .catch(err => log("Error: " + err));
+        }
+
+        // аккаунты
+
+        async function refreshAccounts() {
+            try {
+                const accounts = await connection.invoke("ListAccounts");
+                const el = document.getElementById('accounts-list');
+                if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
+                el.innerHTML = '<table><tr><th>Username</th><th>Discord</th><th>Role</th><th>Squad</th><th></th></tr>' +
+                    accounts.map(a => {
+                        const unassigned = !a.squadId && (a.role === 'Player' || a.role === 'Leader');
+                        const inPoolOrSquad = pool.includes(a.username) || squads.some(s => s.members.some(m => m.nickname === a.username));
+                        const addBtn = unassigned && !inPoolOrSquad
+                            ? `<button class="chip-action player" data-add-to-pool="${escapeHtml(a.username)}" title="Add to pool">+</button>`
+                            : '';
+                        return `
+              <tr>
+                <td>${escapeHtml(a.username)}</td>
+                <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">—</span>'}</td>
+                <td>${a.role}</td>
+                <td>${a.squadId || '-'}</td>
+                <td>${addBtn}<button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
+              </tr>
+            `;
+                    }).join('') + '</table>';
+            } catch (err) {
+                log("Failed to load accounts: " + err);
+            }
+        }
+
+        document.getElementById('accounts-list').addEventListener('click', e => {
+            const deleteBtn = e.target.closest('button[data-delete-username]');
+            if (deleteBtn) {
+                const username = deleteBtn.dataset.deleteUsername;
+                if (!confirm(`Delete account "${username}"?`)) return;
+                connection.invoke("DeleteAccount", username)
+                    .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
+                    .catch(err => log("Error: " + err));
+                return;
+            }
+
+            const addBtn = e.target.closest('button[data-add-to-pool]');
+            if (addBtn) {
+                const username = addBtn.dataset.addToPool;
+                if (!pool.includes(username) && !squads.some(s => s.members.some(m => m.nickname === username))) {
+                    pool.push(username);
+                    renderPool();
+                    log(`Added to pool: ${username}`);
+                    refreshAccounts();
+                }
+            }
+        });
+
+        function addStandaloneAccount() {
+            const username = document.getElementById('new-acc-username').value.trim();
+            const password = document.getElementById('new-acc-password').value;
+            const role = document.getElementById('new-acc-role').value;
+            if (!username || !password) { log("Fill in the username and password."); return; }
+
+            connection.invoke("UpsertAccount", { username, role, squadId: null, password })
+                .then(() => {
+                    log(`Account created: ${username} (${role})`);
+                    document.getElementById('new-acc-username').value = '';
+                    document.getElementById('new-acc-password').value = '';
+                    refreshAccounts();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        // Discord
+
+        async function refreshDiscordChannels() {
+            try {
+                discordChannels = await connection.invoke("ListDiscordChannels");
+                renderDiscordChannelsList();
+                renderDiscordSendChannelOptions();
+            } catch (err) {
+                log("Failed to load Discord channels: " + err);
+            }
+        }
+
+        function renderDiscordChannelsList() {
+            const el = document.getElementById('discord-channels-list');
+            if (discordChannels.length === 0) { el.innerHTML = '<span class="empty-hint">No channels configured yet.</span>'; return; }
+            el.innerHTML = '<table><tr><th>Name</th><th>Webhook</th><th></th></tr>' +
+                discordChannels.map(c => `
+              <tr>
+                <td>${escapeHtml(c.name)}</td>
+                <td style="color:#666; font-size:11px;">${escapeHtml(c.webhookUrl.slice(0, 42))}…</td>
+                <td><button class="chip-remove" data-delete-channel="${c.id}" title="Delete">×</button></td>
+              </tr>
+            `).join('') + '</table>';
+        }
+
+        document.getElementById('discord-channels-list').addEventListener('click', e => {
+            const btn = e.target.closest('button[data-delete-channel]');
+            if (!btn) return;
+            const id = btn.dataset.deleteChannel;
+            if (!confirm('Delete this Discord channel?')) return;
+            connection.invoke("DeleteDiscordChannel", id)
+                .then(() => { log("Channel deleted."); refreshDiscordChannels(); })
+                .catch(err => log("Error: " + err));
+        });
+
+        function addDiscordChannel() {
+            const name = document.getElementById('dc-name').value.trim();
+            const webhookUrl = document.getElementById('dc-url').value.trim();
+            if (!name || !webhookUrl) { log("Fill in the channel name and webhook URL."); return; }
+            connection.invoke("UpsertDiscordChannel", { id: null, name, webhookUrl })
+                .then(() => {
+                    log(`Channel added: ${name}`);
+                    document.getElementById('dc-name').value = '';
+                    document.getElementById('dc-url').value = '';
+                    refreshDiscordChannels();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        function renderDiscordSendChannelOptions() {
+            const sel = document.getElementById('dc-send-channel');
+            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet — add one above</option>'; return; }
+            sel.innerHTML = discordChannels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+        }
+
+        function renderDiscordSquadToggles() {
+            const el = document.getElementById('dc-squad-toggles');
+            if (!el) return;
+            el.innerHTML = squads.map(s => `
+          <div class="squad-toggle-chip ${dcSelectedSquads.has(s.squadId) ? 'selected' : ''}" onclick="toggleDcSquad('${s.squadId}')">
+            ${s.squadId} (${s.members.length})
+          </div>
+        `).join('');
+        }
+
+        function toggleDcSquad(squadId) {
+            if (dcSelectedSquads.has(squadId)) dcSelectedSquads.delete(squadId); else dcSelectedSquads.add(squadId);
+            renderDiscordSquadToggles();
+        }
+
+        function renderDiscordRecipientOptions() {
+            const sel = document.getElementById('dc-recipients');
+            if (!sel) return;
+            const previouslySelected = new Set([...sel.selectedOptions].map(o => o.value));
+            const allNames = new Set([...pool, ...squads.flatMap(s => s.members.map(m => m.nickname))]);
+            sel.innerHTML = [...allNames].sort().map(n =>
+                `<option value="${escapeHtml(n)}" ${previouslySelected.has(n) ? 'selected' : ''}>${escapeHtml(n)}</option>`
+            ).join('');
+        }
+
+        function sendDiscordMessage() {
+            const channelId = document.getElementById('dc-send-channel').value;
+            if (!channelId) { log("Pick a Discord channel first."); return; }
+
+            const message = document.getElementById('dc-message').value.trim();
+            const manualPicks = [...document.getElementById('dc-recipients').selectedOptions].map(o => o.value);
+            const squadPicks = squads.filter(s => dcSelectedSquads.has(s.squadId)).flatMap(s => s.members.map(m => m.nickname));
+            const pingNicknames = [...new Set([...manualPicks, ...squadPicks])];
+
+            if (!message && pingNicknames.length === 0) { log("Write a message or pick someone to ping."); return; }
+
+            connection.invoke("SendDiscordMessage", { channelId, message, pingNicknames })
+                .then(res => {
+                    log(`Sent to Discord: ${res.realPings} real ping(s), ${res.fallbackPings} plain-text ping(s).`);
+                    document.getElementById('dc-message').value = '';
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        // Автосборка "Team composition" поста из текущего ростера (роли/теги команды/булварк), с реальными пингами
+        function sendRosterMessage() {
+            const channelId = document.getElementById('dc-send-channel').value;
+            if (!channelId) { log("Pick a Discord channel first."); return; }
+
+            let squadIds = [...dcSelectedSquads];
+            if (squadIds.length === 0) {
+                squadIds = squads.filter(s => s.members.length > 0).map(s => s.squadId);
+                log(`No squads selected — defaulting to all ${squadIds.length} non-empty squad(s).`);
+            }
+            if (squadIds.length === 0) { log("Roster is empty — build it in section 2 first."); return; }
+            if (!confirm(`Send the Team composition post for ${squadIds.length} squad(s) to Discord now? This will really ping everyone in them.`)) return;
+
+            connection.invoke("SendRosterMessage", { channelId, squadIds })
+                .then(res => log(`Sent team composition: ${res.realPings} real ping(s), ${res.fallbackPings} plain-text ping(s).`))
+                .catch(err => log("Error: " + err));
+        }
+
+        // Предпросмотр того же текста, что соберёт сервер (для локальной проверки перед отправкой)
+        function previewRosterMessage() {
+            const active = (dcSelectedSquads.size > 0 ? squads.filter(s => dcSelectedSquads.has(s.squadId)) : squads).filter(s => s.members.length > 0);
+            const lines = ['**Team composition:**', ''];
+            active.forEach((sq, i) => {
+                const tagBadges = sq.tags && sq.tags.length ? ' ' + sq.tags.map(t => `${tagEmoji[t] || ''}${t}`).join(' ') : '';
+                lines.push(`**Team ${i + 1} (${escapeHtml(sq.label || sq.squadId)})${tagBadges}:**`);
+                sq.members.forEach(m => {
+                    const bulwark = BULWARK_SYMBOL[m.bulwark] || '';
+                    lines.push(`${roleEmoji[m.role] || '•'} @${escapeHtml(m.nickname)}${bulwark}`);
+                });
+                lines.push('');
+            });
+            document.getElementById('dc-message').value = lines.join('\n').trim();
+            log('Preview filled into the message box below — this is a preview only, use "Send team composition" to actually send it with real pings.');
+        }
+
+        function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
+        }
+    </script>
+</body>
+</html>
