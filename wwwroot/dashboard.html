@@ -32,7 +32,11 @@
   .cat-jungle      { border-left-color:#1e3a5f; }
   .title { font-weight: 600; font-size: 15px; }
   .meta { color:#888; font-size:12px; margin-top: 3px; }
-  #roster { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  #roster { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  #reserves-section { margin-bottom: 24px; }
+  #reserves-section h4 { margin: 0 0 6px 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  #reserves-section:empty { display: none; }
+  .reserve-card { background:#161616; border-radius:8px; padding:10px 12px; border-left: 3px solid #555; }
   .squad-card { background:#161616; border-radius:8px; padding:10px 12px; }
   .squad-card h4 { margin:0 0 4px 0; font-size:13px; color:#aaa; }
   .squad-card .members { font-size:13px; color:#ccc; display: flex; flex-direction: column; gap: 4px; }
@@ -91,6 +95,7 @@
   </div>
 
   <div id="roster"></div>
+  <div id="reserves-section"></div>
   <div id="feed"></div>
 
 <script>
@@ -120,8 +125,8 @@
   }
 
   const STATUS_CLASSES = {
-    SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
-    Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
+    SquadWiped: 'cat-critical', Regrouped: 'cat-defend', NeedHealing: 'cat-protect',
+    Retreating: 'cat-fallback', ObjectiveSecured: 'cat-attack-key'
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
 
@@ -208,8 +213,12 @@
     .then(() => setStatus("connected"))
     .catch(err => setStatus("connection failed: " + err));
 
-  function renderRoster(roster) {
-    roster = roster || [];
+  const RESERVE_SQUAD_ID = 'RESERVE';
+
+  function renderRoster(fullRoster) {
+    fullRoster = fullRoster || [];
+    const roster = fullRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
+    const reserveSquad = fullRoster.find(sq => sq.squadId === RESERVE_SQUAD_ID);
 
     // если выбранный отряд пропал из ростера - сбрасываем выбор
     if (selectedSquadId && !roster.some(sq => sq.squadId === selectedSquadId)) {
@@ -281,7 +290,52 @@
       el.appendChild(card);
     });
 
+    renderReserves(reserveSquad);
     refreshTargetUI();
+  }
+
+  function renderReserves(reserveSquad) {
+    const section = document.getElementById('reserves-section');
+    const members = (reserveSquad && reserveSquad.members) || [];
+    if (members.length === 0) { section.innerHTML = ''; return; }
+
+    const card = document.createElement('div');
+    card.className = 'reserve-card';
+
+    const h4 = document.createElement('h4');
+    h4.textContent = `Reserves (${members.length})`;
+    card.appendChild(h4);
+
+    const membersEl = document.createElement('div');
+    membersEl.className = 'members';
+    members.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'member-row';
+
+      const nameEl = document.createElement('span');
+      nameEl.textContent = m.nickname;
+      row.appendChild(nameEl);
+
+      if (m.role) {
+        const roleEl = document.createElement('span');
+        roleEl.className = 'role-badge ' + m.role;
+        roleEl.textContent = m.role.toUpperCase();
+        row.appendChild(roleEl);
+      }
+      if (m.bulwark && m.bulwark !== 'None') {
+        const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark] || '♜';
+        const bwEl = document.createElement('span');
+        bwEl.className = 'bulwark-badge';
+        bwEl.title = m.bulwark + ' bulwark';
+        bwEl.textContent = bwSymbol;
+        row.appendChild(bwEl);
+      }
+      membersEl.appendChild(row);
+    });
+
+    card.appendChild(membersEl);
+    section.innerHTML = '';
+    section.appendChild(card);
   }
 
   function setStatus(text) {

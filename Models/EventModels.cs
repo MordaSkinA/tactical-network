@@ -49,10 +49,10 @@ public enum OrderType
 public enum SquadStatusType
 {
     SquadWiped,
-    Regroup,
-    NeedHelp,
+    Regrouped,
+    NeedHealing,
     Retreating,
-    StandingBy
+    ObjectiveSecured
 }
 
 public enum MemberRole
@@ -137,6 +137,15 @@ public record SquadStatusPushDto(
 public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
 
 // Roster 
+
+// Резерв — не боевой отряд, а отдельный список запасных игроков. Хранится как обычный
+// SquadRosterDto с этим фиксированным SquadId, чтобы переиспользовать всю логику
+// назначения/снятия игроков, но UI (админка/панель командира) рисует его отдельно
+// от боевых отрядов и не даёт выбрать его как цель приказа.
+public static class RosterConstants
+{
+    public const string ReserveSquadId = "RESERVE";
+}
 
 // Роль игрока — на игроке. Теги (джунгли/босс/бэкап) теперь на команде, не на игроке.
 public record SquadMemberDto(

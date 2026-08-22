@@ -240,10 +240,10 @@
     <h3>Squad status</h3>
     <div class="row">
         <button class="action-btn critical" onclick="reportStatus('SquadWiped')">SQUAD WIPED</button>
-        <button class="action-btn defend" onclick="reportStatus('Regroup')">REGROUP</button>
-        <button class="action-btn protect" onclick="reportStatus('NeedHelp')">NEED HELP</button>
+        <button class="action-btn defend" onclick="reportStatus('Regrouped')">REGROUPED</button>
+        <button class="action-btn protect" onclick="reportStatus('NeedHealing')">NEED HEALING</button>
         <button class="action-btn fallback" onclick="reportStatus('Retreating')">RETREATING</button>
-        <button class="action-btn attack-key" onclick="reportStatus('StandingBy')">STANDING BY</button>
+        <button class="action-btn attack-key" onclick="reportStatus('ObjectiveSecured')">OBJECTIVE SECURED</button>
     </div>
 
     <h3>Incoming orders</h3>
@@ -261,7 +261,7 @@
 
         const currentUser = requireAuth(['Leader', 'Admin']);
         if (currentUser) {
-            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId || 'Unassigned'}</strong>`;
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -280,8 +280,8 @@
             BotJungle: 'jungle', TopJungle: 'jungle'
         };
         const STATUS_CLASSES = {
-            SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
-            Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
+            SquadWiped: 'cat-critical', Regrouped: 'cat-defend', NeedHealing: 'cat-protect',
+            Retreating: 'cat-fallback', ObjectiveSecured: 'cat-attack-key'
         };
         const ALL_CATEGORY_CLASSES = ['cat-critical', 'cat-attack', 'cat-attack-key', 'cat-defend', 'cat-hold', 'cat-protect', 'cat-tactic', 'cat-fallback', 'cat-jungle'];
 
@@ -365,7 +365,7 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId || 'Unassigned'}</strong>`;
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
         }
 
         connection.start()

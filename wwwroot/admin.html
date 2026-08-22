@@ -376,6 +376,10 @@
     <div class="hint">"L" icon on a name - make leader (grants access to the Team Leader panel). "P" - create a player account.</div>
     <div id="squads" class="squad-grid"></div>
 
+    <h3 id="reserves-heading">Reserves</h3>
+    <div class="hint">Players moved here are pulled out of their team entirely. They show up as their own list for the Commander too, and can't be targeted by combat orders.</div>
+    <div id="reserves" class="chip-list"></div>
+
     <div style="margin-top:20px;">
         <button class="primary" onclick="saveRoster()">Save roster</button>
         <button class="secondary" onclick="saveLogNow()">Save log now</button>
@@ -391,20 +395,20 @@
     <div id="accounts-list"></div>
 
     <h3>4. Discord channels (webhooks)</h3>
-    <div class="hint">Paste one webhook URL per channel you want to send to. In Discord - Edit Channel - Integrations - Webhooks - New Webhook - Copy URL.</div>
+    <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed — right-click a channel in Discord → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL.</div>
     <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
     <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
     <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
     <div id="discord-channels-list" style="margin-top:10px;"></div>
 
     <h3>5. Emoji for roles &amp; tags</h3>
-    <div class="hint">In Discord type <code>\:youremoji:</code> in any channel and send it, it'll turn into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed and aren't customizable here</div>
+    <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it — it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed (♜↑ top, ♜ center, ♜↓ bottom) and aren't customizable here.</div>
     <div id="emoji-role-inputs"></div>
     <div id="emoji-tag-inputs" style="margin-top:10px;"></div>
     <button class="secondary" onclick="saveEmojiSettings()">Save emoji</button>
 
     <h3>6. Send a Discord message</h3>
-    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text @nickname</div>
+    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text (@nickname).</div>
     <label>Channel
         <select id="dc-send-channel"></select>
     </label>
@@ -413,10 +417,10 @@
     <label>Also ping specific people
         <select id="dc-recipients" multiple size="6"></select>
     </label>
-    <label>Message <textarea id="dc-message" placeholder="Hello, hello, hello..."></textarea></label>
+    <label>Message <textarea id="dc-message" placeholder="Boss spawns in 5 minutes, form up at mid!"></textarea></label>
     <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
 
-    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected squads above.</div>
+    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster (uses each squad's label, tags and each player's role/bulwark below) and ping everyone in the selected squads above.</div>
     <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
     <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
 
@@ -441,7 +445,10 @@
 
         let pool = [];
         let squads = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map(id => ({ squadId: id, side: 'Flex', leaderName: null, members: [], label: '', tags: [] }));
+        const RESERVE_SQUAD_ID = 'RESERVE';
+        let reserves = { squadId: RESERVE_SQUAD_ID, side: 'Flex', leaderName: null, members: [], label: 'Reserves', tags: [] };
         let roleEmoji = { Dps: '⚔️', Tank: '🛡️', Healer: '💚' };
+        // Backup teg больше не вешается на отряд — используем его эмодзи как значок раздела Reserves.
         let tagEmoji = { Jungle: '🌲', Boss: '👹', Backup: '🔁' };
         const BULWARK_SYMBOL = { None: '', Bottom: ' ♜↓', Center: ' ♜', Top: ' ♜↑' };
         let initialized = false;
@@ -483,6 +490,7 @@
                 tagEmoji = Object.fromEntries(settings.tags.map(t => [t.tag, t.emoji]));
                 renderEmojiInputs();
                 renderSquads();
+                renderReserves();
             } catch (err) { log("Failed to load emoji settings: " + err); }
         }
 
@@ -492,9 +500,10 @@
           <label>${role} emoji <input id="emoji-role-${role}" value="${escapeHtml(roleEmoji[role] || '')}" placeholder="default"></label>
         `).join('');
 
+            const tagLabel = { Jungle: 'Jungle', Boss: 'Boss', Backup: 'Reserves' };
             const tagEl = document.getElementById('emoji-tag-inputs');
             tagEl.innerHTML = Object.keys(tagEmoji).map(tag => `
-          <label>${tag} emoji <input id="emoji-tag-${tag}" value="${escapeHtml(tagEmoji[tag] || '')}" placeholder="default"></label>
+          <label>${tagLabel[tag] || tag} emoji <input id="emoji-tag-${tag}" value="${escapeHtml(tagEmoji[tag] || '')}" placeholder="default"></label>
         `).join('');
         }
 
@@ -507,6 +516,7 @@
                     tagEmoji = Object.fromEntries(settings.tags.map(t => [t.tag, t.emoji]));
                     renderEmojiInputs();
                     renderSquads();
+                    renderReserves();
                     log("Emoji settings saved.");
                 })
                 .catch(err => log("Error: " + err));
@@ -517,7 +527,7 @@
         function addToPool() {
             const raw = document.getElementById('pool-input').value;
             const names = raw.split(/[\n,]/).map(n => n.trim()).filter(Boolean);
-            const existing = new Set([...pool, ...squads.flatMap(s => s.members.map(m => m.nickname))]);
+            const existing = new Set([...pool, ...squads.flatMap(s => s.members.map(m => m.nickname)), ...reserves.members.map(m => m.nickname)]);
             names.forEach(n => { if (!existing.has(n)) { pool.push(n); existing.add(n); } });
             document.getElementById('pool-input').value = '';
             renderPool();
@@ -525,20 +535,24 @@
 
         function removeFromPool(index) { pool.splice(index, 1); renderPool(); }
 
+        function squadOrReserveById(squadId) {
+            return squadId === RESERVE_SQUAD_ID ? reserves : squads.find(s => s.squadId === squadId);
+        }
+
         function assignFromPool(index, squadId) {
             if (!squadId) return;
             const name = pool[index];
             pool.splice(index, 1);
-            const squad = squads.find(s => s.squadId === squadId);
-            if (squad) {
+            const target = squadOrReserveById(squadId);
+            if (target) {
                 const preset = memberPresets[name];
-                squad.members.push({
+                target.members.push({
                     nickname: name,
                     role: preset ? preset.role : 'Dps',
                     bulwark: preset ? preset.bulwark : 'None'
                 });
             }
-            renderPool(); renderSquads();
+            renderPool(); renderSquads(); renderReserves();
         }
 
         function unassign(squadIndex, memberIndex) {
@@ -547,6 +561,33 @@
             pool.push(member.nickname);
             renderPool(); renderSquads();
         }
+
+        // Резерв: перевод игрока между отрядом/резервом/пулом
+
+        function moveMemberToReserve(squadIndex, memberIndex) {
+            const squad = squads[squadIndex];
+            const member = squad.members.splice(memberIndex, 1)[0];
+            if (squad.leaderName === member.nickname) squad.leaderName = null;
+            reserves.members.push(member);
+            renderSquads(); renderReserves();
+        }
+
+        function moveReserveMemberToSquad(memberIndex, squadId) {
+            if (!squadId) return;
+            const member = reserves.members.splice(memberIndex, 1)[0];
+            const target = squads.find(s => s.squadId === squadId);
+            if (target) target.members.push(member);
+            renderSquads(); renderReserves();
+        }
+
+        function removeFromReserve(memberIndex) {
+            const member = reserves.members.splice(memberIndex, 1)[0];
+            pool.push(member.nickname);
+            renderPool(); renderReserves();
+        }
+
+        function setReserveMemberRole(mi, role) { reserves.members[mi].role = role; }
+        function setReserveMemberBulwark(mi, bulwark) { reserves.members[mi].bulwark = bulwark; }
 
         function setSquadSide(squadIndex, value) { squads[squadIndex].side = value; }
         function setSquadLabel(squadIndex, value) { squads[squadIndex].label = value; renderDiscordSquadToggles(); }
@@ -586,6 +627,7 @@
                 makeAccount(name, squads[si].squadId, 'Leader');
             }
             if (action === 'make-player') makeAccount(squads[si].members[mi].nickname, squads[si].squadId, 'Player');
+            if (action === 'to-reserve') moveMemberToReserve(si, mi);
         });
 
         function setMemberRole(si, mi, role) {
@@ -611,6 +653,7 @@
             <select onchange="assignFromPool(${i}, this.value)">
               <option value="">to squad...</option>
               ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
+              <option value="${RESERVE_SQUAD_ID}">${tagEmoji.Backup || ''} Reserves</option>
             </select>
             <button class="chip-remove" onclick="removeFromPool(${i})">×</button>
           </div>
@@ -637,7 +680,6 @@
               <div class="tag-options">
                 <label><input type="checkbox" ${sq.tags.includes('Jungle') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Jungle')"> ${tagEmoji.Jungle || ''} Jungle</label>
                 <label><input type="checkbox" ${sq.tags.includes('Boss') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Boss')"> ${tagEmoji.Boss || ''} Boss</label>
-                <label><input type="checkbox" ${sq.tags.includes('Backup') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Backup')"> ${tagEmoji.Backup || ''} Backup</label>
               </div>
             </details>
             <div class="chip-list">
@@ -662,6 +704,7 @@
                         </select>
                         <button class="chip-action leader" data-action="make-leader" data-squad-index="${si}" data-member-index="${mi}" title="Make leader">L</button>
                         <button class="chip-action player" data-action="make-player" data-squad-index="${si}" data-member-index="${mi}" title="Create player account">P</button>
+                        <button class="chip-action" data-action="to-reserve" data-squad-index="${si}" data-member-index="${mi}" title="Move to Reserves">${tagEmoji.Backup || '↩'}</button>
                       </div>
                     </div>
                   `).join('')
@@ -671,6 +714,38 @@
         `).join('');
             renderDiscordSquadToggles();
             renderDiscordRecipientOptions();
+        }
+
+        function renderReserves() {
+            const el = document.getElementById('reserves');
+            const heading = document.getElementById('reserves-heading');
+            if (heading) heading.textContent = `${tagEmoji.Backup || ''} Reserves`.trim();
+            if (reserves.members.length === 0) { el.innerHTML = '<span class="empty-hint">Empty</span>'; return; }
+            el.innerHTML = reserves.members.map((m, mi) => `
+          <div class="member-chip">
+            <div class="member-top">
+              <span>${escapeHtml(m.nickname)}</span>
+              <button class="chip-remove" onclick="removeFromReserve(${mi})" title="Back to pool">×</button>
+            </div>
+            <div class="member-controls">
+              <select class="role-select" onchange="setReserveMemberRole(${mi}, this.value)" title="Role">
+                <option value="Dps" ${m.role === 'Dps' ? 'selected' : ''}>${roleEmoji.Dps || ''} DPS</option>
+                <option value="Tank" ${m.role === 'Tank' ? 'selected' : ''}>${roleEmoji.Tank || ''} TANK</option>
+                <option value="Healer" ${m.role === 'Healer' ? 'selected' : ''}>${roleEmoji.Healer || ''} HEALER</option>
+              </select>
+              <select class="role-select" onchange="setReserveMemberBulwark(${mi}, this.value)" title="Bulwark position">
+                <option value="None" ${m.bulwark === 'None' ? 'selected' : ''}>No bulwark</option>
+                <option value="Top" ${m.bulwark === 'Top' ? 'selected' : ''}>♜↑ Top bulwark</option>
+                <option value="Center" ${m.bulwark === 'Center' ? 'selected' : ''}>♜ Center bulwark</option>
+                <option value="Bottom" ${m.bulwark === 'Bottom' ? 'selected' : ''}>♜↓ Bottom bulwark</option>
+              </select>
+              <select onchange="moveReserveMemberToSquad(${mi}, this.value); this.value=''" title="Move to squad">
+                <option value="">to squad...</option>
+                ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        `).join('');
         }
 
         function loadRosterIntoUi(roster) {
@@ -690,16 +765,29 @@
                     }))
                 }
                 : s);
-            renderPool(); renderSquads();
+            const reserveEntry = bySquadId[RESERVE_SQUAD_ID];
+            reserves = {
+                squadId: RESERVE_SQUAD_ID,
+                side: 'Flex',
+                leaderName: null,
+                label: 'Reserves',
+                tags: [],
+                members: (reserveEntry?.members || []).map(m => ({
+                    nickname: m.nickname,
+                    role: m.role || 'Dps',
+                    bulwark: m.bulwark || 'None'
+                }))
+            };
+            renderPool(); renderSquads(); renderReserves();
         }
 
         // логи, очистка
 
         function saveRoster() {
-            const payload = squads.map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members, label: s.label || null, tags: s.tags }));
+            const payload = [...squads, reserves].map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members, label: s.label || null, tags: s.tags }));
             connection.invoke("UpdateRoster", { squads: payload })
                 .then(() => {
-                    log(`Saved: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${payload.length} squads.`);
+                    log(`Saved: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${squads.length} squads + reserves.`);
                     refreshMemberPresets();
                 })
                 .catch(err => log("Error: " + err));
@@ -863,7 +951,7 @@
 
         function renderDiscordSendChannelOptions() {
             const sel = document.getElementById('dc-send-channel');
-            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet - add one above</option>'; return; }
+            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet — add one above</option>'; return; }
             sel.innerHTML = discordChannels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
         }
 
@@ -919,9 +1007,9 @@
             let squadIds = [...dcSelectedSquads];
             if (squadIds.length === 0) {
                 squadIds = squads.filter(s => s.members.length > 0).map(s => s.squadId);
-                log(`No squads selected - defaulting to all ${squadIds.length} non-empty squad(s).`);
+                log(`No squads selected — defaulting to all ${squadIds.length} non-empty squad(s).`);
             }
-            if (squadIds.length === 0) { log("Roster is empty - build it in section 2 first."); return; }
+            if (squadIds.length === 0) { log("Roster is empty — build it in section 2 first."); return; }
             if (!confirm(`Send the Team composition post for ${squadIds.length} squad(s) to Discord now? This will really ping everyone in them.`)) return;
 
             connection.invoke("SendRosterMessage", { channelId, squadIds })
@@ -943,7 +1031,7 @@
                 lines.push('');
             });
             document.getElementById('dc-message').value = lines.join('\n').trim();
-            log('Preview filled into the message box below - this is a preview only, use "Send team composition" to actually send it with real pings.');
+            log('Preview filled into the message box below — this is a preview only, use "Send team composition" to actually send it with real pings.');
         }
 
         function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }

@@ -182,13 +182,13 @@
 
     <div id="alerts"></div>
 
-    <button id="sos" onclick="sendSos()">HELP(</button>
+    <button id="sos" onclick="sendSos()">SOS</button>
 
     <script>
 
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin']);
         if (currentUser) {
-            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId || 'None'}`;
+            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'None')}`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -242,7 +242,7 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId || 'None'}`;
+            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'None')}`;
         }
 
         connection.start()

@@ -87,6 +87,8 @@ public class BattleHub : Hub
     public async Task IssueOrder(IssueOrderDto dto)
     {
         var session = RequireRole(UserRole.Commander, UserRole.Admin);
+        if (string.Equals(dto.TargetSquadId, RosterConstants.ReserveSquadId, StringComparison.OrdinalIgnoreCase))
+            throw new HubException("Can't issue combat orders to Reserves.");
         if (!_state.GetRoster().Any(s => string.Equals(s.SquadId, dto.TargetSquadId, StringComparison.OrdinalIgnoreCase)))
             throw new HubException("Unknown squad.");
         RequireNotRateLimited();
