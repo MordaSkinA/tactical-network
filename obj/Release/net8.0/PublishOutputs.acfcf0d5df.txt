@@ -1,7 +1,0 @@
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\Tacnet.exe
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\appsettings.json
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\roster.json
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\Tacnet.dll
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\Tacnet.deps.json
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\Tacnet.runtimeconfig.json
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\publish\Tacnet.pdb

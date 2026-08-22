@@ -1,9 +1,0 @@
-wwwroot\dashboard.html
-wwwroot\observer.html
-wwwroot\index.html
-wwwroot\admin.html
-wwwroot\replay.html
-wwwroot\menu.html
-wwwroot\js\auth.js
-wwwroot\player.html
-wwwroot\discord-register.html
