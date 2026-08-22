@@ -25,7 +25,29 @@ builder.Services.ConfigureHttpJsonOptions(options => {
 
 builder.Services.AddSingleton<IBattleState, InMemoryBattleState>();
 builder.Services.AddSingleton<IAccountStore, FileAccountStore>();
-builder.Services.AddSingleton<ISessionStore, InMemorySessionStore>();
+
+
+static byte[] GetOrCreateSessionSigningKey(IConfiguration config, string contentRootPath)
+{
+    var configured = config["SessionSigningKey"];
+    if (!string.IsNullOrWhiteSpace(configured))
+        return Convert.FromBase64String(configured);
+
+    var keyFilePath = Path.Combine(contentRootPath, "session-signing.key");
+    if (File.Exists(keyFilePath))
+        return Convert.FromBase64String(File.ReadAllText(keyFilePath).Trim());
+
+    var newKey = RandomNumberGenerator.GetBytes(32);
+    File.WriteAllText(keyFilePath, Convert.ToBase64String(newKey));
+    return newKey;
+}
+
+var sessionSigningKey = GetOrCreateSessionSigningKey(builder.Configuration, builder.Environment.ContentRootPath);
+// Токен живёт 30 дней 
+var sessionTtlDays = builder.Configuration.GetValue<int?>("SessionTtlDays") ?? 30;
+builder.Services.AddSingleton(new SessionTokenOptions(sessionSigningKey, TimeSpan.FromDays(sessionTtlDays)));
+builder.Services.AddSingleton<ISessionStore, SignedSessionStore>();
+
 builder.Services.AddSingleton<IPendingDiscordStore, InMemoryPendingDiscordStore>();
 builder.Services.AddSingleton<IMemberPresetStore, FileMemberPresetStore>();
 builder.Services.AddSingleton<IDiscordWebhookStore, FileDiscordWebhookStore>();

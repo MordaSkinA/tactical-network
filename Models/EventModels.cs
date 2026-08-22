@@ -49,10 +49,10 @@ public enum OrderType
 public enum SquadStatusType
 {
     SquadWiped,
-    Regrouped,
-    NeedHealing,
+    Regroup,
+    NeedHelp,
     Retreating,
-    ObjectiveSecured
+    StandingBy
 }
 
 public enum MemberRole
@@ -138,16 +138,13 @@ public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
 
 // Roster 
 
-// Резерв — не боевой отряд, а отдельный список запасных игроков. Хранится как обычный
-// SquadRosterDto с этим фиксированным SquadId, чтобы переиспользовать всю логику
-// назначения/снятия игроков, но UI (админка/панель командира) рисует его отдельно
-// от боевых отрядов и не даёт выбрать его как цель приказа.
+// Резерв 
 public static class RosterConstants
 {
     public const string ReserveSquadId = "RESERVE";
 }
 
-// Роль игрока — на игроке. Теги (джунгли/босс/бэкап) теперь на команде, не на игроке.
+// Роль игрока
 public record SquadMemberDto(
     string Nickname,
     MemberRole Role,
@@ -167,7 +164,7 @@ public record UpdateRosterDto(
     List<SquadRosterDto> Squads
 );
 
-// Запоминание роли/булварка игрока между сборками ростера (теги теперь командные, не запоминаются по игроку)
+// Запоминание роли между сборками ростера 
 
 public record MemberPresetDto(
     string Nickname,
@@ -183,11 +180,11 @@ public record UpsertDiscordChannelDto(string? Id, string Name, string WebhookUrl
 public record SendDiscordMessageDto(string ChannelId, string Message, List<string> PingNicknames);
 public record SendDiscordMessageResultDto(bool Success, string? Message, int RealPings, int FallbackPings);
 
-// Автогенерация "Team composition" сообщения из текущего ростера, с реальными пингами по нику
+// Автогенерация сообщения из текущего ростера
 public record SendRosterMessageDto(string ChannelId, List<string>? SquadIds);
 
-// Кастомные эмодзи сервера для ролей и тегов (например <:tank:123456789012345678>).
-// Пусто/не задано = дефолтный юникод-эмодзи. Значки булварка фиксированы (♜↑ / ♜ / ♜↓) и не настраиваются здесь.
+// Кастомные эмодзи 
+// ♜↑  ♜  ♜↓
 public record RoleEmojiEntryDto(MemberRole Role, string? Emoji);
 public record TagEmojiEntryDto(MemberTag Tag, string? Emoji);
 public record EmojiSettingsDto(List<RoleEmojiEntryDto> Roles, List<TagEmojiEntryDto> Tags);
