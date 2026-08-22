@@ -5,9 +5,7 @@
 *.userosscache
 *.sln.docstates
 
-# Build output
-bin/
-obj/
+
 
 # Logs
 logs/
