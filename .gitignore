@@ -16,6 +16,7 @@ accounts.json
 roster.json
 member-presets.json
 discord-webhooks.json
+session-signing.key
 
 # Configuration / secrets
 appsettings.json

@@ -182,7 +182,7 @@
 
     <div id="alerts"></div>
 
-    <button id="sos" onclick="sendSos()">SOS</button>
+    <button id="sos" onclick="sendSos()">NEED HELP</button>
 
     <script>
 
@@ -211,7 +211,7 @@
 
         connection.on("SquadStatusChanged", status => {
             if (status.targetSquadId !== currentUser.squadId) return;
-            addAlert('Warning', `STATUS: ${status.type}`, status.timestamp);
+            addAlert('Warning', `STATUS: ${formatLabel(status.type)}`, status.timestamp);
         });
 
         connection.on("Snapshot", items => items.forEach(applySnapshotItem));
@@ -220,12 +220,16 @@
             if (i.targetSquadId !== currentUser.squadId) return;
             if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
             else if ('orderId' in i) setOrder(i.type);
-            else addAlert('Warning', `STATUS: ${i.type}`, i.timestamp);
+            else addAlert('Warning', `STATUS: ${formatLabel(i.type)}`, i.timestamp);
         }
 
 
         function alertClass(evt) {
             return evt.enemyRole != null ? 'Critical' : evt.severity;
+        }
+
+        function formatLabel(type) {
+            return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
         }
 
         connection.on("HistoryReset", () => {

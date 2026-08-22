@@ -125,8 +125,8 @@
   }
 
   const STATUS_CLASSES = {
-    SquadWiped: 'cat-critical', Regrouped: 'cat-defend', NeedHealing: 'cat-protect',
-    Retreating: 'cat-fallback', ObjectiveSecured: 'cat-attack-key'
+    SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
+    Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
 
@@ -220,11 +220,11 @@
     const roster = fullRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
     const reserveSquad = fullRoster.find(sq => sq.squadId === RESERVE_SQUAD_ID);
 
-    // если выбранный отряд пропал из ростера - сбрасываем выбор
+ 
     if (selectedSquadId && !roster.some(sq => sq.squadId === selectedSquadId)) {
       selectedSquadId = null;
     }
-    // при первой загрузке восстанавливаем последний выбранный отряд или берём первый
+
     if (!selectedSquadId) {
       const saved = localStorage.getItem('gvg_order_target');
       if (saved && roster.some(sq => sq.squadId === saved)) selectedSquadId = saved;
