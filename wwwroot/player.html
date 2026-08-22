@@ -209,15 +209,19 @@
             setOrder(order.type);
         });
 
-        connection.on("Snapshot", items => {
-            items.forEach(i => {
-                if ('reporterName' in i) {
-                    if (i.targetSquadId === currentUser.squadId) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
-                } else {
-                    if (i.targetSquadId === currentUser.squadId) setOrder(i.type);
-                }
-            });
+        connection.on("SquadStatusChanged", status => {
+            if (status.targetSquadId !== currentUser.squadId) return;
+            addAlert('Warning', `STATUS: ${status.type}`, status.timestamp);
         });
+
+        connection.on("Snapshot", items => items.forEach(applySnapshotItem));
+
+        function applySnapshotItem(i) {
+            if (i.targetSquadId !== currentUser.squadId) return;
+            if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
+            else if ('orderId' in i) setOrder(i.type);
+            else addAlert('Warning', `STATUS: ${i.type}`, i.timestamp);
+        }
 
 
         function alertClass(evt) {
@@ -233,7 +237,7 @@
 
         function updateSquadFromRoster(roster) {
             if (!roster || !currentUser) return;
-            const mine = roster.find(sq => (sq.members || []).some(m => m.toLowerCase() === currentUser.username.toLowerCase()));
+            const mine = roster.find(sq => (sq.members || []).some(m => (m.nickname || '').toLowerCase() === currentUser.username.toLowerCase()));
             const newSquadId = mine ? mine.squadId : null;
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
@@ -250,7 +254,6 @@
         }
 
         const ORDER_CATEGORIES = {
-            SquadWiped: 'critical',
             PushBot: 'attack', PushMid: 'attack', PushTop: 'attack', AttackGoose: 'attack',
             KillBoss: 'attack-key', Bomb: 'attack-key',
             DefendBot: 'defend', DefendMid: 'defend', DefendTop: 'defend', DefendGoose: 'defend', DefendTree: 'defend',

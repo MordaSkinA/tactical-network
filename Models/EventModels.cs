@@ -43,8 +43,38 @@ public enum OrderType
     KillBoss,
     BotJungle,
     TopJungle,
-    Bomb,
-    SquadWiped
+    Bomb
+}
+
+public enum SquadStatusType
+{
+    SquadWiped,
+    Regrouped,
+    NeedHealing,
+    Retreating,
+    ObjectiveSecured
+}
+
+public enum MemberRole
+{
+    Dps,
+    Tank,
+    Healer
+}
+
+public enum MemberTag
+{
+    Jungle,
+    Boss,
+    Backup
+}
+
+public enum BulwarkPosition
+{
+    None,
+    Bottom,
+    Center,
+    Top
 }
 
 public class UserAccount
@@ -71,7 +101,8 @@ public record LogoutDto(string Token);
 
 public record ReportEventDto(EnemyRole? EnemyRole, string? Note);
 
-public record IssueOrderDto(OrderType Type);
+public record IssueOrderDto(OrderType Type, string TargetSquadId);
+public record ReportSquadStatusDto(SquadStatusType Type);
 
 // Server  Client 
 
@@ -93,22 +124,64 @@ public record OrderPushDto(
     DateTimeOffset IssuedAt
 );
 
+public record SquadStatusPushDto(
+    Guid StatusId,
+    string ReporterName,
+    SquadStatusType Type,
+    string TargetSquadId,
+    DateTimeOffset Timestamp
+);
+
 // Battle
 
 public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
 
 // Roster 
 
+// Роль игрока — на игроке. Теги (джунгли/босс/бэкап) теперь на команде, не на игроке.
+public record SquadMemberDto(
+    string Nickname,
+    MemberRole Role,
+    BulwarkPosition Bulwark
+);
+
 public record SquadRosterDto(
     string SquadId,
     string Side,
     string? LeaderName,
-    List<string> Members
+    List<SquadMemberDto> Members,
+    string? Label = null,
+    List<MemberTag>? Tags = null
 );
 
 public record UpdateRosterDto(
     List<SquadRosterDto> Squads
 );
+
+// Запоминание роли/булварка игрока между сборками ростера (теги теперь командные, не запоминаются по игроку)
+
+public record MemberPresetDto(
+    string Nickname,
+    MemberRole Role,
+    BulwarkPosition Bulwark
+);
+
+// Discord webhooks / каналы
+
+public record DiscordChannelDto(string Id, string Name, string WebhookUrl);
+public record DiscordChannelSummaryDto(string Id, string Name);
+public record UpsertDiscordChannelDto(string? Id, string Name, string WebhookUrl);
+public record SendDiscordMessageDto(string ChannelId, string Message, List<string> PingNicknames);
+public record SendDiscordMessageResultDto(bool Success, string? Message, int RealPings, int FallbackPings);
+
+// Автогенерация "Team composition" сообщения из текущего ростера, с реальными пингами по нику
+public record SendRosterMessageDto(string ChannelId, List<string>? SquadIds);
+
+// Кастомные эмодзи сервера для ролей и тегов (например <:tank:123456789012345678>).
+// Пусто/не задано = дефолтный юникод-эмодзи. Значки булварка фиксированы (♜↑ / ♜ / ♜↓) и не настраиваются здесь.
+public record RoleEmojiEntryDto(MemberRole Role, string? Emoji);
+public record TagEmojiEntryDto(MemberTag Tag, string? Emoji);
+public record EmojiSettingsDto(List<RoleEmojiEntryDto> Roles, List<TagEmojiEntryDto> Tags);
 
 // Accounts 
 
@@ -123,3 +196,6 @@ public record MyAccountDto(string Username, UserRole Role, string? SquadId, bool
 
 public record DiscordLoginStartDto(string State);
 public record DiscordRegisterDto(string PendingToken, string Nickname);
+
+// logs
+public record LogFileSummaryDto(string FileName, DateTimeOffset SavedAt);

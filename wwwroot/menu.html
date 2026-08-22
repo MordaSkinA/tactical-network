@@ -151,7 +151,7 @@
         document.getElementById('hint').textContent =
             `Signed in as ${currentUser.username} (${currentUser.role}). Available tabs:`;
 
-        const labels = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel' };
+        const labels = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel', Replay: 'Replay' };
 
         const tabs = getAccessibleTabs(currentUser.role);
         document.getElementById('tab-list').innerHTML = tabs.map(t => `

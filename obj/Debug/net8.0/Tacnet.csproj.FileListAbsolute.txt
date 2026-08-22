@@ -28,7 +28,6 @@ C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tacti
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\obj\Debug\net8.0\Tacnet.pdb
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\obj\Debug\net8.0\Tacnet.genruntimeconfig.cache
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\obj\Debug\net8.0\ref\Tacnet.dll
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\appsettings.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Tacnet.staticwebassets.runtime.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Tacnet.staticwebassets.endpoints.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Tacnet.exe
@@ -58,10 +57,13 @@ C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tacti
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\obj\Debug\net8.0\Tacnet.pdb
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\obj\Debug\net8.0\Tacnet.genruntimeconfig.cache
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\obj\Debug\net8.0\ref\Tacnet.dll
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\accounts.json
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\roster.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-025828.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-025838.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-030233.json
 C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\logs\battle-20260819-030235.json
-C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\appsettings.Development.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Local\accounts.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Local\appsettings.Development.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Local\appsettings.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Local\discord-webhooks.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Local\member-presets.json
+C:\Users\faste\OneDrive\Документы\PROJECTS\repos\tactical-network\Tactical-network\tactical-network\bin\Debug\net8.0\Local\roster.json

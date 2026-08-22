@@ -25,6 +25,7 @@ const TABS = [
     { url: '/player.html', label: 'Player', roles: ['Player', 'Leader', 'Commander', 'Admin'] },
     { url: '/observer.html', label: 'Observer', roles: ['Leader', 'Admin'] },
     { url: '/dashboard.html', label: 'Dashboard', roles: ['Commander', 'Admin'] },
+    { url: '/replay.html', label: 'Replay', roles: ['Commander', 'Admin'] },
     { url: '/admin.html', label: 'Admin', roles: ['Admin'] }
 ];
 
@@ -44,3 +45,4 @@ function logout() {
     localStorage.removeItem('gvg_session');
     location.href = '/index.html';
 }
+

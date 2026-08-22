@@ -1,6 +1,9 @@
 using GvGPoc.Models;
 using GvGPoc.State;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace GvGPoc.Hubs;
 
@@ -11,14 +14,23 @@ public class BattleHub : Hub
     private readonly IAccountStore _accounts;
     private readonly HubActionRateLimiter _rateLimiter;
     private readonly IConnectionTracker _connections;
+    private readonly IMemberPresetStore _presets;
+    private readonly IDiscordWebhookStore _discordChannels;
+    private readonly IEmojiSettingsStore _emojiSettings;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter, IConnectionTracker connections)
+    public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter,
+        IConnectionTracker connections, IMemberPresetStore presets, IDiscordWebhookStore discordChannels, IEmojiSettingsStore emojiSettings, IHttpClientFactory httpClientFactory)
     {
         _state = state;
         _sessions = sessions;
         _accounts = accounts;
         _rateLimiter = rateLimiter;
         _connections = connections;
+        _presets = presets;
+        _discordChannels = discordChannels;
+        _emojiSettings = emojiSettings;
+        _httpClientFactory = httpClientFactory;
     }
 
     // Группы SignalR
@@ -74,12 +86,23 @@ public class BattleHub : Hub
 
     public async Task IssueOrder(IssueOrderDto dto)
     {
+        var session = RequireRole(UserRole.Commander, UserRole.Admin);
+        if (!_state.GetRoster().Any(s => string.Equals(s.SquadId, dto.TargetSquadId, StringComparison.OrdinalIgnoreCase)))
+            throw new HubException("Unknown squad.");
+        RequireNotRateLimited();
+
+        var order = _state.AddOrder(dto, session.Username, dto.TargetSquadId);
+        await Clients.Groups(SquadGroup(dto.TargetSquadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
+    }
+
+    public async Task ReportSquadStatus(ReportSquadStatusDto dto)
+    {
         var session = RequireRole(UserRole.Leader);
         var squadId = RequireSquad(session);
         RequireNotRateLimited();
 
-        var order = _state.AddOrder(dto, session.Username, squadId);
-        await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
+        var status = _state.AddSquadStatus(dto, session.Username, squadId);
+        await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("SquadStatusChanged", status);
     }
 
     public async Task Sos()
@@ -96,8 +119,16 @@ public class BattleHub : Hub
     {
         RequireRole(UserRole.Admin);
         _state.SetRoster(dto.Squads);
+        _presets.SaveMany(dto.Squads.SelectMany(s => s.Members));
         await SyncAccountSquadsWithRoster(dto.Squads);
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
+    }
+
+    // Запомненные роль/булварк по нику - используется в UI, чтобы не заполнять заново
+    public Task<Dictionary<string, MemberPresetDto>> GetMemberPresets()
+    {
+        RequireRole(UserRole.Admin);
+        return Task.FromResult(_presets.All().ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase));
     }
 
 
@@ -106,7 +137,7 @@ public class BattleHub : Hub
         var memberSquad = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var squad in squads)
             foreach (var member in squad.Members)
-                memberSquad[member] = squad.SquadId;
+                memberSquad[member.Nickname] = squad.SquadId;
 
         foreach (var account in _accounts.All().ToList())
         {
@@ -131,6 +162,177 @@ public class BattleHub : Hub
         }
     }
 
+    // Каналы Discord (webhook-ссылки)
+
+    public Task<List<DiscordChannelDto>> ListDiscordChannels()
+    {
+        RequireRole(UserRole.Admin);
+        return Task.FromResult(_discordChannels.All().ToList());
+    }
+
+    public Task<List<DiscordChannelSummaryDto>> ListDiscordChannelNames()
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin);
+        var list = _discordChannels.All().Select(c => new DiscordChannelSummaryDto(c.Id, c.Name)).ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<DiscordChannelDto> UpsertDiscordChannel(UpsertDiscordChannelDto dto)
+    {
+        RequireRole(UserRole.Admin);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            throw new HubException("Channel name is required.");
+        if (string.IsNullOrWhiteSpace(dto.WebhookUrl) || !dto.WebhookUrl.StartsWith("https://discord.com/api/webhooks/", StringComparison.OrdinalIgnoreCase))
+            throw new HubException("That doesn't look like a valid Discord webhook URL.");
+
+        var channel = _discordChannels.Upsert(dto.Id, dto.Name.Trim(), dto.WebhookUrl.Trim());
+        return Task.FromResult(channel);
+    }
+
+    public Task DeleteDiscordChannel(string id)
+    {
+        RequireRole(UserRole.Admin);
+        _discordChannels.Delete(id);
+        return Task.CompletedTask;
+    }
+
+    // Отправка сообщения в Discord с реальными пингами (у кого привязан Discord) и запасным текстом ника (у кого нет)
+    public async Task<SendDiscordMessageResultDto> SendDiscordMessage(SendDiscordMessageDto dto)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin);
+
+        var channel = _discordChannels.Find(dto.ChannelId);
+        if (channel is null) throw new HubException("Unknown Discord channel.");
+        if (string.IsNullOrWhiteSpace(dto.Message) && (dto.PingNicknames is null || dto.PingNicknames.Count == 0))
+            throw new HubException("Nothing to send.");
+
+        var mentionIds = new List<string>();
+        var fallbackNames = new List<string>();
+
+        foreach (var nickname in (dto.PingNicknames ?? new()).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var account = _accounts.Find(nickname);
+            if (account?.DiscordId is not null)
+                mentionIds.Add(account.DiscordId);
+            else
+                fallbackNames.Add(nickname);
+        }
+
+        var contentParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(dto.Message)) contentParts.Add(dto.Message.Trim());
+
+        var pingParts = new List<string>();
+        pingParts.AddRange(mentionIds.Select(id => $"<@{id}>"));
+        pingParts.AddRange(fallbackNames.Select(n => $"@{n}"));
+        if (pingParts.Count > 0) contentParts.Add(string.Join(" ", pingParts));
+
+        var content = string.Join("\n\n", contentParts);
+        if (content.Length > 1900) content = content[..1900] + "…";
+
+        var payload = new {
+            content,
+            allowed_mentions = new { parse = Array.Empty<string>(), users = mentionIds }
+        };
+
+        var http = _httpClientFactory.CreateClient();
+        var response = await http.PostAsJsonAsync(channel.WebhookUrl, payload);
+
+        if (!response.IsSuccessStatusCode)
+            return new SendDiscordMessageResultDto(false, $"Discord returned {(int)response.StatusCode}.", mentionIds.Count, fallbackNames.Count);
+
+        return new SendDiscordMessageResultDto(true, null, mentionIds.Count, fallbackNames.Count);
+    }
+
+    // Автосборка "Team composition" сообщения из текущего ростера (роли/теги команды/булварк) с реальными пингами по нику
+    public async Task<SendDiscordMessageResultDto> SendRosterMessage(SendRosterMessageDto dto)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin);
+
+        var channel = _discordChannels.Find(dto.ChannelId);
+        if (channel is null) throw new HubException("Unknown Discord channel.");
+
+        var roster = _state.GetRoster();
+        var squads = (dto.SquadIds is { Count: > 0 })
+            ? roster.Where(s => dto.SquadIds.Contains(s.SquadId, StringComparer.OrdinalIgnoreCase)).ToList()
+            : roster.Where(s => s.Members.Count > 0).ToList();
+
+        squads = squads.Where(s => s.Members.Count > 0).ToList();
+        if (squads.Count == 0) throw new HubException("Nothing to send — the selected squads have no members.");
+
+        var mentionIds = new List<string>();
+        var fallbackNames = new List<string>();
+        var lines = new List<string> { "**Team composition:**", "" };
+
+        var teamIndex = 0;
+        foreach (var squad in squads)
+        {
+            teamIndex++;
+            var label = string.IsNullOrWhiteSpace(squad.Label) ? squad.SquadId : squad.Label;
+            var tagBadges = (squad.Tags ?? new()).Count > 0
+                ? " " + string.Join(" ", (squad.Tags ?? new()).Select(t => $"{_emojiSettings.TagEmoji(t)}{t}"))
+                : "";
+            lines.Add($"**Team {teamIndex} ({label}){tagBadges}:**");
+
+            foreach (var member in squad.Members)
+            {
+                var account = _accounts.Find(member.Nickname);
+                string mention;
+                if (account?.DiscordId is not null)
+                {
+                    mentionIds.Add(account.DiscordId);
+                    mention = $"<@{account.DiscordId}>";
+                }
+                else
+                {
+                    fallbackNames.Add(member.Nickname);
+                    mention = $"@{member.Nickname}";
+                }
+
+                var bulwarkText = BulwarkSymbol(member.Bulwark);
+                lines.Add($"{_emojiSettings.RoleEmoji(member.Role)} {mention}{bulwarkText}");
+            }
+            lines.Add("");
+        }
+
+        var content = string.Join("\n", lines).TrimEnd();
+        if (content.Length > 1900) content = content[..1900] + "…";
+
+        var payload = new {
+            content,
+            allowed_mentions = new { parse = Array.Empty<string>(), users = mentionIds.Distinct().ToList() }
+        };
+
+        var http = _httpClientFactory.CreateClient();
+        var response = await http.PostAsJsonAsync(channel.WebhookUrl, payload);
+
+        if (!response.IsSuccessStatusCode)
+            return new SendDiscordMessageResultDto(false, $"Discord returned {(int)response.StatusCode}.", mentionIds.Count, fallbackNames.Count);
+
+        return new SendDiscordMessageResultDto(true, null, mentionIds.Count, fallbackNames.Count);
+    }
+
+    // ♜↑ верхний, ♜ центральный, ♜↓ нижний — значения фиксированы, не настраиваются
+    private static string BulwarkSymbol(BulwarkPosition pos) => pos switch {
+        BulwarkPosition.Top => " ♜↑",
+        BulwarkPosition.Center => " ♜",
+        BulwarkPosition.Bottom => " ♜↓",
+        _ => ""
+    };
+
+    // Кастомные эмодзи сервера для ролей/тегов
+
+    public Task<EmojiSettingsDto> GetEmojiSettings()
+    {
+        RequireAuthenticated();
+        return Task.FromResult(_emojiSettings.Get());
+    }
+
+    public Task<EmojiSettingsDto> UpdateEmojiSettings(EmojiSettingsDto dto)
+    {
+        RequireRole(UserRole.Admin);
+        return Task.FromResult(_emojiSettings.Update(dto));
+    }
+
     public async Task StartBattle()
     {
         RequireRole(UserRole.Admin);
@@ -152,6 +354,20 @@ public class BattleHub : Hub
     {
         RequireRole(UserRole.Admin);
         return Task.FromResult(_state.SaveLogSnapshot());
+    }
+
+    public Task<IReadOnlyList<LogFileSummaryDto>> ListLogFiles()
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin);
+        return Task.FromResult(_state.ListLogFiles());
+    }
+
+    public Task<string> GetLogFile(string fileName)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin);
+        var content = _state.ReadLogFile(fileName);
+        if (content is null) throw new HubException("Log file not found.");
+        return Task.FromResult(content);
     }
 
     public Task<List<AccountSummaryDto>> ListAccounts()

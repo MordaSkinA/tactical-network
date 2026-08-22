@@ -35,11 +35,43 @@
   #roster { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
   .squad-card { background:#161616; border-radius:8px; padding:10px 12px; }
   .squad-card h4 { margin:0 0 4px 0; font-size:13px; color:#aaa; }
-  .squad-card .members { font-size:13px; color:#ccc; }
+  .squad-card .members { font-size:13px; color:#ccc; display: flex; flex-direction: column; gap: 4px; }
+  .member-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .role-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+  .role-badge.Dps { background: #3a1a1a; color: #e88a8a; }
+  .role-badge.Tank { background: #1a2a3a; color: #7dc0e8; }
+  .role-badge.Healer { background: #1a3a1a; color: #7dd87d; }
+  .tag-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: #2a2a2a; color: #999; }
+  .bulwark-badge { font-size: 12px; }
   .squad-card.Defense { border-left: 3px solid #3d8ee8; }
   .squad-card.Attack  { border-left: 3px solid #e8a33d; }
   .squad-card.Flex    { border-left: 3px solid #8a4de8; }
   .menu-nav-btn { font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer; text-decoration: none; margin-right: 8px; }
+  #order-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
+  #order-panel h4 { margin: 0 0 10px 0; font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+  #order-target-label { font-size: 12px; color: #888; margin-bottom: 8px; }
+  #order-target-label strong { color: #eee; }
+  #order-squad-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .squad-chip {
+    font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 999px;
+    border: 2px solid #3a3a3a; background: #202020; color: #bbb; cursor: pointer;
+  }
+  .squad-chip:active { transform: scale(0.96); }
+  .squad-chip.selected { border-color: #eee; background: #2f6fb2; color: #fff; }
+  #order-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  #order-buttons.disabled { opacity: 0.4; pointer-events: none; }
+  .order-btn { font-size: 13px; padding: 8px 12px; border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; }
+  .order-btn:active { transform: scale(0.97); }
+  .order-btn.attack     { background: #c1622b; }
+  .order-btn.attack-key { background: #e8790f; }
+  .order-btn.defend     { background: #4c7a4f; }
+  .order-btn.hold       { background: #2e5230; }
+  .order-btn.protect    { background: #4fae82; }
+  .order-btn.tactic     { background: #2f6fb2; }
+  .order-btn.fallback   { background: #4a90c4; }
+  .order-btn.jungle     { background: #1e3a5f; }
+  .squad-card { cursor: pointer; border: 2px solid transparent; }
+  .squad-card.targeted { border-color: #eee; }
 </style>
 </head>
 <body>
@@ -50,6 +82,13 @@
   </div>
   <div id="status">connecting...</div>
   <div id="battle-status" class="inactive">No active battle</div>
+
+  <div id="order-panel">
+    <h4>Issue order</h4>
+    <div id="order-target-label">Target: <strong id="order-target-value">none selected</strong></div>
+    <div id="order-squad-chips"></div>
+    <div id="order-buttons" class="disabled"></div>
+  </div>
 
   <div id="roster"></div>
   <div id="feed"></div>
@@ -80,6 +119,59 @@
     return category ? 'cat-' + category : 'order-item';
   }
 
+  const STATUS_CLASSES = {
+    SquadWiped: 'cat-critical', Regrouped: 'cat-defend', NeedHealing: 'cat-protect',
+    Retreating: 'cat-fallback', ObjectiveSecured: 'cat-attack-key'
+  };
+  function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
+
+  const ORDER_TYPES = [
+    { type: 'PushBot', label: 'PUSH BOT', cls: 'attack' },
+    { type: 'PushMid', label: 'PUSH MID', cls: 'attack' },
+    { type: 'PushTop', label: 'PUSH TOP', cls: 'attack' },
+    { type: 'AttackGoose', label: 'ATTACK GOOSE', cls: 'attack' },
+    { type: 'KillBoss', label: 'KILL BOSS', cls: 'attack-key' },
+    { type: 'Bomb', label: 'BOMB', cls: 'attack-key' },
+    { type: 'DefendBot', label: 'DEFEND BOT', cls: 'defend' },
+    { type: 'DefendMid', label: 'DEFEND MID', cls: 'defend' },
+    { type: 'DefendTop', label: 'DEFEND TOP', cls: 'defend' },
+    { type: 'DefendGoose', label: 'DEFEND GOOSE', cls: 'defend' },
+    { type: 'DefendTree', label: 'DEFEND TREE', cls: 'defend' },
+    { type: 'Hold', label: 'HOLD', cls: 'hold' },
+    { type: 'ProtectHealer', label: 'PROTECT HEALER', cls: 'protect' },
+    { type: 'Rotate', label: 'ROTATE', cls: 'tactic' },
+    { type: 'FallBack', label: 'FALL BACK', cls: 'fallback' },
+    { type: 'BotJungle', label: 'BOT JUNGLE', cls: 'jungle' },
+    { type: 'TopJungle', label: 'TOP JUNGLE', cls: 'jungle' }
+  ];
+
+  document.getElementById('order-buttons').innerHTML = ORDER_TYPES.map(o =>
+    `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${o.label}</button>`
+  ).join('');
+
+  let selectedSquadId = null;
+
+  function selectSquad(squadId) {
+    selectedSquadId = squadId;
+    localStorage.setItem('gvg_order_target', squadId);
+    refreshTargetUI();
+  }
+
+  function refreshTargetUI() {
+    document.getElementById('order-target-value').textContent = selectedSquadId || 'none selected';
+    document.querySelectorAll('.squad-chip').forEach(chip =>
+      chip.classList.toggle('selected', chip.dataset.squadId === selectedSquadId));
+    document.querySelectorAll('.squad-card').forEach(card =>
+      card.classList.toggle('targeted', card.dataset.squadId === selectedSquadId));
+    document.getElementById('order-buttons').classList.toggle('disabled', !selectedSquadId);
+  }
+
+  function issueOrder(type) {
+    if (!selectedSquadId) { setStatus('Select a squad first'); return; }
+    connection.invoke("IssueOrder", { type, targetSquadId: selectedSquadId })
+      .catch(err => setStatus("Error: " + err));
+  }
+
   connection.onreconnecting(() => setStatus("reconnecting..."));
   connection.onreconnected(() => setStatus("connected"));
 
@@ -89,6 +181,9 @@
   connection.on("OrderIssued", order =>
     addItem(orderClass(order.type), `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
 
+  connection.on("SquadStatusChanged", status =>
+    addItem(statusClass(status.type), `STATUS ${status.type} → ${status.targetSquadId}`, status.reporterName, status.timestamp));
+
   connection.on("RosterUpdated", roster => renderRoster(roster));
 
   connection.on("HistoryReset", () => { feed.innerHTML = ''; });
@@ -96,15 +191,13 @@
   connection.on("BattleStatusChanged", status => renderBattleStatus(status));
 
 
-  connection.on("Snapshot", items => {
-    items.forEach(i => {
-      if ('reporterName' in i) {
-        addItem(alertClass(i), `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
-      } else {
-        addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
-      }
-    });
-  });
+  connection.on("Snapshot", items => items.forEach(renderHistoryItem));
+
+  function renderHistoryItem(i) {
+    if ('eventId' in i) addItem(alertClass(i), `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+    else if ('orderId' in i) addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+    else addItem(statusClass(i.type), `STATUS ${i.type} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+  }
 
   // Репорты врага 
   function alertClass(evt) {
@@ -116,22 +209,79 @@
     .catch(err => setStatus("connection failed: " + err));
 
   function renderRoster(roster) {
+    roster = roster || [];
+
+    // если выбранный отряд пропал из ростера - сбрасываем выбор
+    if (selectedSquadId && !roster.some(sq => sq.squadId === selectedSquadId)) {
+      selectedSquadId = null;
+    }
+    // при первой загрузке восстанавливаем последний выбранный отряд или берём первый
+    if (!selectedSquadId) {
+      const saved = localStorage.getItem('gvg_order_target');
+      if (saved && roster.some(sq => sq.squadId === saved)) selectedSquadId = saved;
+      else if (roster.length === 1) selectedSquadId = roster[0].squadId;
+    }
+
+    const chips = document.getElementById('order-squad-chips');
+    chips.innerHTML = roster.map(sq =>
+      `<button class="squad-chip" data-squad-id="${sq.squadId}" onclick="selectSquad('${sq.squadId}')">${sq.squadId}</button>`
+    ).join('');
+
     const el = document.getElementById('roster');
     el.innerHTML = '';
-    (roster || []).forEach(sq => {
+    roster.forEach(sq => {
       const card = document.createElement('div');
       card.className = 'squad-card ' + sq.side;
+      card.dataset.squadId = sq.squadId;
+      card.onclick = () => selectSquad(sq.squadId);
 
       const h4 = document.createElement('h4');
-      h4.textContent = `${sq.squadId} · ${sq.side}`;
+      h4.textContent = `${sq.squadId} · ${sq.side}${sq.label ? ' · ' + sq.label : ''}`;
+      (sq.tags || []).forEach(tag => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'tag-badge';
+        tagEl.textContent = tag;
+        tagEl.style.marginLeft = '6px';
+        h4.appendChild(tagEl);
+      });
 
       const membersEl = document.createElement('div');
       membersEl.className = 'members';
-      membersEl.textContent = (sq.members || []).join(', ') || '-';
+      const members = sq.members || [];
+      if (members.length === 0) {
+        membersEl.textContent = '-';
+      } else {
+        members.forEach(m => {
+          const row = document.createElement('div');
+          row.className = 'member-row';
+
+          const nameEl = document.createElement('span');
+          nameEl.textContent = m.nickname;
+          row.appendChild(nameEl);
+
+          if (m.role) {
+            const roleEl = document.createElement('span');
+            roleEl.className = 'role-badge ' + m.role;
+            roleEl.textContent = m.role.toUpperCase();
+            row.appendChild(roleEl);
+          }
+          if (m.bulwark && m.bulwark !== 'None') {
+            const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark] || '♜';
+            const bwEl = document.createElement('span');
+            bwEl.className = 'bulwark-badge';
+            bwEl.title = m.bulwark + ' bulwark';
+            bwEl.textContent = bwSymbol;
+            row.appendChild(bwEl);
+          }
+          membersEl.appendChild(row);
+        });
+      }
 
       card.append(h4, membersEl);
       el.appendChild(card);
     });
+
+    refreshTargetUI();
   }
 
   function setStatus(text) {
