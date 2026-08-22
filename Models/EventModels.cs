@@ -49,10 +49,10 @@ public enum OrderType
 public enum SquadStatusType
 {
     SquadWiped,
-    Regrouped,
-    NeedHealing,
+    Regroup,
+    NeedHelp,
     Retreating,
-    ObjectiveSecured
+    StandingBy
 }
 
 public enum MemberRole

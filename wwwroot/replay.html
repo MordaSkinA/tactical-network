@@ -90,8 +90,8 @@
     return evt.enemyRole != null ? 'Critical' : evt.severity;
   }
   const STATUS_CLASSES = {
-    SquadWiped: 'cat-critical', Regrouped: 'cat-defend', NeedHealing: 'cat-protect',
-    Retreating: 'cat-fallback', ObjectiveSecured: 'cat-attack-key'
+    SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
+    Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
 
