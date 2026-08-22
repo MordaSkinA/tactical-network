@@ -36,5 +36,5 @@ Thumbs.db
 
 # User-specific ASP.NET files
 Properties/launchSettings.json
-/obj
-/bin
+appsettings.Development.json
+
