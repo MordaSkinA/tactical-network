@@ -38,3 +38,4 @@ Thumbs.db
 Properties/launchSettings.json
 /obj
 /bin
+appsettings.Development.json
