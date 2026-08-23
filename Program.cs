@@ -57,6 +57,8 @@ builder.Services.AddSingleton<HubActionRateLimiter>();
 builder.Services.AddSingleton<LoginAttemptRateLimiter>();
 builder.Services.AddHttpClient();
 
+builder.Services.AddHostedService<GvGPoc.Services.BattleTimerService>();
+
 builder.Services.AddCors(options => {
     options.AddDefaultPolicy(policy => policy
         .SetIsOriginAllowed(_ => true)
