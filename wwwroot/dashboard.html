@@ -204,7 +204,7 @@
     else addItem(statusClass(i.type), `STATUS ${i.type} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
   }
 
-  // Репорты врага 
+  // Enemy reports
   function alertClass(evt) {
     return evt.enemyRole != null ? 'Critical' : evt.severity;
   }

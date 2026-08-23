@@ -395,20 +395,20 @@
     <div id="accounts-list"></div>
 
     <h3>4. Discord channels (webhooks)</h3>
-    <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed — right-click a channel in Discord → Edit Channel → Integrations → Webhooks → New Webhook → Copy URL.</div>
+    <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed, just right-click a channel in Discord -> Edit Channel --> Integrations -> Webhooks -> New Webhook -> Copy URL</div>
     <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
     <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
     <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
     <div id="discord-channels-list" style="margin-top:10px;"></div>
 
     <h3>5. Emoji for roles &amp; tags</h3>
-    <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it — it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed (♜↑ top, ♜ center, ♜↓ bottom) and aren't customizable here.</div>
+    <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it, it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed and aren't customizable here</div>
     <div id="emoji-role-inputs"></div>
     <div id="emoji-tag-inputs" style="margin-top:10px;"></div>
     <button class="secondary" onclick="saveEmojiSettings()">Save emoji</button>
 
     <h3>6. Send a Discord message</h3>
-    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text (@nickname).</div>
+    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text</div>
     <label>Channel
         <select id="dc-send-channel"></select>
     </label>
@@ -417,10 +417,10 @@
     <label>Also ping specific people
         <select id="dc-recipients" multiple size="6"></select>
     </label>
-    <label>Message <textarea id="dc-message" placeholder="Boss spawns in 5 minutes, form up at mid!"></textarea></label>
+    <label>Message <textarea id="dc-message" placeholder="Hello, hello, hello, hello..."></textarea></label>
     <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
 
-    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster (uses each squad's label, tags and each player's role/bulwark below) and ping everyone in the selected squads above.</div>
+    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected squads above</div>
     <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
     <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
 
@@ -448,7 +448,7 @@
         const RESERVE_SQUAD_ID = 'RESERVE';
         let reserves = { squadId: RESERVE_SQUAD_ID, side: 'Flex', leaderName: null, members: [], label: 'Reserves', tags: [] };
         let roleEmoji = { Dps: '⚔️', Tank: '🛡️', Healer: '💚' };
-        // Backup teg больше не вешается на отряд — используем его эмодзи как значок раздела Reserves.
+
         let tagEmoji = { Jungle: '🌲', Boss: '👹', Backup: '🔁' };
         const BULWARK_SYMBOL = { None: '', Bottom: ' ♜↓', Center: ' ♜', Top: ' ♜↑' };
         let initialized = false;
@@ -474,14 +474,14 @@
             .then(() => { log("Connected."); refreshAccounts(); refreshMemberPresets(); refreshDiscordChannels(); refreshEmojiSettings(); })
             .catch(err => log("Connection failed: " + err));
 
-        // запомненные роль/булварк игрока
+        // remembered role/bulwark for a player
 
         async function refreshMemberPresets() {
             try { memberPresets = await connection.invoke("GetMemberPresets"); }
             catch (err) { log("Failed to load remembered roles/bulwark: " + err); }
         }
 
-        // кастомные эмодзи ролей/тегов
+        // custom emoji for roles/tags
 
         async function refreshEmojiSettings() {
             try {
@@ -522,7 +522,7 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // пул
+        // pool
 
         function addToPool() {
             const raw = document.getElementById('pool-input').value;
@@ -562,7 +562,7 @@
             renderPool(); renderSquads();
         }
 
-        // Резерв: перевод игрока между отрядом/резервом/пулом
+        // Reserves
 
         function moveMemberToReserve(squadIndex, memberIndex) {
             const squad = squads[squadIndex];
@@ -600,7 +600,7 @@
             if (summaryEl) summaryEl.textContent = tagsSummaryText(squad.tags);
         }
 
-        // лиды, игроки, аккаунты
+        // leads, players, accounts
 
         function makeAccount(name, squadId, role) {
             const username = prompt(`Username for ${name}:`, name);
@@ -781,7 +781,7 @@
             renderPool(); renderSquads(); renderReserves();
         }
 
-        // логи, очистка
+        // logs, clearing
 
         function saveRoster() {
             const payload = [...squads, reserves].map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members, label: s.label || null, tags: s.tags }));
@@ -832,7 +832,7 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // аккаунты
+        // accounts
 
         async function refreshAccounts() {
             try {
@@ -849,7 +849,7 @@
                         return `
               <tr>
                 <td>${escapeHtml(a.username)}</td>
-                <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">—</span>'}</td>
+                <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">-</span>'}</td>
                 <td>${a.role}</td>
                 <td>${a.squadId || '-'}</td>
                 <td>${addBtn}<button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
@@ -951,7 +951,7 @@
 
         function renderDiscordSendChannelOptions() {
             const sel = document.getElementById('dc-send-channel');
-            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet — add one above</option>'; return; }
+            if (discordChannels.length === 0) { sel.innerHTML = '<option value="">No channels yet, add one above</option>'; return; }
             sel.innerHTML = discordChannels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
         }
 
@@ -999,7 +999,7 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // Автосборка "Team composition" поста из текущего ростера (роли/теги команды/булварк), с реальными пингами
+        // Team composition post 
         function sendRosterMessage() {
             const channelId = document.getElementById('dc-send-channel').value;
             if (!channelId) { log("Pick a Discord channel first."); return; }
@@ -1007,9 +1007,9 @@
             let squadIds = [...dcSelectedSquads];
             if (squadIds.length === 0) {
                 squadIds = squads.filter(s => s.members.length > 0).map(s => s.squadId);
-                log(`No squads selected — defaulting to all ${squadIds.length} non-empty squad(s).`);
+                log(`No squads selected, defaulting to all ${squadIds.length} non-empty squad(s).`);
             }
-            if (squadIds.length === 0) { log("Roster is empty — build it in section 2 first."); return; }
+            if (squadIds.length === 0) { log("Roster is empty, build it in section 2 first."); return; }
             if (!confirm(`Send the Team composition post for ${squadIds.length} squad(s) to Discord now? This will really ping everyone in them.`)) return;
 
             connection.invoke("SendRosterMessage", { channelId, squadIds })
@@ -1017,7 +1017,7 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // Предпросмотр того же текста, что соберёт сервер (для локальной проверки перед отправкой)
+        // Preview of the same text 
         function previewRosterMessage() {
             const active = (dcSelectedSquads.size > 0 ? squads.filter(s => dcSelectedSquads.has(s.squadId)) : squads).filter(s => s.members.length > 0);
             const lines = ['**Team composition:**', ''];
@@ -1031,7 +1031,7 @@
                 lines.push('');
             });
             document.getElementById('dc-message').value = lines.join('\n').trim();
-            log('Preview filled into the message box below — this is a preview only, use "Send team composition" to actually send it with real pings.');
+            log('Preview filled into the message box below, this is just a preview, use "Send team composition" to actually send it with real pings.');
         }
 
         function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }

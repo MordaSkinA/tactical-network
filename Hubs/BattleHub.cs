@@ -33,7 +33,7 @@ public class BattleHub : Hub
         _httpClientFactory = httpClientFactory;
     }
 
-    // Группы SignalR
+    // SignalR groups
     private const string CommanderGroup = "role-commander";
     private const string AdminGroup = "role-admin";
     private static string SquadGroup(string squadId) => "squad-" + squadId;
@@ -126,7 +126,7 @@ public class BattleHub : Hub
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
     }
 
-    // Запомненные роль/булварк по нику - используется в UI, чтобы не заполнять заново
+    // Remembered role/bulwark by nickname
     public Task<Dictionary<string, MemberPresetDto>> GetMemberPresets()
     {
         RequireRole(UserRole.Admin);
@@ -144,7 +144,7 @@ public class BattleHub : Hub
         foreach (var account in _accounts.All().ToList())
         {
             if (account.Role != UserRole.Leader && account.Role != UserRole.Player)
-                continue; // Commander/Admin не привязаны к ростеру
+                continue; // Commander/Admin aren't tied to the roster
 
             var oldSquadId = account.SquadId;
             var newSquadId = memberSquad.TryGetValue(account.Username, out var sid) ? sid : null;
@@ -153,7 +153,7 @@ public class BattleHub : Hub
 
             _accounts.Upsert(account.Username, account.Role, newSquadId, null);
 
-            // смена групп SignalR для всех подключений этого аккаунта
+            // SignalR groups for all connections of this account
             foreach (var connectionId in _connections.GetConnections(account.Username))
             {
                 if (!string.IsNullOrEmpty(oldSquadId))
@@ -164,7 +164,7 @@ public class BattleHub : Hub
         }
     }
 
-    // Каналы Discord (webhook-ссылки)
+    // Discord channels
 
     public Task<List<DiscordChannelDto>> ListDiscordChannels()
     {
@@ -198,7 +198,7 @@ public class BattleHub : Hub
         return Task.CompletedTask;
     }
 
-    // Отправка сообщения в Discord с реальными пингами (у кого привязан Discord) и запасным текстом ника (у кого нет)
+    // Sends a message to Discord 
     public async Task<SendDiscordMessageResultDto> SendDiscordMessage(SendDiscordMessageDto dto)
     {
         RequireRole(UserRole.Commander, UserRole.Admin);
@@ -245,7 +245,7 @@ public class BattleHub : Hub
         return new SendDiscordMessageResultDto(true, null, mentionIds.Count, fallbackNames.Count);
     }
 
-    // Автосборка "Team composition" сообщения из текущего ростера (роли/теги команды/булварк) с реальными пингами по нику
+    // Team composition message from the current roster 
     public async Task<SendDiscordMessageResultDto> SendRosterMessage(SendRosterMessageDto dto)
     {
         RequireRole(UserRole.Commander, UserRole.Admin);
@@ -259,7 +259,7 @@ public class BattleHub : Hub
             : roster.Where(s => s.Members.Count > 0).ToList();
 
         squads = squads.Where(s => s.Members.Count > 0).ToList();
-        if (squads.Count == 0) throw new HubException("Nothing to send — the selected squads have no members.");
+        if (squads.Count == 0) throw new HubException("Nothing to send, the selected squads have no members.");
 
         var mentionIds = new List<string>();
         var fallbackNames = new List<string>();
@@ -313,7 +313,7 @@ public class BattleHub : Hub
         return new SendDiscordMessageResultDto(true, null, mentionIds.Count, fallbackNames.Count);
     }
 
-    // ♜↑ верхний, ♜ центральный, ♜↓ нижний — значения фиксированы, не настраиваются
+    // ♜↑  ♜  ♜↓ 
     private static string BulwarkSymbol(BulwarkPosition pos) => pos switch {
         BulwarkPosition.Top => " ♜↑",
         BulwarkPosition.Center => " ♜",
@@ -321,7 +321,7 @@ public class BattleHub : Hub
         _ => ""
     };
 
-    // Кастомные эмодзи сервера для ролей/тегов
+    // Custom server emoji 
 
     public Task<EmojiSettingsDto> GetEmojiSettings()
     {
@@ -343,7 +343,7 @@ public class BattleHub : Hub
     }
 
     
-    // лог и очистка
+    // log and clearing
     public async Task EndBattle()
     {
         RequireRole(UserRole.Admin);
@@ -419,7 +419,7 @@ public class BattleHub : Hub
         return Task.CompletedTask;
     }
 
-    // Аккаунты которые нельзя удалить
+    // Accounts that can't be deleted
     private static readonly HashSet<string> ProtectedAccounts = new(StringComparer.OrdinalIgnoreCase) { "morda", "admin" };
 
     public Task DeleteAccount(string username)
@@ -452,13 +452,13 @@ public class BattleHub : Hub
     {
         var squadId = _accounts.Find(session.Username)?.SquadId;
         if (string.IsNullOrEmpty(squadId))
-            throw new HubException("Your account isn't assigned to a squad yet — ask your admin.");
+            throw new HubException("Your account isn't assigned to a squad yet, ask your admin.");
         return squadId;
     }
 
     private void RequireNotRateLimited()
     {
         if (!_rateLimiter.Allow(Context.ConnectionId))
-            throw new HubException("You're sending actions too fast — slow down a bit.");
+            throw new HubException("You're sending actions too fast, slow down a bit.");
     }
 }

@@ -138,13 +138,13 @@ public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
 
 // Roster 
 
-// Резерв 
+// Reserves
 public static class RosterConstants
 {
     public const string ReserveSquadId = "RESERVE";
 }
 
-// Роль игрока
+// Player role
 public record SquadMemberDto(
     string Nickname,
     MemberRole Role,
@@ -164,7 +164,7 @@ public record UpdateRosterDto(
     List<SquadRosterDto> Squads
 );
 
-// Запоминание роли между сборками ростера 
+// Remembering role assignments across roster builds
 
 public record MemberPresetDto(
     string Nickname,
@@ -172,7 +172,7 @@ public record MemberPresetDto(
     BulwarkPosition Bulwark
 );
 
-// Discord webhooks / каналы
+// Discord webhooks
 
 public record DiscordChannelDto(string Id, string Name, string WebhookUrl);
 public record DiscordChannelSummaryDto(string Id, string Name);
@@ -180,10 +180,10 @@ public record UpsertDiscordChannelDto(string? Id, string Name, string WebhookUrl
 public record SendDiscordMessageDto(string ChannelId, string Message, List<string> PingNicknames);
 public record SendDiscordMessageResultDto(bool Success, string? Message, int RealPings, int FallbackPings);
 
-// Автогенерация сообщения из текущего ростера
+// Auto-generated message from the current roster
 public record SendRosterMessageDto(string ChannelId, List<string>? SquadIds);
 
-// Кастомные эмодзи 
+// Custom emoji
 // ♜↑  ♜  ♜↓
 public record RoleEmojiEntryDto(MemberRole Role, string? Emoji);
 public record TagEmojiEntryDto(MemberTag Tag, string? Emoji);
