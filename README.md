@@ -2,7 +2,7 @@
 
 # ⚔️ GvG Tactical Network (Tacnet)
 
-**Инструмент тактической координации для GvG-боёв в MMO-гильдиях**
+**A tactical coordination tool for GvG battles in MMO guilds**
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![SignalR](https://img.shields.io/badge/SignalR-realtime-2f6fb2)](https://learn.microsoft.com/aspnet/core/signalr)
@@ -14,136 +14,136 @@
 
 ---
 
-## 📋 Оглавление
+## 📋 Contents
 
-- [Зачем это нужно](#-зачем-это-нужно)
-- [Как это работает](#-как-это-работает)
-- [Роли](#-роли)
-- [Запуск](#-запуск)
-- [Архитектура](#-архитектура)
-- [Что уже сделано](#-что-уже-сделано)
+- [Why this exists](#-why-this-exists)
+- [How it works](#-how-it-works)
+- [Roles](#-roles)
+- [Running it](#-running-it)
+- [Architecture](#-architecture)
+- [What's done so far](#-whats-done-so-far)
 - [Roadmap](#-roadmap)
 - [FAQ](#-faq)
 
 ---
 
-## 🎯 Зачем это нужно
+## 🎯 Why this exists
 
-В GvG-матчах гильдия коммуницирует в войс-чате дискорда, но реально в нём говорит от силы 3-4 человека. Причины могут быть разные - сложно говорить на английском вслух под стрессом, стеснение или шум на заднем фоне
+In GvG matches the guild coordinates over Discord voice, but in practice only 3-4 people actually talk. The reasons vary: it's hard to speak English out loud under stress, some people are shy about it, or there's just background noise on their end.
 
-Гипотеза Tacnet простая. Если убрать необходимость говорить и печатать текст, заменив это парой кликов, молчавшие раньше игроки начнут делиться информацией и по возможности проявлять инициативу
+Tacnet's hypothesis is simple. If you remove the need to talk or type, and replace it with a couple of clicks, players who used to stay quiet will start sharing information and, where it makes sense, taking initiative.
 
-## ⚙️ Как это работает
+## ⚙️ How it works
 
 ```
-Игрок жмёт кнопку → SignalR Hub → рассылка всем клиентам → панель командира /  лидеров команд
+Player clicks a button → SignalR Hub → broadcast to all clients → commander panel / squad leaders
 ```
 
-- **Player** видит текущий приказ своего отряда и жмёт кнопки репортов (роль врага, SOS, статус)
-- **Observer** (лидеры отрядов) видит ленту событий по своим людям
-- **Dashboard** (главный коммандер) видит общую ленту по гильдии и рассылает приказы
-- **Admin** управляет ростером (T1–T6, роли Defense / Attack / Flex), создает аккаунты игрокам
+- **Player** sees their squad's current order and clicks report buttons (enemy role, SOS, status)
+- **Observer** (squad leaders) sees the event feed for their own people
+- **Dashboard** (main commander) sees the full guild-wide feed and sends out orders
+- **Admin** manages the roster (T1-T6, Defense / Attack / Flex roles) and creates player accounts
 
 
-## 👥 Роли
+## 👥 Roles
 
-| Роль | Что видит | Что может |
+| Role | Sees | Can do |
 |---|---|---|
-| `Player` | Приказ своего отряда | подать сигнал о помощи |
-| `Leader` | Наблюдатель за своим отрядом | Смотреть ленту событий отряда, отдавать приказы своим отрядам |
-| `Commander` | Общая лента по гильдии | (макро и микроменеджмент осуществляется вербально) |
-| `Admin` | Всё | Управлять ростером и аккаунтами |
+| `Player` | Their squad's order | Send an SOS |
+| `Leader` | Observer view of their squad | Watch their squad's event feed, issue orders to their squads |
+| `Commander` | Guild-wide feed | (macro and micro management happens verbally) |
+| `Admin` | Everything | Manage the roster and accounts |
 
-Структура команд: T1–T6, по 5 человек в каждой. Командам явно назначена роль Defense / Attack / Flex
+Squad structure: T1-T6, 5 people each. Squads are explicitly assigned a Defense / Attack / Flex role.
 
-## 🚀 Запуск
+## 🚀 Running it
 
 <details>
-<summary><b>Локально</b></summary>
+<summary><b>Locally</b></summary>
 
 ```bash
 cd tactical-network
 dotnet run
 ```
 
-Приложение поднимется на `https://localhost:5001` (порт смотрите в выводе консоли). Откройте:
+The app comes up on `https://localhost:5001` (check the console output for the actual port). Open:
 
-- `/index.html` - вход
-- `/menu.html` - роутинг по роли после логина
-- `/player.html` - панель игрока
-- `/observer.html` - панель наблюдателя 
-- `/dashboard.html` - живая лента для коммандера
-- `/admin.html` - админ-панель 
+- `/index.html` - login
+- `/menu.html` - routes you to the right page based on your role
+- `/player.html` - player panel
+- `/observer.html` - observer panel
+- `/dashboard.html` - live feed for the commander
+- `/admin.html` - admin panel
 
 </details>
 
 <details>
-<summary><b>Доступ снаружи сети </b></summary>
+<summary><b>Access from outside the network</b></summary>
 
-Локальный сервер недоступен снаружи напрямую, поэтому на время теста нужно прокинуть порт через туннель:
+The local server isn't reachable from outside directly, so for testing you need to forward the port through a tunnel:
 
 ```bash
 ngrok http https://localhost:5001
-# или
+# or
 cloudflared tunnel --url https://localhost:5001
 ```
 
 </details>
 
 <details>
-<summary><b>Первый вход / сид-аккаунт</b></summary>
+<summary><b>First login / seed account</b></summary>
 
-При первом запуске, если `accounts.json` пуст, создаётся аккаунт Admin с логином и паролем из `appsettings.json` (`AdminSeedLogin` / `AdminSeedPassword`, по умолчанию `admin` / `changeme`). Смените пароль сразу после первого входа.
+On first run, if `accounts.json` is empty, an Admin account gets created with the login and password from `appsettings.json` (`AdminSeedLogin` / `AdminSeedPassword`, `admin` / `changeme` by default). Change the password right after your first login.
 
 </details>
 
 
-## 🏗️ Архитектура
+## 🏗️ Architecture
 
 - ASP.NET Core 8, SignalR hub (`/battleHub`)
-- Аутентификация: логин/пароль, токен-сессии, роль и `SquadId` привязаны к сессии на сервере. Раньше при общем админ-ключе клиент мог подделать имя или отряд, теперь физически не может
-- Rate limiting: до 5 попыток логина за 30 сек с одного IP и до 5 действий (репорт/приказ/SOS) за 3 сек с одного подключения
-- Enum'ы гоняются между C# и JS как строки (`JsonStringEnumConverter`) вместо чисел. Без этого фронт ломался на сравнении ролей со строками
-- Персистентность: ростер лежит в `roster.json`, аккаунты в `accounts.json`. Само состояние боя хранится в памяти и не переживает рестарт сервера, это осознанный компромисс для POC
-- UI-приоритет
+- Auth: username/password, session tokens, role and `SquadId` are tied to the session on the server. There used to be a shared admin key that let a client fake their name or squad, that's no longer possible.
+- Rate limiting: up to 5 login attempts per 30 sec from one IP, and up to 5 actions (report/order/SOS) per 3 sec from one connection
+- Enums travel between C# and JS as strings (`JsonStringEnumConverter`) instead of numbers. Without that the frontend broke when comparing roles against strings.
+- Persistence: the roster lives in `roster.json`, accounts in `accounts.json`. Battle state itself is kept in memory and doesn't survive a server restart, that's a deliberate tradeoff for a POC.
+- UI is the priority here
 
-## ✅ Что уже сделано
+## ✅ What's done so far
 
-- [x] Phase 0 POC: один проект, SignalR broadcast всем клиентам
-- [x] Четыре роли и разделение доступа (Player / Leader / Commander / Admin)
-- [x] Клик-интерфейс игрока (роль врага, SOS, критичность)
-- [x] Ролевая аутентификация: логин, редирект на нужную панель
-- [x] Observer только для лидеров, Dashboard только для коммандера
-- [x] Админ-панель: bulk-вставка имён и dropdown-назначение отряда
-- [x] Rate limiting на логин и на действия в хабе
-- [x] Fix: enum'ы как строки в SignalR-протоколе
+- [x] Phase 0 POC: single project, SignalR broadcast to all clients
+- [x] Four roles with access separation (Player / Leader / Commander / Admin)
+- [x] Click interface for players (enemy role, SOS, severity)
+- [x] Role-based auth: login, redirect to the right panel
+- [x] Observer restricted to leaders, Dashboard restricted to the commander
+- [x] Admin panel: bulk name paste and dropdown squad assignment
+- [x] Rate limiting on login and on hub actions
+- [x] Fix: enums as strings in the SignalR protocol
 
 ## 🗺️ Roadmap
 
-- **Phase 1**: история боя, экспорт лога, улучшенная лента событий
-- **Phase 2**: статистика по игрокам и отрядам между боями
-- **Later**: полный переход интерфейса на Blazor
+- **Phase 1**: battle history, log export, better event feed
+- **Phase 2**: player and squad stats across battles
+- **Later**: move the whole UI over to Blazor
 
 ## ❓ FAQ
 
 <details>
-<summary>Почему не Redis / микросервисы / event sourcing фреймворк?</summary>
+<summary>Why not Redis / microservices / an event sourcing framework?</summary>
 
-Потому что масштаб задачи этого не требует: один бой, десятки участников, один процесс. Append-only лог `BattleEvent` в памяти уже даёт нужную историю и проекции. Усложнение архитектуры здесь дало бы только лишние точки отказа.
-
-</details>
-
-<details>
-<summary>Почему клики, а не голосовой чат?</summary>
-
-Войс в гильдии уже есть, проблема в том, что им реально пользуется меньшинство. Клик-интерфейс не заменяет войс, а даёт альтернативный канал с более низким порогом входа для тех, кому сложно говорить вслух на английском под стрессом боя.
+Because the scale of this doesn't call for it: one battle, a few dozen participants, one process. An in-memory append-only `BattleEvent` log already gives us the history and projections we need. Adding architectural complexity here would just add more points of failure.
 
 </details>
 
 <details>
-<summary>Данные боя переживают перезапуск сервера?</summary>
+<summary>Why clicks instead of voice chat?</summary>
 
-Нет, состояние боя хранится в памяти и намеренно не персистится (POC). Персистентны только ростер (`roster.json`) и аккаунты (`accounts.json`).
+The guild already has voice, the problem is that only a minority actually use it. The click interface isn't meant to replace voice, it's an alternative channel with a lower barrier to entry for people who find it hard to speak English out loud under the stress of a fight.
+
+</details>
+
+<details>
+<summary>Does battle data survive a server restart?</summary>
+
+No, battle state is kept in memory and intentionally isn't persisted (POC). Only the roster (`roster.json`) and accounts (`accounts.json`) are persistent.
 
 </details>
 
