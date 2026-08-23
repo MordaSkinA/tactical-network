@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GvG - Replay</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+<script src="/js/auth.js"></script>
+<style>
+  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 960px; margin: 0 auto; }
+  h2 { margin-bottom: 2px; }
+  .menu-nav-btn { font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer; text-decoration: none; margin-right: 8px; }
+  #layout { display: flex; gap: 20px; margin-top: 18px; align-items: flex-start; }
+  #file-list { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; max-height: 80vh; overflow-y: auto; }
+  .file-btn {
+    text-align: left; background:#161616; border:1px solid #2a2a2a; border-radius:6px;
+    padding: 10px 12px; color:#ccc; font-size: 13px; cursor: pointer;
+  }
+  .file-btn:hover { background:#1e1e1e; }
+  .file-btn.active { border-color:#3d8ee8; color:#fff; }
+  .hint { color:#888; font-size:13px; padding: 8px 0; }
+  #replay-panel { flex: 1; min-width: 0; }
+  #replay-title { font-size: 14px; color:#aaa; margin-bottom: 10px; }
+  .feed-item {
+    padding: 12px 14px; margin-bottom: 8px; border-radius: 8px;
+    border-left: 4px solid #555; background:#1a1a1a;
+  }
+  .Critical { border-left-color:#e33; }
+  .Warning  { border-left-color:#e8a33d; }
+  .Info     { border-left-color:#3d8ee8; }
+  .order-item { border-left-color:#8a4de8; }
+  .cat-critical    { border-left-color:#6e1c1c; }
+  .cat-attack      { border-left-color:#c1622b; }
+  .cat-attack-key  { border-left-color:#e8790f; }
+  .cat-defend      { border-left-color:#4c7a4f; }
+  .cat-hold        { border-left-color:#2e5230; }
+  .cat-protect     { border-left-color:#4fae82; }
+  .cat-tactic      { border-left-color:#2f6fb2; }
+  .cat-fallback    { border-left-color:#4a90c4; }
+  .cat-jungle      { border-left-color:#1e3a5f; }
+  .cat-neutral     { border-left-color:#6b7280; }
+  .title { font-weight: 600; font-size: 15px; }
+  .meta { color:#888; font-size:12px; margin-top: 3px; }
+</style>
+</head>
+<body>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+    <h2 style="margin: 0;">Replay</h2>
+    <a class="menu-nav-btn" href="/dashboard.html">Dashboard</a>
+    <a class="menu-nav-btn" href="/menu.html">Menu</a>
+    <button onclick="logout()" style="font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Log out</button>
+  </div>
+  <div id="status" style="color:#666; font-size:12px;">connecting...</div>
+
+  <div id="layout">
+    <div id="file-list"><div class="hint">Loading...</div></div>
+    <div id="replay-panel">
+      <div id="replay-title">Select a battle on the left</div>
+      <div id="feed"></div>
+    </div>
+  </div>
+
+<script>
+  const currentUser = requireAuth(['Commander', 'Admin']);
+
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
+    .withAutomaticReconnect()
+    .build();
+
+  const fileListEl = document.getElementById('file-list');
+  const feedEl = document.getElementById('feed');
+  const titleEl = document.getElementById('replay-title');
+
+  const ORDER_CATEGORIES = {
+    SquadWiped: 'critical',
+    PushBot: 'attack', PushMid: 'attack', PushTop: 'attack', AttackGoose: 'attack',
+    KillBoss: 'attack-key', Bomb: 'attack-key',
+    DefendBot: 'defend', DefendMid: 'defend', DefendTop: 'defend', DefendGoose: 'defend', DefendTree: 'defend',
+    Hold: 'hold',
+    ProtectHealer: 'protect',
+    Rotate: 'tactic',
+    FallBack: 'fallback',
+    BotJungle: 'jungle', TopJungle: 'jungle'
+  };
+  function orderClass(type) {
+    const category = ORDER_CATEGORIES[type];
+    return category ? 'cat-' + category : 'order-item';
+  }
+  function alertClass(evt) {
+    return evt.enemyRole != null ? 'Critical' : evt.severity;
+  }
+  const STATUS_CLASSES = {
+    SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
+    Retreating: 'cat-fallback', Autonomous: 'cat-neutral'
+  };
+  function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
+
+  function setStatus(text) {
+    document.getElementById('status').textContent = text;
+  }
+
+  connection.start()
+    .then(() => { setStatus("connected"); loadFileList(); })
+    .catch(err => setStatus("connection failed: " + err));
+
+  async function loadFileList() {
+    try {
+      const files = await connection.invoke("ListLogFiles");
+      fileListEl.innerHTML = '';
+      if (!files.length) {
+        fileListEl.innerHTML = '<div class="hint">No saved battles yet.</div>';
+        return;
+      }
+      files.forEach(f => {
+        const btn = document.createElement('button');
+        btn.className = 'file-btn';
+        btn.textContent = formatFileLabel(f.savedAt);
+        btn.onclick = () => selectFile(f.fileName, btn);
+        fileListEl.appendChild(btn);
+      });
+    } catch (err) {
+      fileListEl.innerHTML = '<div class="hint">Error: ' + err + '</div>';
+    }
+  }
+
+  function formatFileLabel(savedAt) {
+    const d = new Date(savedAt);
+    return isNaN(d) ? savedAt : d.toLocaleString();
+  }
+
+  async function selectFile(fileName, btnEl) {
+    document.querySelectorAll('.file-btn').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+    titleEl.textContent = fileName;
+    feedEl.innerHTML = '<div class="hint">Loading...</div>';
+
+    try {
+      const raw = await connection.invoke("GetLogFile", fileName);
+      const items = JSON.parse(raw);
+      feedEl.innerHTML = '';
+      if (!items.length) {
+        feedEl.innerHTML = '<div class="hint">Empty log.</div>';
+        return;
+      }
+      items.forEach(i => {
+        if ('eventId' in i) addItem(alertClass(i), `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+        else if ('orderId' in i) addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+        else addItem(statusClass(i.type), `STATUS ${i.type} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+      });
+    } catch (err) {
+      feedEl.innerHTML = '<div class="hint">Error: ' + err + '</div>';
+    }
+  }
+
+  function addItem(cls, title, who, ts) {
+    const div = document.createElement('div');
+    div.className = 'feed-item ' + cls;
+
+    const titleEl2 = document.createElement('div');
+    titleEl2.className = 'title';
+    titleEl2.textContent = title;
+
+    const metaEl = document.createElement('div');
+    metaEl.className = 'meta';
+    metaEl.textContent = `${who} · ${new Date(ts).toLocaleTimeString()}`;
+
+    div.append(titleEl2, metaEl);
+    feedEl.appendChild(div);
+  }
+</script>
+</body>
+</html>

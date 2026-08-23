@@ -87,14 +87,27 @@ public class BattleHub : Hub
     public async Task IssueOrder(IssueOrderDto dto)
     {
         var session = RequireRole(UserRole.Commander, UserRole.Admin);
-        if (string.Equals(dto.TargetSquadId, RosterConstants.ReserveSquadId, StringComparison.OrdinalIgnoreCase))
-            throw new HubException("Can't issue combat orders to Reserves.");
-        if (!_state.GetRoster().Any(s => string.Equals(s.SquadId, dto.TargetSquadId, StringComparison.OrdinalIgnoreCase)))
-            throw new HubException("Unknown squad.");
+
+        var targetSquadIds = (dto.TargetSquadIds ?? new()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (targetSquadIds.Count == 0)
+            throw new HubException("Select at least one squad.");
+
+        var roster = _state.GetRoster();
+        foreach (var squadId in targetSquadIds)
+        {
+            if (string.Equals(squadId, RosterConstants.ReserveSquadId, StringComparison.OrdinalIgnoreCase))
+                throw new HubException("Can't issue combat orders to Reserves.");
+            if (!roster.Any(s => string.Equals(s.SquadId, squadId, StringComparison.OrdinalIgnoreCase)))
+                throw new HubException($"Unknown squad: {squadId}.");
+        }
         RequireNotRateLimited();
 
-        var order = _state.AddOrder(dto, session.Username, dto.TargetSquadId);
-        await Clients.Groups(SquadGroup(dto.TargetSquadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
+        // One order record per target squad 
+        foreach (var squadId in targetSquadIds)
+        {
+            var order = _state.AddOrder(dto, session.Username, squadId);
+            await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
+        }
     }
 
     public async Task ReportSquadStatus(ReportSquadStatusDto dto)
@@ -126,7 +139,7 @@ public class BattleHub : Hub
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
     }
 
-    // Remembered role/bulwark by nickname
+    // Remembered role by nickname
     public Task<Dictionary<string, MemberPresetDto>> GetMemberPresets()
     {
         RequireRole(UserRole.Admin);

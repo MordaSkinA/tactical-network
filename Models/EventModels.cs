@@ -52,7 +52,7 @@ public enum SquadStatusType
     Regroup,
     NeedHelp,
     Retreating,
-    StandingBy
+    Autonomous
 }
 
 public enum MemberRole
@@ -101,7 +101,7 @@ public record LogoutDto(string Token);
 
 public record ReportEventDto(EnemyRole? EnemyRole, string? Note);
 
-public record IssueOrderDto(OrderType Type, string TargetSquadId);
+public record IssueOrderDto(OrderType Type, List<string> TargetSquadIds);
 public record ReportSquadStatusDto(SquadStatusType Type);
 
 // Server  Client 

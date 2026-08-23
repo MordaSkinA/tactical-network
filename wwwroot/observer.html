@@ -127,7 +127,12 @@
             background: #1e3a5f;
         }
 
-        #order-banner {
+        /* Autonomous / no active status - neutral grey */
+        .neutral {
+            background: #565f6b;
+        }
+
+        #order-banner, #status-banner {
             background: #1a1a1a;
             border-radius: 12px;
             padding: 18px;
@@ -137,29 +142,30 @@
             border: 2px solid #333;
         }
 
-        #order-banner .label {
+        #order-banner .label, #status-banner .label {
             font-size: 12px;
             color: #888;
             text-transform: uppercase;
             letter-spacing: 0.06em;
         }
 
-        #order-banner .value {
+        #order-banner .value, #status-banner .value {
             font-size: 26px;
             font-weight: 800;
             margin-top: 6px;
         }
 
-        #order-banner.has-order { border-color: #2f6fb2; }
-        #order-banner.cat-critical    { border-color: #6e1c1c; background: #241212; }
-        #order-banner.cat-attack      { border-color: #c1622b; background: #241a10; }
-        #order-banner.cat-attack-key  { border-color: #e8790f; background: #26190a; }
-        #order-banner.cat-defend      { border-color: #4c7a4f; background: #142217; }
-        #order-banner.cat-hold        { border-color: #2e5230; background: #101d12; }
-        #order-banner.cat-protect     { border-color: #4fae82; background: #10241a; }
-        #order-banner.cat-tactic      { border-color: #2f6fb2; background: #101a26; }
-        #order-banner.cat-fallback    { border-color: #4a90c4; background: #0f1c24; }
-        #order-banner.cat-jungle      { border-color: #1e3a5f; background: #0c1622; }
+        #order-banner.has-order, #status-banner.has-order { border-color: #2f6fb2; }
+        #order-banner.cat-critical, #status-banner.cat-critical    { border-color: #6e1c1c; background: #241212; }
+        #order-banner.cat-attack, #status-banner.cat-attack      { border-color: #c1622b; background: #241a10; }
+        #order-banner.cat-attack-key, #status-banner.cat-attack-key  { border-color: #e8790f; background: #26190a; }
+        #order-banner.cat-defend, #status-banner.cat-defend      { border-color: #4c7a4f; background: #142217; }
+        #order-banner.cat-hold, #status-banner.cat-hold        { border-color: #2e5230; background: #101d12; }
+        #order-banner.cat-protect, #status-banner.cat-protect     { border-color: #4fae82; background: #10241a; }
+        #order-banner.cat-tactic, #status-banner.cat-tactic      { border-color: #2f6fb2; background: #101a26; }
+        #order-banner.cat-fallback, #status-banner.cat-fallback    { border-color: #4a90c4; background: #0f1c24; }
+        #order-banner.cat-jungle, #status-banner.cat-jungle      { border-color: #1e3a5f; background: #0c1622; }
+        #order-banner.cat-neutral, #status-banner.cat-neutral     { border-color: #565f6b; background: #17191c; }
 
         #spawn-toast {
             position: fixed;
@@ -223,6 +229,7 @@
         .cat-tactic     { border-left-color: #2f6fb2; }
         .cat-fallback   { border-left-color: #4a90c4; }
         .cat-jungle     { border-left-color: #1e3a5f; }
+        .cat-neutral    { border-left-color: #6b7280; }
 
         #status {
             font-size: 12px;
@@ -271,13 +278,18 @@
     </div>
 
     <h3>Squad status</h3>
+    <div id="status-banner">
+        <div class="label">Current status</div>
+        <div class="value" id="status-value">-</div>
+    </div>
     <div class="row">
         <button class="action-btn critical" onclick="reportStatus('SquadWiped')">SQUAD WIPED</button>
         <button class="action-btn defend" onclick="reportStatus('Regroup')">REGROUP</button>
         <button class="action-btn protect" onclick="reportStatus('NeedHelp')">NEED HELP</button>
         <button class="action-btn fallback" onclick="reportStatus('Retreating')">RETREATING</button>
-        <button class="action-btn attack-key" onclick="reportStatus('StandingBy')">STANDING BY</button>
+        <button class="action-btn neutral" onclick="reportStatus('Autonomous')">AUTONOMOUS</button>
     </div>
+    <div class="hint" style="margin-top: 8px; margin-bottom: 0;">If you don't update this, it automatically switches to Autonomous after 25 seconds.</div>
 
     <div id="spawn-toast"></div>
 
@@ -316,9 +328,37 @@
         };
         const STATUS_CLASSES = {
             SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
-            Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
+            Retreating: 'cat-fallback', Autonomous: 'cat-neutral'
         };
-        const ALL_CATEGORY_CLASSES = ['cat-critical', 'cat-attack', 'cat-attack-key', 'cat-defend', 'cat-hold', 'cat-protect', 'cat-tactic', 'cat-fallback', 'cat-jungle'];
+        const ALL_CATEGORY_CLASSES = ['cat-critical', 'cat-attack', 'cat-attack-key', 'cat-defend', 'cat-hold', 'cat-protect', 'cat-tactic', 'cat-fallback', 'cat-jungle', 'cat-neutral'];
+
+        // Status revert
+        const STATUS_HOLD_MS = 25000;
+        let squadStatusTimer = null;
+
+        function setStatusBanner(type) {
+            const el = document.getElementById('status-value');
+            const banner = document.getElementById('status-banner');
+            banner.classList.remove(...ALL_CATEGORY_CLASSES);
+            if (!type) {
+                el.textContent = '-';
+                banner.classList.remove('has-order');
+                return;
+            }
+            el.textContent = formatLabel(type);
+            banner.classList.add('has-order');
+            banner.classList.add(STATUS_CLASSES[type] || 'cat-tactic');
+        }
+
+        function applyOwnStatus(type, timestampMs) {
+            if (squadStatusTimer) { clearTimeout(squadStatusTimer); squadStatusTimer = null; }
+            setStatusBanner(type);
+            if (type === 'Autonomous') return;
+
+            const remaining = STATUS_HOLD_MS - (Date.now() - timestampMs);
+            if (remaining <= 0) { setStatusBanner('Autonomous'); return; }
+            squadStatusTimer = setTimeout(() => setStatusBanner('Autonomous'), remaining);
+        }
 
         function alertClass(evt) {
             return evt.enemyRole != null ? 'Critical' : evt.severity;
@@ -379,6 +419,7 @@
             log(`STATUS ${status.type} → ${status.targetSquadId} (by ${status.reporterName})`);
             if (status.targetSquadId !== currentUser.squadId) return;
             addAlert(STATUS_CLASSES[status.type] || 'Warning', `STATUS: ${formatLabel(status.type)}`, status.timestamp);
+            applyOwnStatus(status.type, new Date(status.timestamp).getTime());
         });
 
         connection.on("Snapshot", items => items.forEach(applySnapshotItem));
@@ -387,12 +428,17 @@
             if (i.targetSquadId !== currentUser.squadId) return;
             if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
             else if ('orderId' in i) setOrder(i.type);
-            else addAlert(STATUS_CLASSES[i.type] || 'Warning', `STATUS: ${formatLabel(i.type)}`, i.timestamp);
+            else {
+                addAlert(STATUS_CLASSES[i.type] || 'Warning', `STATUS: ${formatLabel(i.type)}`, i.timestamp);
+                applyOwnStatus(i.type, new Date(i.timestamp).getTime());
+            }
         }
 
         connection.on("HistoryReset", () => {
             document.getElementById('alerts').innerHTML = '';
             setOrder(null);
+            if (squadStatusTimer) { clearTimeout(squadStatusTimer); squadStatusTimer = null; }
+            setStatusBanner(null);
         });
 
         connection.on("RosterUpdated", roster => updateSquadFromRoster(roster));
