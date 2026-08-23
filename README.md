@@ -14,7 +14,7 @@
 
 ---
 
-## 📋 Contents
+## 📝 Contents
 
 - [Why this exists](#-why-this-exists)
 - [How it works](#-how-it-works)
@@ -27,7 +27,7 @@
 
 ---
 
-## 🎯 Why this exists
+## 💅 Why this was made
 
 In GvG matches the guild coordinates over Discord voice, but in practice only 3-4 people actually talk. The reasons vary: it's hard to speak English out loud under stress, some people are shy about it, or there's just background noise on their end.
 
@@ -36,7 +36,7 @@ Tacnet's hypothesis is simple. If you remove the need to talk or type, and repla
 ## ⚙️ How it works
 
 ```
-Player clicks a button → SignalR Hub → broadcast to all clients → commander panel / squad leaders
+Player clicks a button => SignalR Hub => broadcast to all clients => commander panel / squad leaders
 ```
 
 - **Player** sees their squad's current order and clicks report buttons (enemy role, SOS, status)
@@ -45,7 +45,7 @@ Player clicks a button → SignalR Hub → broadcast to all clients → commande
 - **Admin** manages the roster (T1-T6, Defense / Attack / Flex roles) and creates player accounts
 
 
-## 👥 Roles
+## 👯 Roles
 
 | Role | Sees | Can do |
 |---|---|---|
@@ -56,7 +56,7 @@ Player clicks a button → SignalR Hub → broadcast to all clients → commande
 
 Squad structure: T1-T6, 5 people each. Squads are explicitly assigned a Defense / Attack / Flex role.
 
-## 🚀 Running it
+## 🏃 Running it 🏃
 
 <details>
 <summary><b>Locally</b></summary>
@@ -98,7 +98,7 @@ On first run, if `accounts.json` is empty, an Admin account gets created with th
 </details>
 
 
-## 🏗️ Architecture
+## 🏩 Architecture
 
 - ASP.NET Core 8, SignalR hub (`/battleHub`)
 - Auth: username/password, session tokens, role and `SquadId` are tied to the session on the server. There used to be a shared admin key that let a client fake their name or squad, that's no longer possible.
@@ -118,7 +118,7 @@ On first run, if `accounts.json` is empty, an Admin account gets created with th
 - [x] Rate limiting on login and on hub actions
 - [x] Fix: enums as strings in the SignalR protocol
 
-## 🗺️ Roadmap
+## 🚚 Roadmap
 
 - **Phase 1**: battle history, log export, better event feed
 - **Phase 2**: player and squad stats across battles
