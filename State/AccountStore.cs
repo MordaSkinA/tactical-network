@@ -34,7 +34,7 @@ public class FileAccountStore : IAccountStore
         _filePath = Path.Combine(env.ContentRootPath, "accounts.json");
         _accounts = Load();
 
-        // на один раз, данные в appsettings.json
+        // one-time seeding, values come from appsettings.json
         if (_accounts.Count == 0)
         {
             var seedLogin = config["AdminSeedLogin"] ?? "admin";

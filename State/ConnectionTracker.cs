@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 
 namespace GvGPoc.State;
 
-// Следит за связью между пользователями и их соединениями SignalR
+// Tracks the link between users and their SignalR connections
 public interface IConnectionTracker
 {
     void Add(string username, string connectionId);

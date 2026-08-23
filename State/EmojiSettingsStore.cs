@@ -13,7 +13,7 @@ public interface IEmojiSettingsStore
     string TagEmoji(MemberTag tag);
 }
 
-// Кастомные эмодзи сервера (Discord) для ролей и тегов команды, задаются в админке и сохраняются на диске
+// Custom server emoji 
 public class FileEmojiSettingsStore : IEmojiSettingsStore
 {
     private readonly string _filePath;

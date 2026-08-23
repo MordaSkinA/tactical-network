@@ -13,8 +13,8 @@ function requireAuth(allowedRoles) {
     if (!allowedRoles.includes(session.role)) {
         document.body.innerHTML =
             '<div style="padding:40px;text-align:center;font-family:sans-serif;color:#eee;background:#111;min-height:100vh;">' +
-            'У вашей роли (' + session.role + ') нет доступа к этой странице.<br><br>' +
-            '<a href="/index.html" style="color:#6cf;">Назад к логину</a></div>';
+            'Your role (' + session.role + ') does not have access to this page.<br><br>' +
+            '<a href="/index.html" style="color:#6cf;">Back to login</a></div>';
         throw new Error('access denied for role ' + session.role);
     }
     return session;

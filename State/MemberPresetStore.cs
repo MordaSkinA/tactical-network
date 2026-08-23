@@ -13,7 +13,7 @@ public interface IMemberPresetStore
     void SaveMany(IEnumerable<SquadMemberDto> members);
 }
 
-// Запоминает роль/булварк по нику, чтобы не заполнять заново при каждой сборке ростера (теги теперь командные)
+// Remember role by nickname
 public class FileMemberPresetStore : IMemberPresetStore
 {
     private readonly string _filePath;

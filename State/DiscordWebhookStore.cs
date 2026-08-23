@@ -12,7 +12,7 @@ public interface IDiscordWebhookStore
     void Delete(string id);
 }
 
-// Каналы Discord, куда можно слать сообщения по webhook-ссылке (без бота)
+
 public class FileDiscordWebhookStore : IDiscordWebhookStore
 {
     private readonly string _filePath;

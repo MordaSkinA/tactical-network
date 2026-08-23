@@ -43,7 +43,7 @@ static byte[] GetOrCreateSessionSigningKey(IConfiguration config, string content
 }
 
 var sessionSigningKey = GetOrCreateSessionSigningKey(builder.Configuration, builder.Environment.ContentRootPath);
-// Токен живёт 30 дней 
+// Token lasts 30 days
 var sessionTtlDays = builder.Configuration.GetValue<int?>("SessionTtlDays") ?? 30;
 builder.Services.AddSingleton(new SessionTokenOptions(sessionSigningKey, TimeSpan.FromDays(sessionTtlDays)));
 builder.Services.AddSingleton<ISessionStore, SignedSessionStore>();
@@ -78,14 +78,14 @@ static string DiscordResultPage(bool success, string message)
            "<script>setTimeout(() => location.href = '/menu.html', 2000);</script></body></html>";
 }
 
-// Войти через Discord
+// Log in via Discord
 static string DiscordLoginSuccessPage(string token, string username, UserRole role, string? squadId)
 {
     var payload = JsonSerializer.Serialize(new { token, username, role = role.ToString(), squadId });
     var safeLiteral = payload.Replace("</", "<\\/"); 
     return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Discord login</title>" +
            "<style>body{background:#111;color:#eee;font-family:system-ui,sans-serif;padding:60px 20px;text-align:center;}</style></head><body>" +
-           "<p style=\"color:#4caf50;\">Вход выполнен, переходим…</p>" +
+           "<p style=\"color:#4caf50;\">Logged in, redirecting...</p>" +
            "<script>localStorage.setItem('gvg_session', JSON.stringify(" + safeLiteral + ")); location.href = '/menu.html';</script>" +
            "</body></html>";
 }
@@ -159,10 +159,10 @@ app.MapPost("/api/auth/login", (
 
         var account = accounts.Find(req.Username);
         if (account is null || !accounts.VerifyPassword(account, req.Password))
-            return Results.Json(new AuthResponseDto(false, "Неверный логин или пароль", null, null, null, null), statusCode: 401);
+            return Results.Json(new AuthResponseDto(false, "Invalid username or password", null, null, null, null), statusCode: 401);
 
         var token = sessions.CreateSession(new SessionInfo(account.Username, account.Role, account.SquadId));
-        return Results.Json(new AuthResponseDto(true, "Успешный вход", token, account.Username, account.Role, account.SquadId));
+        return Results.Json(new AuthResponseDto(true, "Logged in successfully", token, account.Username, account.Role, account.SquadId));
     });
 
 app.MapPost("/api/auth/logout", (LogoutDto req, ISessionStore sessions) => {
@@ -173,7 +173,7 @@ app.MapPost("/api/auth/logout", (LogoutDto req, ISessionStore sessions) => {
 app.MapGet("/api/auth/discord/config", (IConfiguration config) =>
     Results.Ok(new DiscordConfigDto(config["DiscordClientId"] ?? "", config["DiscordRedirectUri"] ?? "")));
 
-// войти через Discord (без пароля)
+// log in via Discord (no password)
 app.MapGet("/api/auth/discord/login-start", (ISessionStore sessions) => {
     var state = sessions.CreateSession(new SessionInfo("", UserRole.Player, null));
     return Results.Ok(new DiscordLoginStartDto(state));
@@ -189,25 +189,25 @@ app.MapGet("/api/auth/discord/callback", async (
     IPendingDiscordStore pending,
     IHttpClientFactory httpClientFactory) => {
         if (error is not null || string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
-            return Results.Content(DiscordResultPage(false, "Discord отменил авторизацию."), "text/html");
+            return Results.Content(DiscordResultPage(false, "Discord canceled the authorization."), "text/html");
 
         var session = sessions.Get(state);
         if (session is null)
-            return Results.Content(DiscordResultPage(false, "Сессия истекла — попробуйте снова."), "text/html");
+            return Results.Content(DiscordResultPage(false, "Session expired, please try again."), "text/html");
 
         var isLoginIntent = string.IsNullOrEmpty(session.Username);
 
         var exchanged = await ExchangeDiscordCode(code, config, httpClientFactory);
         if (exchanged is null)
-            return Results.Content(DiscordResultPage(false, "Не удалось обменяться данными с Discord — попробуйте снова."), "text/html");
+            return Results.Content(DiscordResultPage(false, "Couldn't exchange data with Discord, please try again."), "text/html");
 
         var (discordId, discordUsername, guildOk) = exchanged.Value;
         if (!guildOk)
-            return Results.Content(DiscordResultPage(false, "Этот Discord-аккаунт не состоит в сервере гильдии."), "text/html");
+            return Results.Content(DiscordResultPage(false, "This Discord account isn't a member of the guild server."), "text/html");
 
         if (isLoginIntent)
         {
-            // Войти через Discord
+            // Log in via Discord
             var existing = accounts.FindByDiscordId(discordId);
             if (existing is not null)
             {
@@ -215,61 +215,61 @@ app.MapGet("/api/auth/discord/callback", async (
                 return Results.Content(DiscordLoginSuccessPage(loginToken, existing.Username, existing.Role, existing.SquadId), "text/html");
             }
 
-            // Первый визит с Discord 
+            // First visit via Discord
             var pendingToken = pending.Create(discordId, discordUsername);
             return Results.Redirect(
                 "/discord-register.html?pendingToken=" + Uri.EscapeDataString(pendingToken) +
                 "&discordUsername=" + Uri.EscapeDataString(discordUsername));
         }
 
-        // Привязать Discord к уже существующему аккаунту
+        // Link Discord to an already existing account
         var existingLink = accounts.FindByDiscordId(discordId);
         if (existingLink is not null && !string.Equals(existingLink.Username, session.Username, StringComparison.OrdinalIgnoreCase))
-            return Results.Content(DiscordResultPage(false, "Этот Discord-аккаунт уже привязан к другому пользователю Tacnet."), "text/html");
+            return Results.Content(DiscordResultPage(false, "This Discord account is already linked to another Tacnet user."), "text/html");
 
         accounts.LinkDiscord(session.Username, discordId, discordUsername);
-        return Results.Content(DiscordResultPage(true, $"Discord привязан: {discordUsername}"), "text/html");
+        return Results.Content(DiscordResultPage(true, $"Discord linked: {discordUsername}"), "text/html");
     });
 
-// регистрация
+// registration
 app.MapPost("/api/auth/discord/register", (
     DiscordRegisterDto req,
     IPendingDiscordStore pending,
     IAccountStore accounts,
     ISessionStore sessions) => {
         if (string.IsNullOrWhiteSpace(req.PendingToken))
-            return Results.Json(new AuthResponseDto(false, "Сессия регистрации истекла — войдите через Discord заново.", null, null, null, null), statusCode: 400);
+            return Results.Json(new AuthResponseDto(false, "Registration session expired, log in via Discord again.", null, null, null, null), statusCode: 400);
 
         var pendingReg = pending.Get(req.PendingToken);
         if (pendingReg is null)
-            return Results.Json(new AuthResponseDto(false, "Сессия регистрации истекла — войдите через Discord заново.", null, null, null, null), statusCode: 400);
+            return Results.Json(new AuthResponseDto(false, "Registration session expired, log in via Discord again.", null, null, null, null), statusCode: 400);
 
-        // аккаунт для этого Discord уже появился.
+        // An account for this Discord ID already showed up.
         var already = accounts.FindByDiscordId(pendingReg.DiscordId);
         if (already is not null)
         {
             pending.Remove(req.PendingToken);
             var t = sessions.CreateSession(new SessionInfo(already.Username, already.Role, already.SquadId));
-            return Results.Json(new AuthResponseDto(true, "Вход выполнен", t, already.Username, already.Role, already.SquadId));
+            return Results.Json(new AuthResponseDto(true, "Logged in", t, already.Username, already.Role, already.SquadId));
         }
 
         var nickname = (req.Nickname ?? "").Trim();
         var validNick = nickname.Length is >= 2 and <= 24 &&
             nickname.All(c => char.IsLetterOrDigit(c) || c == '_' || c == '-');
         if (!validNick)
-            return Results.Json(new AuthResponseDto(false, "Ник: 2-24 символа, только буквы/цифры/_/-.", null, null, null, null), statusCode: 400);
+            return Results.Json(new AuthResponseDto(false, "Nickname: 2-24 characters, letters/digits/_/- only.", null, null, null, null), statusCode: 400);
 
         if (accounts.Find(nickname) is not null)
-            return Results.Json(new AuthResponseDto(false, "Такой ник уже занят в системе — выберите другой.", null, null, null, null), statusCode: 409);
+            return Results.Json(new AuthResponseDto(false, "That nickname is already taken, pick another one.", null, null, null, null), statusCode: 409);
 
-        // случайный пароль, чтобы можно было войти через Discord без пароля
+        // random password, so login via Discord without a password still works
         var randomPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
         accounts.Upsert(nickname, UserRole.Player, null, randomPassword);
         accounts.LinkDiscord(nickname, pendingReg.DiscordId, pendingReg.DiscordUsername);
         pending.Remove(req.PendingToken);
 
         var token = sessions.CreateSession(new SessionInfo(nickname, UserRole.Player, null));
-        return Results.Json(new AuthResponseDto(true, "Аккаунт создан", token, nickname, UserRole.Player, null));
+        return Results.Json(new AuthResponseDto(true, "Account created", token, nickname, UserRole.Player, null));
     });
 
 app.MapHub<BattleHub>("/battleHub");
