@@ -118,6 +118,39 @@
                 background: #0c1622;
             }
 
+        #spawn-toast {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 1000;
+            max-width: 440px;
+            width: calc(100% - 32px);
+            padding: 14px 18px;
+            border-radius: 10px;
+            border: 2px solid #7a5a1e;
+            background: #241c0f;
+            color: #f0d99a;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+            transition: transform 0.25s ease-out, opacity 0.25s ease-out, visibility 0.25s;
+        }
+
+            #spawn-toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+
+            #spawn-toast.kind-Boss {
+                border-color: #6e1c1c;
+                background: #241212;
+                color: #f0a0a0;
+            }
+
         #alerts {
             margin-bottom: 24px;
         }
@@ -174,6 +207,8 @@
     </div>
 
     <div class="user-info" id="user-info">Loading...</div>
+
+    <div id="spawn-toast"></div>
 
     <div id="order-banner">
         <div class="label">Current order</div>
@@ -238,6 +273,25 @@
         });
 
         connection.on("RosterUpdated", roster => updateSquadFromRoster(roster));
+
+        connection.on("SpawnReminder", showSpawnToast);
+
+        let spawnToastTimer = null;
+        const SPAWN_TOAST_TEXT = {
+            Jungle: 'ЛЕСНЫЕ КЕМПЫ СПАВНЯТСЯ',
+            Boss: 'БОСС СПАВНИТСЯ',
+            JungleAndBoss: 'ЛЕС И БОСС СПАВНЯТСЯ'
+        };
+
+        function showSpawnToast(reminder) {
+            const el = document.getElementById('spawn-toast');
+            el.textContent = SPAWN_TOAST_TEXT[reminder.kind] || 'СПАВН';
+            el.classList.remove('kind-Boss');
+            if (reminder.kind === 'Boss' || reminder.kind === 'JungleAndBoss') el.classList.add('kind-Boss');
+            el.classList.add('show');
+            if (spawnToastTimer) clearTimeout(spawnToastTimer);
+            spawnToastTimer = setTimeout(() => el.classList.remove('show'), 8000);
+        }
 
         function updateSquadFromRoster(roster) {
             if (!roster || !currentUser) return;

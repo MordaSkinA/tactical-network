@@ -135,6 +135,7 @@ public record SquadStatusPushDto(
 // Battle
 
 public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
+public record SpawnReminderDto(string Kind, int RemainingMinutes, DateTimeOffset FiredAt);
 
 // Roster 
 
