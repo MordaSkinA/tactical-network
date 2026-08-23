@@ -189,7 +189,10 @@ public class InMemoryBattleState : IBattleState
         var path = Path.Combine(_logsDirectory, safeName);
         if (!File.Exists(path)) return null;
 
-        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+
+        var raw = File.ReadAllText(path).Replace("\"StandingBy\"", "\"Autonomous\"");
+
+        using var doc = JsonDocument.Parse(raw);
         var items = new List<object>();
         foreach (var el in doc.RootElement.EnumerateArray())
         {

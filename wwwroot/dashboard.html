@@ -40,6 +40,7 @@
   .cat-tactic      { border-left-color:#2f6fb2; }
   .cat-fallback    { border-left-color:#4a90c4; }
   .cat-jungle      { border-left-color:#1e3a5f; }
+  .cat-neutral     { border-left-color:#6b7280; }
   .title { font-weight: 600; font-size: 15px; }
   .meta { color:#888; font-size:12px; margin-top: 3px; }
   #roster { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -84,8 +85,56 @@
   .order-btn.tactic     { background: #2f6fb2; }
   .order-btn.fallback   { background: #4a90c4; }
   .order-btn.jungle     { background: #1e3a5f; }
-  .squad-card { cursor: pointer; border: 2px solid transparent; }
-  .squad-card.targeted { border-color: #eee; }
+  .squad-card { cursor: pointer; border: 2px solid transparent; position: relative; overflow: hidden; }
+  .squad-card.targeted { border-color: #eee; box-shadow: 0 0 0 1px #eee inset; }
+
+  /* Multi-select */
+  #order-target-actions { display: flex; gap: 8px; margin: -4px 0 12px 0; }
+  .order-target-action {
+    font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #3a3a3a;
+    background: transparent; color: #999; cursor: pointer;
+  }
+  .order-target-action:hover { color: #eee; border-color: #666; }
+  .squad-chip { position: relative; }
+  .squad-chip .chip-check {
+    display: none; margin-right: 4px; font-weight: 900;
+  }
+  .squad-chip.selected .chip-check { display: inline; }
+
+
+  .squad-card { padding-right: 18px; }
+  .status-side {
+    position: absolute; top: 6px; right: 0; bottom: 6px; width: 6px; border-radius: 4px 0 0 4px;
+    background: linear-gradient(180deg, transparent 0%, var(--status-color, #444) 20%, var(--status-color, #444) 80%, transparent 100%);
+    opacity: 0; transition: opacity 0.4s ease;
+    box-shadow: -2px 0 10px -2px var(--status-color, transparent);
+  }
+  .status-side.active { opacity: 1; }
+  .status-label {
+    display: none; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--status-color, #aaa); margin-top: 8px;
+  }
+  .status-label.active { display: flex; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+    background: var(--status-color, #aaa); box-shadow: 0 0 6px var(--status-color, transparent);
+  }
+
+  /* Section separation */
+  .section-heading {
+    display: flex; align-items: center; gap: 10px;
+    margin: 22px 0 10px 0; font-size: 12px; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .section-heading:first-of-type { margin-top: 6px; }
+  .section-heading::after { content: ''; flex: 1; height: 1px; background: #2a2a2a; }
+  #feed-section {
+    background: #121212; border: 1px solid #232323; border-radius: 10px;
+    padding: 14px; margin-top: 4px;
+  }
+  #feed-section .section-heading { margin-top: 0; }
+  #feed:empty::after { content: 'No events yet.'; color: #555; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -102,12 +151,21 @@
     <h4>Issue order</h4>
     <div id="order-target-label">Target: <strong id="order-target-value">none selected</strong></div>
     <div id="order-squad-chips"></div>
+    <div id="order-target-actions">
+      <button type="button" class="order-target-action" onclick="selectAllSquads()">Select all</button>
+      <button type="button" class="order-target-action" onclick="clearSquadSelection()">Clear</button>
+    </div>
     <div id="order-buttons" class="disabled"></div>
   </div>
 
+  <div class="section-heading">Squads</div>
   <div id="roster"></div>
   <div id="reserves-section"></div>
-  <div id="feed"></div>
+
+  <div id="feed-section">
+    <div class="section-heading">Event feed</div>
+    <div id="feed"></div>
+  </div>
 
 <script>
   const currentUser = requireAuth(['Commander', 'Admin']);
@@ -137,9 +195,70 @@
 
   const STATUS_CLASSES = {
     SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
-    Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
+    Retreating: 'cat-fallback', Autonomous: 'cat-neutral'
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
+
+  // Colors + labels 
+  const STATUS_INFO = {
+    SquadWiped:  { color: '#e33',    label: 'SQUAD WIPED' },
+    Regroup:     { color: '#4c7a4f', label: 'REGROUP' },
+    NeedHelp:    { color: '#4fae82', label: 'NEED HELP' },
+    Retreating:  { color: '#4a90c4', label: 'RETREATING' },
+    Autonomous:  { color: '#6b7280', label: 'AUTONOMOUS' }
+  };
+
+  // Status hold time
+  const STATUS_HOLD_MS = 25000;
+  const squadStatusState = new Map(); 
+  const squadStatusTimers = new Map(); 
+
+  function paintSquadStatus(squadId, type) {
+    const card = document.querySelector(`.squad-card[data-squad-id="${CSS.escape(squadId)}"]`);
+    if (!card) return;
+    const side = card.querySelector('.status-side');
+    const label = card.querySelector('.status-label');
+    const dot = card.querySelector('.status-dot');
+    const text = card.querySelector('.status-text');
+    if (!side || !label) return;
+    const info = STATUS_INFO[type] || { color: '#888', label: type };
+
+    side.style.setProperty('--status-color', info.color);
+    label.style.setProperty('--status-color', info.color);
+    if (dot) dot.style.setProperty('--status-color', info.color);
+    if (text) text.textContent = info.label;
+    side.classList.add('active');
+    label.classList.add('active');
+  }
+
+  function scheduleAutonomousRevert(squadId, delayMs) {
+    if (squadStatusTimers.has(squadId)) clearTimeout(squadStatusTimers.get(squadId));
+    const revert = () => {
+      squadStatusTimers.delete(squadId);
+      squadStatusState.set(squadId, { type: 'Autonomous', timestampMs: Date.now() });
+      paintSquadStatus(squadId, 'Autonomous');
+    };
+    if (delayMs <= 0) { revert(); return; }
+    squadStatusTimers.set(squadId, setTimeout(revert, delayMs));
+  }
+
+  function recordSquadStatus(squadId, type, timestampMs) {
+    squadStatusState.set(squadId, { type, timestampMs });
+    paintSquadStatus(squadId, type);
+    if (type === 'Autonomous') {
+      if (squadStatusTimers.has(squadId)) { clearTimeout(squadStatusTimers.get(squadId)); squadStatusTimers.delete(squadId); }
+      return;
+    }
+    scheduleAutonomousRevert(squadId, STATUS_HOLD_MS - (Date.now() - timestampMs));
+  }
+
+  function resetSquadStatuses() {
+    squadStatusTimers.forEach(t => clearTimeout(t));
+    squadStatusTimers.clear();
+    squadStatusState.clear();
+    document.querySelectorAll('.status-side.active').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.status-label.active').forEach(el => el.classList.remove('active'));
+  }
 
   const ORDER_TYPES = [
     { type: 'PushBot', label: 'PUSH BOT', cls: 'attack' },
@@ -165,26 +284,49 @@
     `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${o.label}</button>`
   ).join('');
 
-  let selectedSquadId = null;
+  let selectedSquadIds = new Set();
+
+  function persistSelection() {
+    localStorage.setItem('gvg_order_targets', JSON.stringify([...selectedSquadIds]));
+  }
 
   function selectSquad(squadId) {
-    selectedSquadId = squadId;
-    localStorage.setItem('gvg_order_target', squadId);
+
+    if (selectedSquadIds.has(squadId)) selectedSquadIds.delete(squadId);
+    else selectedSquadIds.add(squadId);
+    persistSelection();
+    refreshTargetUI();
+  }
+
+  function selectAllSquads() {
+    document.querySelectorAll('.squad-chip').forEach(chip => selectedSquadIds.add(chip.dataset.squadId));
+    persistSelection();
+    refreshTargetUI();
+  }
+
+  function clearSquadSelection() {
+    selectedSquadIds.clear();
+    persistSelection();
     refreshTargetUI();
   }
 
   function refreshTargetUI() {
-    document.getElementById('order-target-value').textContent = selectedSquadId || 'none selected';
-    document.querySelectorAll('.squad-chip').forEach(chip =>
-      chip.classList.toggle('selected', chip.dataset.squadId === selectedSquadId));
+    const label = selectedSquadIds.size
+      ? [...selectedSquadIds].sort().join(', ')
+      : 'none selected';
+    document.getElementById('order-target-value').textContent = label;
+    document.querySelectorAll('.squad-chip').forEach(chip => {
+      const isSelected = selectedSquadIds.has(chip.dataset.squadId);
+      chip.classList.toggle('selected', isSelected);
+    });
     document.querySelectorAll('.squad-card').forEach(card =>
-      card.classList.toggle('targeted', card.dataset.squadId === selectedSquadId));
-    document.getElementById('order-buttons').classList.toggle('disabled', !selectedSquadId);
+      card.classList.toggle('targeted', selectedSquadIds.has(card.dataset.squadId)));
+    document.getElementById('order-buttons').classList.toggle('disabled', selectedSquadIds.size === 0);
   }
 
   function issueOrder(type) {
-    if (!selectedSquadId) { setStatus('Select a squad first'); return; }
-    connection.invoke("IssueOrder", { type, targetSquadId: selectedSquadId })
+    if (selectedSquadIds.size === 0) { setStatus('Select at least one squad first'); return; }
+    connection.invoke("IssueOrder", { type, targetSquadIds: [...selectedSquadIds] })
       .catch(err => setStatus("Error: " + err));
   }
 
@@ -197,12 +339,14 @@
   connection.on("OrderIssued", order =>
     addItem(orderClass(order.type), `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
 
-  connection.on("SquadStatusChanged", status =>
-    addItem(statusClass(status.type), `STATUS ${status.type} → ${status.targetSquadId}`, status.reporterName, status.timestamp));
+  connection.on("SquadStatusChanged", status => {
+    addItem(statusClass(status.type), `STATUS ${status.type} → ${status.targetSquadId}`, status.reporterName, status.timestamp);
+    recordSquadStatus(status.targetSquadId, status.type, new Date(status.timestamp).getTime());
+  });
 
   connection.on("RosterUpdated", roster => renderRoster(roster));
 
-  connection.on("HistoryReset", () => { feed.innerHTML = ''; });
+  connection.on("HistoryReset", () => { feed.innerHTML = ''; resetSquadStatuses(); });
 
   connection.on("BattleStatusChanged", status => renderBattleStatus(status));
 
@@ -231,7 +375,10 @@
   function renderHistoryItem(i) {
     if ('eventId' in i) addItem(alertClass(i), `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
     else if ('orderId' in i) addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
-    else addItem(statusClass(i.type), `STATUS ${i.type} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+    else {
+      addItem(statusClass(i.type), `STATUS ${i.type} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+      recordSquadStatus(i.targetSquadId, i.type, new Date(i.timestamp).getTime());
+    }
   }
 
   // Enemy reports
@@ -250,20 +397,20 @@
     const roster = fullRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
     const reserveSquad = fullRoster.find(sq => sq.squadId === RESERVE_SQUAD_ID);
 
- 
-    if (selectedSquadId && !roster.some(sq => sq.squadId === selectedSquadId)) {
-      selectedSquadId = null;
-    }
+    // Drop any previously-selected squads that no longer exist in the roster
+    selectedSquadIds = new Set([...selectedSquadIds].filter(id => roster.some(sq => sq.squadId === id)));
 
-    if (!selectedSquadId) {
-      const saved = localStorage.getItem('gvg_order_target');
-      if (saved && roster.some(sq => sq.squadId === saved)) selectedSquadId = saved;
-      else if (roster.length === 1) selectedSquadId = roster[0].squadId;
+    if (selectedSquadIds.size === 0) {
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem('gvg_order_targets') || '[]'); } catch { saved = []; }
+      const validSaved = saved.filter(id => roster.some(sq => sq.squadId === id));
+      if (validSaved.length) selectedSquadIds = new Set(validSaved);
+      else if (roster.length === 1) selectedSquadIds = new Set([roster[0].squadId]);
     }
 
     const chips = document.getElementById('order-squad-chips');
     chips.innerHTML = roster.map(sq =>
-      `<button class="squad-chip" data-squad-id="${sq.squadId}" onclick="selectSquad('${sq.squadId}')">${sq.squadId}</button>`
+      `<button class="squad-chip" data-squad-id="${sq.squadId}" onclick="selectSquad('${sq.squadId}')"><span class="chip-check">✓</span>${sq.squadId}</button>`
     ).join('');
 
     const el = document.getElementById('roster');
@@ -316,12 +463,26 @@
         });
       }
 
-      card.append(h4, membersEl);
+      const statusSide = document.createElement('div');
+      statusSide.className = 'status-side';
+
+      const statusLabel = document.createElement('div');
+      statusLabel.className = 'status-label';
+      const statusDot = document.createElement('span');
+      statusDot.className = 'status-dot';
+      const statusText = document.createElement('span');
+      statusText.className = 'status-text';
+      statusLabel.append(statusDot, statusText);
+
+      card.append(h4, membersEl, statusLabel, statusSide);
       el.appendChild(card);
     });
 
     renderReserves(reserveSquad);
     refreshTargetUI();
+
+
+    squadStatusState.forEach((state, squadId) => paintSquadStatus(squadId, state.type));
   }
 
   function renderReserves(reserveSquad) {

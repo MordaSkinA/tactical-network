@@ -38,6 +38,7 @@
   .cat-tactic      { border-left-color:#2f6fb2; }
   .cat-fallback    { border-left-color:#4a90c4; }
   .cat-jungle      { border-left-color:#1e3a5f; }
+  .cat-neutral     { border-left-color:#6b7280; }
   .title { font-weight: 600; font-size: 15px; }
   .meta { color:#888; font-size:12px; margin-top: 3px; }
 </style>
@@ -91,7 +92,7 @@
   }
   const STATUS_CLASSES = {
     SquadWiped: 'cat-critical', Regroup: 'cat-defend', NeedHelp: 'cat-protect',
-    Retreating: 'cat-fallback', StandingBy: 'cat-attack-key'
+    Retreating: 'cat-fallback', Autonomous: 'cat-neutral'
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
 
