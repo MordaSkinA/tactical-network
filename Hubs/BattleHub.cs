@@ -433,7 +433,7 @@ public class BattleHub : Hub
 
     public async Task StartBattle()
     {
-        RequireRole(UserRole.Admin, UserRole.Developer);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         var status = _state.StartBattle();
         await Clients.All.SendAsync("BattleStatusChanged", status);
     }
@@ -442,7 +442,7 @@ public class BattleHub : Hub
     // log and clearing
     public async Task EndBattle()
     {
-        RequireRole(UserRole.Admin, UserRole.Developer);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         _state.EndBattle();
         await Clients.All.SendAsync("HistoryReset");
         await Clients.All.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
@@ -578,7 +578,7 @@ public class BattleHub : Hub
         return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
     }
 
-    // Import/create many accounts at once 
+
     public Task<BulkAccountResultDto> BulkCreateAccounts(BulkCreateAccountsDto dto)
     {
         RequireRole(UserRole.Developer);
