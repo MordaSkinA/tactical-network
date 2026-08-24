@@ -6,15 +6,17 @@
     <title>Team Leader</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/sidebar.js"></script>
     <style>
         body {
             background: #111;
             color: #eee;
             font-family: system-ui, sans-serif;
-            padding: 20px;
-            max-width: 700px;
-            margin: 0 auto;
         }
+
+        #app-content { display: flex; justify-content: center; }
+        #observer-inner { width: 100%; max-width: 700px; }
 
         h2 {
             margin-bottom: 4px;
@@ -115,7 +117,7 @@
 
         /* Maneuvers / tactics - blue and cyan */
         .tactic {
-            background: #2f6fb2;
+            background: #7c6cf0;
         }
 
         .fallback {
@@ -155,14 +157,14 @@
             margin-top: 6px;
         }
 
-        #order-banner.has-order, #status-banner.has-order { border-color: #2f6fb2; }
+        #order-banner.has-order, #status-banner.has-order { border-color: #7c6cf0; }
         #order-banner.cat-critical, #status-banner.cat-critical    { border-color: #6e1c1c; background: #241212; }
         #order-banner.cat-attack, #status-banner.cat-attack      { border-color: #c1622b; background: #241a10; }
         #order-banner.cat-attack-key, #status-banner.cat-attack-key  { border-color: #e8790f; background: #26190a; }
         #order-banner.cat-defend, #status-banner.cat-defend      { border-color: #4c7a4f; background: #142217; }
         #order-banner.cat-hold, #status-banner.cat-hold        { border-color: #2e5230; background: #101d12; }
         #order-banner.cat-protect, #status-banner.cat-protect     { border-color: #4fae82; background: #10241a; }
-        #order-banner.cat-tactic, #status-banner.cat-tactic      { border-color: #2f6fb2; background: #101a26; }
+        #order-banner.cat-tactic, #status-banner.cat-tactic      { border-color: #7c6cf0; background: #101a26; }
         #order-banner.cat-fallback, #status-banner.cat-fallback    { border-color: #4a90c4; background: #0f1c24; }
         #order-banner.cat-jungle, #status-banner.cat-jungle      { border-color: #1e3a5f; background: #0c1622; }
         #order-banner.cat-neutral, #status-banner.cat-neutral     { border-color: #565f6b; background: #17191c; }
@@ -226,7 +228,7 @@
         .cat-defend     { border-left-color: #4c7a4f; }
         .cat-hold       { border-left-color: #2e5230; }
         .cat-protect    { border-left-color: #4fae82; }
-        .cat-tactic     { border-left-color: #2f6fb2; }
+        .cat-tactic     { border-left-color: #7c6cf0; }
         .cat-fallback   { border-left-color: #4a90c4; }
         .cat-jungle     { border-left-color: #1e3a5f; }
         .cat-neutral    { border-left-color: #6b7280; }
@@ -262,8 +264,14 @@
     </style>
 </head>
 <body>
-    <h2>Team Leader <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
-    <div class="hint">Report enemy sightings and your squad's status.</div>
+    <div id="app-sidebar"></div>
+    <div id="app-content"><div id="observer-inner">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Team Leader</h1>
+            <p class="page-subtitle">Report enemy sightings and your team's status.</p>
+        </div>
+    </div>
 
     <div class="user-info" id="user-info">
         Loading profile...
@@ -277,13 +285,13 @@
         <button class="action-btn enemy" onclick="reportEnemy('Nameless')">ENEMY NAMELESS</button>
     </div>
 
-    <h3>Squad status</h3>
+    <h3>Team status</h3>
     <div id="status-banner">
         <div class="label">Current status</div>
         <div class="value" id="status-value">-</div>
     </div>
     <div class="row">
-        <button class="action-btn critical" onclick="reportStatus('SquadWiped')">SQUAD WIPED</button>
+        <button class="action-btn critical" onclick="reportStatus('SquadWiped')">TEAM WIPED</button>
         <button class="action-btn defend" onclick="reportStatus('Regroup')">REGROUP</button>
         <button class="action-btn protect" onclick="reportStatus('NeedHelp')">NEED HELP</button>
         <button class="action-btn fallback" onclick="reportStatus('Retreating')">RETREATING</button>
@@ -303,12 +311,14 @@
 
     <div id="status">connecting...</div>
     <div id="log"></div>
+    </div></div>
 
     <script>
 
         const currentUser = requireAuth(['Leader', 'Admin', 'Developer']);
+        renderSidebar('/observer.html');
         if (currentUser) {
-            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Team: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -480,7 +490,7 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Squad: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
+            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Team: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
         }
 
         connection.start()

@@ -4,55 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GvG Tactical Network - Login</title>
+    <link rel="stylesheet" href="/css/theme.css">
     <style>
         body {
-            background: #111;
-            color: #eee;
-            font-family: system-ui, sans-serif;
-            padding: 60px 20px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            width: 100%;
             max-width: 380px;
-            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 34px 32px 30px;
         }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 26px;
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 22px;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: 0.06em;
         }
 
-        label {
-            display: block;
-            margin-bottom: 16px;
-            font-size: 13px;
-            color: #aaa;
+        .login-logo .sb-logo-dot {
+            width: 30px; height: 30px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--accent), #4d3fc7);
         }
 
-        input {
-            background: #222;
-            color: #eee;
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 15px;
+        h2 { text-align: center; margin: 0 0 26px 0; font-size: 17px; font-weight: 700; color: var(--text-dim); }
+
+        .field { margin-bottom: 16px; }
+
+        button[type="submit"], #discord-login-btn {
             width: 100%;
-            margin-top: 6px;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
+            padding: 13px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-pill);
             cursor: pointer;
             color: #fff;
             font-weight: 700;
-            font-size: 15px;
-            background: #2f6fb2;
+            font-size: 14.5px;
             margin-top: 6px;
+            transition: filter 0.12s ease;
         }
+        button[type="submit"]:hover, #discord-login-btn:hover { filter: brightness(1.12); }
+
+        button[type="submit"] { background: var(--accent); }
 
         #error {
-            color: #e33;
+            color: var(--danger);
             font-size: 13px;
             margin-top: 12px;
             text-align: center;
@@ -62,42 +74,37 @@
         .divider {
             display: flex;
             align-items: center;
-            color: #555;
+            color: var(--text-faint);
             font-size: 12px;
             margin: 22px 0;
         }
+        .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--border); }
+        .divider::before { margin-right: 10px; }
+        .divider::after { margin-left: 10px; }
 
-            .divider::before, .divider::after {
-                content: "";
-                flex: 1;
-                border-bottom: 1px solid #333;
-            }
-
-            .divider::before { margin-right: 10px; }
-            .divider::after { margin-left: 10px; }
-
-        #discord-login-btn {
-            background: #5865F2;
-        }
+        #discord-login-btn { background: #5865F2; }
     </style>
 </head>
 <body>
-    <h2>GvG Tactical Network</h2>
-    <form id="login-form">
-        <label>
-            Username
-            <input id="username" autocomplete="username" required>
-        </label>
-        <label>
-            Password
-            <input id="password" type="password" autocomplete="current-password" required>
-        </label>
-        <button type="submit">Log in</button>
-        <div id="error"></div>
-    </form>
+    <div class="login-card">
+        <div class="login-logo"><span class="sb-logo-dot"></span>TACNET</div>
+        <h2>Sign in to GvG Tactical Network</h2>
+        <form id="login-form">
+            <div class="field">
+                <label>Username</label>
+                <input id="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="password" type="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit">Log in</button>
+            <div id="error"></div>
+        </form>
 
-    <div class="divider">or</div>
-    <button id="discord-login-btn" type="button" onclick="loginWithDiscord()">Login with Discord</button>
+        <div class="divider">or</div>
+        <button id="discord-login-btn" type="button" onclick="loginWithDiscord()">Login with Discord</button>
+    </div>
 
     <script>
   const existing = localStorage.getItem('gvg_session');

@@ -6,53 +6,61 @@
     <title>GvG - Admin</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/sidebar.js"></script>
     <style>
         * {
             box-sizing: border-box;
         }
 
         :root {
-            --accent: #2f6fb2;
-            --accent-light: #4a8fd6;
-            --danger: #a4202a;
-            --danger-light: #c72c39;
-            --panel-bg: #161616;
-            --panel-border: #2a2a2a;
-            --field-bg: #1c1c1c;
-            --field-border: #3a3a3a;
+            --panel-bg: var(--surface);
+            --panel-border: var(--border-soft);
+            --field-bg: var(--surface-2);
+            --field-border: var(--border);
+
+            /* Role identity colors — used throughout as the at-a-glance
+               composition language (chip borders, badges, mini-bars) */
+            --role-tank: #5b9de8;
+            --role-tank-bg: rgba(91, 157, 232, 0.13);
+            --role-healer: #4fd18b;
+            --role-healer-bg: rgba(79, 209, 139, 0.13);
+            --role-dps: #f0a04b;
+            --role-dps-bg: rgba(240, 160, 75, 0.13);
+
+            --side-attack: #e0725b;
+            --side-defense: #5b9de8;
+            --side-flex: #9a8ff5;
+
+            --mono: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
         }
 
-        body {
-            background: #0e0e0e;
-            color: #eee;
-            font-family: system-ui, sans-serif;
-            padding: 24px 32px 60px;
-            margin: 0;
-            width: 100%;
-            line-height: 1.4;
-        }
+        body.app { background: radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(124,108,240,0.07), transparent 60%), var(--bg); }
 
-        h2 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 0 0 20px 0;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--panel-border);
-            font-size: 20px;
-            letter-spacing: 0.01em;
-        }
+        /* ---------------- Section headings ---------------- */
 
         h3 {
-            margin-top: 26px;
-            margin-bottom: 12px;
-            padding-left: 10px;
-            border-left: 3px solid var(--accent);
-            color: #bbb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+            margin-bottom: 14px;
+            padding-left: 0;
+            border-left: none;
+            color: var(--text);
             font-size: 13px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.07em;
+        }
+
+        h3::before {
+            content: '';
+            width: 3px;
+            height: 15px;
+            border-radius: 2px;
+            background: var(--accent);
+            flex: 0 0 auto;
         }
 
         .layout-main > h3:first-child,
@@ -60,27 +68,42 @@
             margin-top: 0;
         }
 
+        /* Numbered step headings for the two real sequential steps */
+        h3.step::before { display: none; }
+        h3.step {
+            padding-left: 0;
+        }
+        h3.step .step-num {
+            width: 22px; height: 22px; border-radius: 7px;
+            background: var(--accent-soft-bg); color: var(--accent-light);
+            font-size: 11.5px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex: 0 0 auto;
+        }
+
         .hint {
-            color: #888;
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 20px;
+            color: var(--text-faint);
+            font-size: 12.5px;
+            line-height: 1.55;
+            margin-bottom: 18px;
+            max-width: 62ch;
         }
 
         label {
             display: block;
             margin-bottom: 14px;
-            font-size: 13px;
-            color: #aaa;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-dim);
         }
 
         input, textarea, select {
-            background: var(--field-bg);
-            color: #eee;
-            border: 1px solid var(--field-border);
-            border-radius: 6px;
-            padding: 10px;
-            font-size: 14px;
+            background: var(--field-bg, #1c1c1c);
+            color: var(--text);
+            border: 1px solid var(--field-border, #3a3a3a);
+            border-radius: 9px;
+            padding: 10px 12px;
+            font-size: 13.5px;
             width: 100%;
             margin-top: 6px;
             font-family: inherit;
@@ -88,33 +111,35 @@
         }
 
         input:hover, textarea:hover, select:hover {
-            border-color: #555;
+            border-color: #3f3f46;
         }
 
         input:focus, textarea:focus, select:focus {
             outline: none;
             border-color: var(--accent-light);
-            box-shadow: 0 0 0 3px rgba(74, 143, 214, 0.18);
+            box-shadow: 0 0 0 3px var(--accent-soft-bg, rgba(124,108,240,0.18));
         }
 
         textarea {
             min-height: 90px;
-            font-family: 'SF Mono', Consolas, monospace;
-            font-size: 13px;
+            font-family: var(--mono);
+            font-size: 12.5px;
             resize: vertical;
         }
 
+        /* ---------------- Buttons ---------------- */
+
         button {
-            padding: 10px 16px;
+            padding: 10px 18px;
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-pill, 999px);
             cursor: pointer;
             color: #fff;
-            font-weight: 600;
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 13px;
             margin-right: 8px;
             margin-top: 6px;
-            transition: filter 0.12s ease, transform 0.06s ease;
+            transition: filter 0.12s ease, transform 0.06s ease, box-shadow 0.12s ease;
         }
 
         button:hover {
@@ -127,6 +152,7 @@
 
         .primary {
             background: var(--accent);
+            box-shadow: 0 4px 14px rgba(124, 108, 240, 0.28);
         }
 
         .danger {
@@ -134,33 +160,71 @@
         }
 
         .secondary {
-            background: #333;
+            background: var(--surface-3);
+            color: var(--text-dim);
+            box-shadow: none;
         }
 
         .header-btn {
             font-size: 12px;
             padding: 6px 12px;
-            background: #333;
+            background: var(--surface-3);
         }
 
+        /* ---------------- Battle status ---------------- */
+
+        .section-tab-bar-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .section-tab-bar-row .section-tab-bar { margin-bottom: 0; }
+
         #battle-status {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            display: inline-block;
+            font-size: 12.5px;
+            font-weight: 700;
+            margin-bottom: 0;
+            padding: 9px 16px 9px 14px;
+            border-radius: var(--radius-pill);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid transparent;
+        }
+
+        #battle-status::before {
+            content: '';
+            width: 7px; height: 7px; border-radius: 50%;
+            flex: 0 0 auto;
         }
 
         #battle-status.active {
-            background: #1a2e1a;
-            color: #7dd87d;
+            background: rgba(79, 209, 139, 0.12);
+            color: #7fe0a8;
+            border-color: rgba(79, 209, 139, 0.25);
+        }
+        #battle-status.active::before {
+            background: var(--success);
+            box-shadow: 0 0 0 4px rgba(79, 209, 139, 0.18);
+            animation: pulse-dot 2s ease-in-out infinite;
         }
 
         #battle-status.inactive {
-            background: #2a2a2a;
-            color: #999;
+            background: var(--surface-2);
+            color: var(--text-faint);
+            border-color: var(--border-soft);
         }
+        #battle-status.inactive::before { background: var(--text-faint); }
+
+        @keyframes pulse-dot {
+            0%, 100% { box-shadow: 0 0 0 4px rgba(79, 209, 139, 0.18); }
+            50% { box-shadow: 0 0 0 7px rgba(79, 209, 139, 0.06); }
+        }
+
+        /* ---------------- Chips (pool / free players) ---------------- */
 
         .chip-list {
             display: flex;
@@ -172,53 +236,61 @@
         .chip {
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: #242424;
-            border: 1px solid #333;
+            gap: 8px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
             border-radius: 20px;
-            padding: 4px 6px 4px 12px;
+            padding: 5px 6px 5px 13px;
             font-size: 13px;
-            transition: border-color 0.15s ease;
+            font-weight: 500;
+            transition: border-color 0.15s ease, background 0.15s ease;
         }
 
             .chip:hover {
-                border-color: #4a4a4a;
+                border-color: #3a3a40;
+                background: var(--surface-3);
             }
 
             .chip select {
-                background: #333;
-                color: #eee;
+                background: var(--surface-3);
+                color: var(--text);
                 border: none;
                 border-radius: 14px;
                 padding: 4px 8px;
-                font-size: 12px;
+                font-size: 11.5px;
                 width: auto;
                 margin: 0;
             }
 
         .chip-remove, .chip-action {
-            background: #3a3a3a;
-            color: #ccc;
+            background: var(--surface-3);
+            color: var(--text-dim);
             border: none;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 21px;
+            height: 21px;
             line-height: 1;
             cursor: pointer;
             padding: 0;
             font-size: 12px;
+            font-weight: 700;
             margin: 0;
+            flex: 0 0 auto;
+            transition: background 0.15s ease, color 0.15s ease;
         }
+        .chip-remove:hover { background: var(--danger-dim); color: #f0a0a8; }
 
             .chip-action.leader {
-                background: #4a3a1a;
+                background: rgba(232, 192, 125, 0.14);
                 color: #e8c07d;
             }
+            .chip-action.leader:hover { background: rgba(232, 192, 125, 0.28); }
 
             .chip-action.player {
-                background: #1a3a4a;
-                color: #7dc0e8;
+                background: var(--role-tank-bg);
+                color: var(--role-tank);
             }
+            .chip-action.player:hover { background: rgba(91, 157, 232, 0.26); }
 
             .chip-action.bulwark {
                 background: #3a2f10;
@@ -230,21 +302,31 @@
                 color: #ffd76b;
             }
 
+        /* ---------------- Member chip (squad / reserve roster entry) ---------------- */
+
         .member-chip {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            background: #242424;
+            gap: 7px;
+            background: var(--surface-2);
+            border: 1px solid var(--border-soft);
+            border-left: 3px solid var(--border);
             border-radius: 10px;
-            padding: 8px 10px;
+            padding: 9px 11px;
             font-size: 13px;
+            transition: border-color 0.15s ease, background 0.15s ease;
         }
+        .member-chip:hover { background: var(--surface-3); }
+        .member-chip.role-tank { border-left-color: var(--role-tank); }
+        .member-chip.role-healer { border-left-color: var(--role-healer); }
+        .member-chip.role-dps { border-left-color: var(--role-dps); }
 
         .member-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 6px;
+            font-weight: 600;
         }
 
         .presence-dot {
@@ -253,7 +335,7 @@
             height: 7px;
             border-radius: 50%;
             background: #444;
-            margin-right: 6px;
+            margin-right: 7px;
             flex: 0 0 auto;
         }
 
@@ -270,12 +352,13 @@
         }
 
         .role-select {
-            background: #333;
-            color: #eee;
+            background: var(--surface-3);
+            color: var(--text);
             border: none;
             border-radius: 6px;
-            padding: 3px 6px;
+            padding: 4px 7px;
             font-size: 11px;
+            font-weight: 600;
             width: auto;
             margin: 0;
         }
@@ -288,11 +371,13 @@
             .tag-dropdown summary {
                 list-style: none;
                 cursor: pointer;
-                background: #333;
-                color: #ccc;
-                border-radius: 6px;
-                padding: 3px 8px;
+                background: var(--surface-2);
+                border: 1px solid var(--border);
+                color: var(--text-dim);
+                border-radius: 8px;
+                padding: 4px 10px;
                 user-select: none;
+                font-weight: 600;
             }
 
                 .tag-dropdown summary::-webkit-details-marker {
@@ -300,7 +385,8 @@
                 }
 
             .tag-dropdown[open] summary {
-                background: #3a3a3a;
+                background: var(--surface-3);
+                color: var(--text);
             }
 
             .tag-dropdown .tag-options {
@@ -309,22 +395,24 @@
                 top: 100%;
                 left: 0;
                 margin-top: 4px;
-                background: #2a2a2a;
-                border: 1px solid #444;
-                border-radius: 8px;
-                padding: 8px;
+                background: var(--surface-3);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 9px;
                 display: flex;
                 flex-direction: column;
-                gap: 4px;
+                gap: 5px;
                 white-space: nowrap;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             }
 
                 .tag-dropdown .tag-options label {
                     display: flex;
                     align-items: center;
-                    gap: 6px;
-                    color: #ddd;
+                    gap: 7px;
+                    color: var(--text-dim);
                     font-size: 12px;
+                    font-weight: 500;
                     margin: 0;
                 }
 
@@ -332,52 +420,66 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            background: #242424;
+            background: var(--surface-2);
             border-radius: 20px;
             padding: 6px 14px;
-            font-size: 13px;
+            font-size: 12.5px;
+            font-weight: 600;
             cursor: pointer;
-            border: 1px solid #333;
+            border: 1px solid var(--border);
+            transition: all 0.12s ease;
         }
+            .squad-toggle-chip:hover { border-color: #3a3a40; }
 
             .squad-toggle-chip.selected {
-                background: #2f6fb2;
-                border-color: #4a8fd6;
+                background: var(--accent-soft-bg);
+                border-color: var(--accent);
+                color: var(--accent-light);
             }
 
         .empty-hint {
-            color: #555;
+            color: var(--text-faint);
             font-size: 13px;
             font-style: italic;
         }
 
+        /* ---------------- Squad cards ---------------- */
+
         .squad-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+            gap: 14px;
         }
 
         .squad-edit-card {
-            background: #1a1a1a;
-            border-radius: 10px;
-            padding: 12px;
-            border: 1px solid #333;
-            transition: border-color 0.15s ease;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 14px 14px 15px;
+            border: 1px solid var(--border-soft);
+            border-top: 3px solid var(--border);
+            transition: border-color 0.15s ease, transform 0.1s ease;
         }
 
             .squad-edit-card:hover {
-                border-color: #444;
+                border-color: #303036;
+                border-top-color: var(--side-color, var(--accent));
             }
 
+            .squad-edit-card[data-side="Attack"] { --side-color: var(--side-attack); }
+            .squad-edit-card[data-side="Defense"] { --side-color: var(--side-defense); }
+            .squad-edit-card[data-side="Flex"] { --side-color: var(--side-flex); }
+            .squad-edit-card { border-top-color: var(--side-color, var(--border)); }
+
         .comp-warning {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 700;
+            letter-spacing: 0.02em;
             color: #f0a0a0;
-            background: #2a1414;
-            border: 1px solid #6e1c1c;
-            border-radius: 4px;
-            padding: 3px 8px;
-            margin-bottom: 8px;
+            background: var(--danger-dim);
+            border: 1px solid rgba(224, 82, 96, 0.35);
+            border-radius: 6px;
+            padding: 4px 9px;
+            margin-bottom: 9px;
             display: inline-block;
         }
 
@@ -385,31 +487,63 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            gap: 8px;
+            margin-bottom: 11px;
+        }
+
+        .squad-edit-header strong {
+            font-family: var(--mono);
+            font-size: 13.5px;
+            letter-spacing: 0.02em;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .squad-edit-header .squad-leader-note {
+            color: var(--text-faint);
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 11.5px;
+        }
+
+        .squad-edit-header select {
+            width: auto !important;
+            margin: 0 !important;
+            padding: 5px 8px !important;
+            font-size: 11px !important;
+            font-weight: 700;
+            border-radius: var(--radius-pill) !important;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .leader-select {
             font-size: 12px;
             padding: 4px;
-            background: #222;
-            border: 1px solid #444;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
             width: 100%;
             margin-bottom: 10px;
         }
 
+        /* ---------------- Log console ---------------- */
+
         #log {
-            font-size: 12px;
+            font-size: 11.5px;
             color: #8fb98f;
-            margin-top: 20px;
-            padding: 12px 14px;
+            margin-top: 22px;
+            padding: 13px 15px;
             max-height: 220px;
             overflow-y: auto;
-            background: #0c0c0c;
+            background: #0c0c0d;
             border: 1px solid var(--panel-border);
-            border-radius: 8px;
-            font-family: 'SF Mono', Consolas, monospace;
+            border-radius: var(--radius-md);
+            font-family: var(--mono);
             white-space: pre-wrap;
+            line-height: 1.55;
         }
+
+        /* ---------------- Tables ---------------- */
 
         table {
             width: 100%;
@@ -417,44 +551,50 @@
             font-size: 13px;
             margin-top: 10px;
             border: 1px solid var(--panel-border);
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             overflow: hidden;
         }
 
             table th {
-                color: #888;
+                color: var(--text-faint);
                 text-align: left;
-                padding: 8px 10px;
-                background: #1c1c1c;
-                font-size: 11px;
+                padding: 9px 11px;
+                background: var(--surface-2);
+                font-size: 10.5px;
+                font-weight: 700;
                 text-transform: uppercase;
-                letter-spacing: 0.04em;
+                letter-spacing: 0.05em;
             }
 
             table td {
-                padding: 8px 10px;
-                border-top: 1px solid #232323;
+                padding: 9px 11px;
+                border-top: 1px solid var(--border-soft);
             }
 
             table tr:hover td {
-                background: #1a1a1a;
+                background: var(--surface-2);
             }
+
+        /* ---------------- Collapsibles ---------------- */
 
         details {
             margin-top: 16px;
             background: var(--panel-bg);
             border: 1px solid var(--panel-border);
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             padding: 4px 16px 4px;
+            transition: border-color 0.15s ease;
         }
+        details:hover { border-color: #2c2c30; }
 
             details[open] {
                 padding-bottom: 16px;
+                border-color: #2c2c30;
             }
 
         summary {
             cursor: pointer;
-            color: #ccc;
+            color: var(--text-dim);
             font-size: 13px;
             font-weight: 600;
             padding: 14px 0;
@@ -471,9 +611,10 @@
             summary::before {
                 content: '▸';
                 display: inline-block;
-                margin-right: 8px;
+                margin-right: 9px;
                 color: var(--accent-light);
                 transition: transform 0.15s ease;
+                font-size: 11px;
             }
 
             details[open] summary::before {
@@ -487,7 +628,7 @@
         .menu-nav-btn {
             font-size: 12px;
             padding: 6px 12px;
-            background: #333;
+            background: var(--surface-3);
             border: none;
             border-radius: 4px;
             color: #fff;
@@ -496,26 +637,26 @@
             margin-right: 8px;
         }
 
-        /* Section tab bar (Admin / Developer) */
+        /* ---------------- Section tab bar (Admin / Developer) ---------------- */
 
         .section-tab-bar {
             display: inline-flex;
             gap: 2px;
-            background: #1a1a1a;
+            background: var(--surface-2);
             border: 1px solid var(--panel-border);
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             padding: 4px;
             margin-bottom: 24px;
         }
 
         .section-tab-btn {
             background: transparent;
-            color: #888;
+            color: var(--text-faint);
             border: none;
-            border-radius: 7px;
-            padding: 8px 20px;
+            border-radius: 8px;
+            padding: 8px 22px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             margin: 0;
             transition: background 0.15s ease, color 0.15s ease;
@@ -524,11 +665,12 @@
             .section-tab-btn.active {
                 color: #fff;
                 background: var(--accent);
+                box-shadow: 0 3px 10px rgba(124, 108, 240, 0.3);
             }
 
             .section-tab-btn:not(.active):hover {
-                color: #ccc;
-                background: #242424;
+                color: var(--text);
+                background: var(--surface-3);
             }
 
         .tab-panel {
@@ -539,26 +681,155 @@
                 display: block;
             }
 
-        /* Full-width two column layout, used instead of a narrow single column */
+        /* ---------------- Configuration trigger (opens a modal) ---------------- */
+
+        .config-trigger {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            cursor: pointer;
+            text-align: left;
+            font-family: inherit;
+            color: var(--text);
+            margin-bottom: 22px;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .config-trigger:hover {
+            border-color: var(--accent-light);
+            background: var(--surface-3);
+        }
+        .config-trigger-icon {
+            width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto;
+            background: var(--accent-soft-bg);
+            color: var(--accent-light);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .config-trigger-text { flex: 1; min-width: 0; }
+        .config-trigger-title { display: block; font-size: 13.5px; font-weight: 700; }
+        .config-trigger-sub { display: block; font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
+        .config-trigger-arrow {
+            font-size: 20px; color: var(--text-faint); flex: 0 0 auto;
+            transition: transform 0.15s ease, color 0.15s ease;
+        }
+        .config-trigger:hover .config-trigger-arrow { transform: translateX(2px); color: var(--text-dim); }
+
+        /* ---------------- Modal ---------------- */
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(6, 6, 8, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.18s ease;
+        }
+        .modal-backdrop.open { display: block; }
+        .modal-backdrop.visible { opacity: 1; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.97);
+            width: min(480px, calc(100vw - 32px));
+            max-height: min(640px, calc(100vh - 64px));
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+            z-index: 101;
+            opacity: 0;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .modal.open { display: flex; }
+        .modal.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-soft);
+            flex: 0 0 auto;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+        }
+        .modal-close {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: var(--surface-3);
+            color: var(--text-dim);
+            border: none;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0; padding: 0;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .modal-close:hover { background: var(--danger-dim); color: #f0a0a8; }
+
+        .modal-body {
+            padding: 18px 20px 22px;
+            overflow-y: auto;
+        }
+        .modal-body .hint { margin-bottom: 16px; }
+        .modal-body > h3:first-child { margin-top: 0; }
+
+        /* Wider/taller variant for modals carrying multiple stacked sections */
+        .modal.modal-lg {
+            width: min(640px, calc(100vw - 32px));
+            max-height: min(760px, calc(100vh - 64px));
+        }
+
+        @media (max-width: 640px) {
+            .modal { width: calc(100vw - 24px); }
+        }
+
+        /* ---------------- Full-width two column layout ---------------- */
 
         .layout-grid {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 380px;
-            gap: 24px;
+            gap: 20px;
             align-items: start;
         }
 
         .layout-main, .layout-side {
             background: var(--panel-bg);
             border: 1px solid var(--panel-border);
-            border-radius: 12px;
-            padding: 18px 22px 24px;
+            border-radius: var(--radius-lg);
+            padding: 20px 24px 26px;
         }
 
         .layout-side {
             position: sticky;
             top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
         }
+
+        /* Emoji config: compact grid instead of a stacked column of labels */
+        #emoji-role-inputs, #emoji-tag-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 12px;
+        }
+        #emoji-role-inputs label, #emoji-tag-inputs label { margin-bottom: 0; }
 
         @media (max-width: 1100px) {
             .layout-grid {
@@ -567,25 +838,45 @@
 
             .layout-side {
                 position: static;
+                max-height: none;
             }
         }
+
+        @media (max-width: 640px) {
+            #emoji-role-inputs, #emoji-tag-inputs { grid-template-columns: 1fr; }
+        }
     </style>
+
 </head>
 <body>
-    <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
+    <div id="app-sidebar"></div>
+    <div id="app-content">
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Administrator Panel</h1>
+            <p class="page-subtitle">User projects page</p>
+        </div>
+        <div class="page-head-actions">
+            <button class="icon-btn" title="Notifications">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 21a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span class="dot"></span>
+            </button>
+        </div>
+    </div>
 
-    <div class="section-tab-bar">
-        <button class="section-tab-btn active" data-tab="admin" onclick="switchTab('admin')">Admin</button>
-        <button class="section-tab-btn" data-tab="developer" id="developer-tab-btn" onclick="switchTab('developer')" style="display:none;">Developer</button>
+    <div class="section-tab-bar-row">
+        <div class="section-tab-bar">
+            <button class="section-tab-btn active" data-tab="admin" onclick="switchTab('admin')">Admin</button>
+            <button class="section-tab-btn" data-tab="developer" id="developer-tab-btn" onclick="switchTab('developer')" style="display:none;">Developer</button>
+        </div>
+        <div id="battle-status" class="inactive">No active battle</div>
     </div>
 
     <!-- ADMIN TAB-->
     <div id="tab-admin" class="tab-panel active">
-        <div id="battle-status" class="inactive">No active battle</div>
-
         <div class="layout-grid">
             <div class="layout-main">
-                <h3>1. Add members to the pool</h3>
+                <h3 class="step"><span class="step-num">1</span> Add members to the pool</h3>
                 <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
                 <button class="primary" onclick="addToPool()">Add to pool</button>
 
@@ -593,7 +884,7 @@
                 <div id="pool" class="chip-list"></div>
 
                 <details id="unassigned-registered-block">
-                    <summary>Registered accounts not yet in the pool or a squad</summary>
+                    <summary>Registered accounts not yet in the pool or a team</summary>
                     <div class="hint">Already have an account (e.g. self-registered via Discord) but aren't in the pool yet? Add them from here.</div>
                     <div id="unassigned-registered" class="chip-list"></div>
                 </details>
@@ -601,21 +892,27 @@
                 <details id="admin-roles-block">
                     <summary>Manage roles (Player / Leader / Commander)</summary>
                     <div class="hint">Change an already-registered account's role. Admin and Developer accounts don't show up here and can't be changed from this screen.</div>
-                    <div id="admin-roles-bulk-bar" class="hint" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                        <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="admin-roles-select-all"> Select all</label>
-                        <span id="admin-roles-selected-count">0 selected</span>
-                        <select id="admin-roles-bulk-role">
-                            <option value="Player">Player</option>
-                            <option value="Leader">Leader</option>
-                            <option value="Commander">Commander</option>
-                        </select>
-                        <input id="admin-roles-bulk-squad" placeholder="Squad id (optional)" style="width:140px;">
-                        <button class="secondary" onclick="bulkAssignRoleAdmin()">Assign role to selected</button>
-                    </div>
                     <div id="admin-roles-list"></div>
+                    <div id="admin-roles-bulk-bar" class="confirm-bar">
+                        <div class="cb-count">
+                            <label style="display:flex; align-items:center; gap:6px; margin-bottom:0;"><input type="checkbox" class="cb" id="admin-roles-select-all"> Select all</label>
+                            <span id="admin-roles-selected-count">0 selected</span>
+                        </div>
+                        <div class="cb-actions">
+                            <span class="pill pill-select">
+                                <select id="admin-roles-bulk-role">
+                                    <option value="Player">Player</option>
+                                    <option value="Leader">Leader</option>
+                                    <option value="Commander">Commander</option>
+                                </select>
+                            </span>
+                            <input id="admin-roles-bulk-squad" placeholder="Team id (optional)" style="width:140px; margin-top:0;">
+                            <button class="btn btn-primary btn-sm" onclick="bulkAssignRoleAdmin()">Confirm</button>
+                        </div>
+                    </div>
                 </details>
 
-                <h3>2. Teams. Assign players, set role and leaders</h3>
+                <h3 class="step"><span class="step-num">2</span> Teams — assign players, set role and leaders</h3>
                 <div class="hint">"L" icon on a name - make leader (grants access to the Team Leader panel). "P" - create a player account.</div>
                 <div id="squads" class="squad-grid"></div>
 
@@ -636,12 +933,34 @@
             </div>
 
             <div class="layout-side">
-                <h3>Discord channels (webhooks)</h3>
+                <h3>Configuration</h3>
+                <button type="button" class="config-trigger" onclick="openModal('discord-config-modal')">
+                    <span class="config-trigger-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 12a4 4 0 0 1 4-4h3a4 4 0 1 1 0 8h-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 12a4 4 0 0 1-4 4H9a4 4 0 1 1 0-8h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span class="config-trigger-text">
+                        <span class="config-trigger-title">Discord &amp; messaging</span>
+                        <span class="config-trigger-sub" id="discord-channels-summary">No channels configured</span>
+                    </span>
+                    <span class="config-trigger-arrow">›</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Configuration modal: Discord webhooks, emoji, and message sending -->
+        <div class="modal-backdrop" id="discord-config-modal-backdrop" onclick="closeModal('discord-config-modal')"></div>
+        <div class="modal modal-lg" id="discord-config-modal" role="dialog" aria-modal="true" aria-labelledby="discord-config-modal-title">
+            <div class="modal-header">
+                <h2 id="discord-config-modal-title">Configuration</h2>
+                <button type="button" class="modal-close" onclick="closeModal('discord-config-modal')" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <h3>Discord webhooks</h3>
                 <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed, just right-click a channel in Discord -> Edit Channel --> Integrations -> Webhooks -> New Webhook -> Copy URL</div>
                 <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
                 <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
                 <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
-                <div id="discord-channels-list" style="margin-top:10px;"></div>
+                <div id="discord-channels-list" style="margin-top:14px;"></div>
 
                 <h3>Emoji for roles &amp; tags</h3>
                 <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it, it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed and aren't customizable here</div>
@@ -654,7 +973,7 @@
                 <label>Channel
                     <select id="dc-send-channel"></select>
                 </label>
-                <label>Ping whole squads (click to toggle)</label>
+                <label>Ping whole teams (click to toggle)</label>
                 <div id="dc-squad-toggles" class="chip-list" style="margin-bottom:14px;"></div>
                 <label>Also ping specific people
                     <select id="dc-recipients" multiple size="6"></select>
@@ -662,7 +981,7 @@
                 <label>Message <textarea id="dc-message" placeholder="Hello, hello, hello, hello..."></textarea></label>
                 <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
 
-                <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected squads above</div>
+                <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected teams above</div>
                 <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
                 <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
             </div>
@@ -676,25 +995,42 @@
         <div class="layout-grid">
             <div class="layout-main">
                 <h3>Accounts</h3>
-                <div id="accounts-bulk-bar" class="hint" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
-                    <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="accounts-select-all"> Select all</label>
-                    <span id="accounts-selected-count">0 selected</span>
-                    <select id="bulk-role">
-                        <option value="Player">Player</option>
-                        <option value="Leader">Leader</option>
-                        <option value="Commander">Commander</option>
-                    </select>
-                    <input id="bulk-squad" placeholder="Squad id (optional)" style="width:140px;">
-                    <button class="secondary" onclick="bulkAssignRole()">Assign role to selected</button>
-                    <button class="danger" id="bulk-delete-btn" onclick="bulkDeleteAccounts()">Delete selected</button>
+                <div class="toolbar">
+                    <div class="search-box">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        <input id="accounts-search" placeholder="Search accounts…" oninput="renderAccountsTable(knownAccounts)">
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="entries-pill">View
+                            <select id="accounts-view-mode"><option>List</option><option>Grid</option></select>
+                        </div>
+                    </div>
                 </div>
                 <div id="accounts-list"></div>
+                <div id="accounts-bulk-bar" class="confirm-bar">
+                    <div class="cb-count">
+                        <label style="display:flex; align-items:center; gap:6px; margin-bottom:0;"><input type="checkbox" class="cb" id="accounts-select-all"> Select all</label>
+                        <span id="accounts-selected-count">0 selected</span>
+                    </div>
+                    <div class="cb-actions">
+                        <span class="pill pill-select">
+                            <select id="bulk-role">
+                                <option value="Player">Player</option>
+                                <option value="Leader">Leader</option>
+                                <option value="Commander">Commander</option>
+                            </select>
+                        </span>
+                        <input id="bulk-squad" placeholder="Team id (optional)" style="width:140px; margin-top:0;">
+                        <button class="btn btn-danger btn-sm" id="bulk-delete-btn" onclick="bulkDeleteAccounts()">Delete</button>
+                        <button class="btn btn-primary btn-sm" onclick="bulkAssignRole()">Confirm</button>
+                    </div>
+                </div>
             </div>
 
             <div class="layout-side">
                 <h3>Bulk import accounts</h3>
-                <div class="hint">One account per line: <code>username password role squadId</code> (squadId optional). Example: <code>morda123 hunter2 Player alpha</code></div>
-                <textarea id="bulk-import-text" rows="6" placeholder="username password role squadId&#10;another_user pass1234 Player"></textarea>
+                <div class="hint">One account per line: <code>username password role teamId</code> (teamId optional). Example: <code>morda123 hunter2 Player alpha</code></div>
+                <textarea id="bulk-import-text" rows="6" placeholder="username password role teamId&#10;another_user pass1234 Player"></textarea>
                 <button class="primary" onclick="bulkImportAccounts()">Import</button>
 
                 <h3>Add a Commander/Admin/Developer account</h3>
@@ -712,10 +1048,12 @@
             </div>
         </div>
     </div>
+    </div>
 
     <script>
         const currentUser = requireAuth(['Admin', 'Developer']);
         const isDeveloper = currentUser.role === 'Developer';
+        renderSidebar('/admin.html');
 
         if (isDeveloper) document.getElementById('developer-tab-btn').style.display = '';
 
@@ -976,7 +1314,7 @@
           <div class="chip">
             <span>${escapeHtml(name)}</span>
             <select onchange="assignFromPool(${i}, this.value)">
-              <option value="">to squad...</option>
+              <option value="">to team...</option>
               ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
               <option value="${RESERVE_SQUAD_ID}">${tagEmoji.Backup || ''} Reserves</option>
             </select>
@@ -1001,10 +1339,10 @@
         function renderSquads() {
             const el = document.getElementById('squads');
             el.innerHTML = squads.map((sq, si) => `
-          <div class="squad-edit-card">
+          <div class="squad-edit-card" data-side="${sq.side}">
             <div class="squad-edit-header">
-              <strong>${sq.squadId}${sq.leaderName ? ' · Leader: ' + escapeHtml(sq.leaderName) : ''}</strong>
-              <select onchange="setSquadSide(${si}, this.value)" style="width:auto; margin:0; padding:4px;">
+              <strong>${sq.squadId}${sq.leaderName ? '<span class="squad-leader-note"> · Leader: ' + escapeHtml(sq.leaderName) + '</span>' : ''}</strong>
+              <select onchange="setSquadSide(${si}, this.value); this.closest('.squad-edit-card').dataset.side = this.value;">
                 <option value="Defense" ${sq.side === 'Defense' ? 'selected' : ''}>Defense</option>
                 <option value="Attack" ${sq.side === 'Attack' ? 'selected' : ''}>Attack</option>
                 <option value="Flex" ${sq.side === 'Flex' ? 'selected' : ''}>Flex</option>
@@ -1023,13 +1361,13 @@
             <div class="chip-list">
               ${sq.members.length > 0
                     ? sq.members.map((m, mi) => `
-                    <div class="member-chip">
+                    <div class="member-chip role-${(m.role || 'dps').toLowerCase()}">
                       <div class="member-top">
                         <span><span class="presence-dot ${onlineUsernames.has(m.nickname) ? 'online' : ''}" data-username="${escapeHtml(m.nickname)}" title="${onlineUsernames.has(m.nickname) ? 'Online' : 'Offline'}"></span>${escapeHtml(m.nickname)}</span>
-                        <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Remove from squad">×</button>
+                        <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Remove from team">×</button>
                       </div>
                       <div class="member-controls">
-                        <select class="role-select" onchange="setMemberRole(${si}, ${mi}, this.value)" title="Role">
+                        <select class="role-select" onchange="setMemberRole(${si}, ${mi}, this.value); this.closest('.member-chip').className = 'member-chip role-' + this.value.toLowerCase();" title="Role">
                           <option value="Dps" ${m.role === 'Dps' ? 'selected' : ''}>${roleEmoji.Dps || ''} DPS</option>
                           <option value="Tank" ${m.role === 'Tank' ? 'selected' : ''}>${roleEmoji.Tank || ''} TANK</option>
                           <option value="Healer" ${m.role === 'Healer' ? 'selected' : ''}>${roleEmoji.Healer || ''} HEALER</option>
@@ -1061,13 +1399,13 @@
             if (heading) heading.textContent = `${tagEmoji.Backup || ''} Reserves`.trim();
             if (reserves.members.length === 0) { el.innerHTML = '<span class="empty-hint">Empty</span>'; return; }
             el.innerHTML = reserves.members.map((m, mi) => `
-          <div class="member-chip">
+          <div class="member-chip role-${(m.role || 'dps').toLowerCase()}">
             <div class="member-top">
               <span><span class="presence-dot ${onlineUsernames.has(m.nickname) ? 'online' : ''}" data-username="${escapeHtml(m.nickname)}" title="${onlineUsernames.has(m.nickname) ? 'Online' : 'Offline'}"></span>${escapeHtml(m.nickname)}</span>
               <button class="chip-remove" onclick="removeFromReserve(${mi})" title="Back to pool">×</button>
             </div>
             <div class="member-controls">
-              <select class="role-select" onchange="setReserveMemberRole(${mi}, this.value)" title="Role">
+              <select class="role-select" onchange="setReserveMemberRole(${mi}, this.value); this.closest('.member-chip').className = 'member-chip role-' + this.value.toLowerCase();" title="Role">
                 <option value="Dps" ${m.role === 'Dps' ? 'selected' : ''}>${roleEmoji.Dps || ''} DPS</option>
                 <option value="Tank" ${m.role === 'Tank' ? 'selected' : ''}>${roleEmoji.Tank || ''} TANK</option>
                 <option value="Healer" ${m.role === 'Healer' ? 'selected' : ''}>${roleEmoji.Healer || ''} HEALER</option>
@@ -1078,8 +1416,8 @@
                 <option value="Center" ${m.bulwark === 'Center' ? 'selected' : ''}>♜ Center bulwark</option>
                 <option value="Bottom" ${m.bulwark === 'Bottom' ? 'selected' : ''}>♜↓ Bottom bulwark</option>
               </select>
-              <select onchange="moveReserveMemberToSquad(${mi}, this.value); this.value=''" title="Move to squad">
-                <option value="">to squad...</option>
+              <select onchange="moveReserveMemberToSquad(${mi}, this.value); this.value=''" title="Move to team">
+                <option value="">to team...</option>
                 ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
               </select>
             </div>
@@ -1126,7 +1464,7 @@
             const payload = [...squads, reserves].map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members, label: s.label || null, tags: s.tags }));
             connection.invoke("UpdateRoster", { squads: payload })
                 .then(() => {
-                    log(`Saved: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${squads.length} squads + reserves.`);
+                    log(`Saved: ${payload.reduce((n, s) => n + s.members.length, 0)} people across ${squads.length} teams + reserves.`);
                     refreshMemberPresets();
                 })
                 .catch(err => log("Error: " + err));
@@ -1220,19 +1558,26 @@
             if (!el) return;
             const rows = accounts.filter(a => a.role === 'Player' || a.role === 'Leader' || a.role === 'Commander');
             if (rows.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
-            el.innerHTML = '<table><tr><th></th><th>Username</th><th>Role</th><th>Squad</th></tr>' +
+            el.innerHTML = '<table class="tbl-modern"><tr><th></th><th>Username</th><th>Role</th><th>Team</th></tr>' +
                 rows.map(a => `
               <tr>
-                <td><input type="checkbox" class="admin-role-select" data-username="${escapeHtml(a.username)}"></td>
-                <td>${escapeHtml(a.username)}</td>
+                <td><input type="checkbox" class="cb admin-role-select" data-username="${escapeHtml(a.username)}"></td>
                 <td>
-                  <select onchange="setAccountRole('${escapeHtml(a.username)}', this.value)">
-                    <option value="Player" ${a.role === 'Player' ? 'selected' : ''}>Player</option>
-                    <option value="Leader" ${a.role === 'Leader' ? 'selected' : ''}>Leader</option>
-                    <option value="Commander" ${a.role === 'Commander' ? 'selected' : ''}>Commander</option>
-                  </select>
+                  <div class="row-cell">
+                    <div class="row-avatar" style="background:${avatarColor(a.username)}">${avatarInitials(a.username)}</div>
+                    <div class="row-name">${escapeHtml(a.username)}</div>
+                  </div>
                 </td>
-                <td>${a.squadId || '-'}</td>
+                <td>
+                  <span class="pill pill-select">
+                    <select onchange="setAccountRole('${escapeHtml(a.username)}', this.value)">
+                      <option value="Player" ${a.role === 'Player' ? 'selected' : ''}>Player</option>
+                      <option value="Leader" ${a.role === 'Leader' ? 'selected' : ''}>Leader</option>
+                      <option value="Commander" ${a.role === 'Commander' ? 'selected' : ''}>Commander</option>
+                    </select>
+                  </span>
+                </td>
+                <td>${a.squadId ? `<span class="pill pill-neutral">${escapeHtml(a.squadId)}</span>` : '<span class="empty-hint">-</span>'}</td>
               </tr>
             `).join('') + '</table>';
             const selectAll = document.getElementById('admin-roles-select-all');
@@ -1255,6 +1600,8 @@
         function updateAdminRolesSelectedCount() {
             const countEl = document.getElementById('admin-roles-selected-count');
             if (countEl) countEl.textContent = getSelectedUsernamesAdmin().length + ' selected';
+            const bar = document.getElementById('admin-roles-bulk-bar');
+            if (bar) bar.classList.toggle('confirm-bar-empty', getSelectedUsernamesAdmin().length === 0);
         }
 
         document.getElementById('admin-roles-select-all')?.addEventListener('change', e => {
@@ -1282,18 +1629,40 @@
                 .catch(err => log("Error: " + err));
         }
 
+        // Deterministic avatar color + initials, purely cosmetic (no real avatar images available)
+        const AVATAR_PALETTE = ['#7c6cf0', '#4fae82', '#e8a33d', '#4a90c4', '#c1622b', '#8a4de8', '#e05260'];
+        function avatarColor(name) {
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+            return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+        }
+        function avatarInitials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
+            if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
         function renderAccountsTable(accounts) {
             const el = document.getElementById('accounts-list');
-            if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
-            el.innerHTML = '<table><tr><th></th><th>Username</th><th>Discord</th><th>Role</th><th>Squad</th><th>Last login</th><th></th></tr>' +
-                accounts.map(a => `
+            const searchEl = document.getElementById('accounts-search');
+            const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
+            const filtered = q ? accounts.filter(a => a.username.toLowerCase().includes(q)) : accounts;
+            if (filtered.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts found.</span>'; return; }
+            el.innerHTML = '<table class="tbl-modern"><tr><th></th><th>Username</th><th>Discord</th><th>Role</th><th>Team</th><th>Last login</th><th></th></tr>' +
+                filtered.map(a => `
               <tr>
-                <td><input type="checkbox" class="account-select" data-username="${escapeHtml(a.username)}"></td>
-                <td>${escapeHtml(a.username)}</td>
+                <td><input type="checkbox" class="cb account-select" data-username="${escapeHtml(a.username)}"></td>
+                <td>
+                  <div class="row-cell">
+                    <div class="row-avatar" style="background:${avatarColor(a.username)}">${avatarInitials(a.username)}</div>
+                    <div class="row-name">${escapeHtml(a.username)}</div>
+                  </div>
+                </td>
                 <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">-</span>'}</td>
-                <td>${a.role}</td>
-                <td>${a.squadId || '-'}</td>
-                <td>${a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString() + (a.lastLoginIp ? ' · ' + escapeHtml(a.lastLoginIp) : '') : '<span class="empty-hint">never</span>'}</td>
+                <td><span class="pill ${a.role === 'Developer' || a.role === 'Admin' ? 'pill-accent' : 'pill-neutral'}">${a.role}</span></td>
+                <td>${a.squadId ? `<span class="pill pill-neutral">${escapeHtml(a.squadId)}</span>` : '<span class="empty-hint">-</span>'}</td>
+                <td class="row-sub">${a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString() + (a.lastLoginIp ? ' · ' + escapeHtml(a.lastLoginIp) : '') : '<span class="empty-hint">never</span>'}</td>
                 <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
               </tr>
             `).join('') + '</table>';
@@ -1307,6 +1676,8 @@
 
         function updateSelectedCount() {
             document.getElementById('accounts-selected-count').textContent = getSelectedUsernames().length + ' selected';
+            const bar = document.getElementById('accounts-bulk-bar');
+            if (bar) bar.classList.toggle('confirm-bar-empty', getSelectedUsernames().length === 0);
         }
 
         document.getElementById('accounts-select-all').addEventListener('change', e => {
@@ -1384,7 +1755,7 @@
             const parseErrors = [];
             for (const line of lines) {
                 const parts = line.split(/\s+/);
-                if (parts.length < 3) { parseErrors.push(`"${line}": expected "username password role [squadId]"`); continue; }
+                if (parts.length < 3) { parseErrors.push(`"${line}": expected "username password role [teamId]"`); continue; }
                 const [username, password, role, squadId] = parts;
                 if (!validRoles.includes(role)) { parseErrors.push(`"${line}": unknown role "${role}" (use ${validRoles.join('/')})`); continue; }
                 accountsToCreate.push({ username, password, role, squadId: squadId || null });
@@ -1416,6 +1787,12 @@
 
         function renderDiscordChannelsList() {
             const el = document.getElementById('discord-channels-list');
+            const summary = document.getElementById('discord-channels-summary');
+            if (summary) {
+                summary.textContent = discordChannels.length === 0
+                    ? 'No channels configured'
+                    : `${discordChannels.length} channel${discordChannels.length === 1 ? '' : 's'} configured`;
+            }
             if (discordChannels.length === 0) { el.innerHTML = '<span class="empty-hint">No channels configured yet.</span>'; return; }
             el.innerHTML = '<table><tr><th>Name</th><th>Webhook</th><th></th></tr>' +
                 discordChannels.map(c => `
@@ -1509,10 +1886,10 @@
             let squadIds = [...dcSelectedSquads];
             if (squadIds.length === 0) {
                 squadIds = squads.filter(s => s.members.length > 0).map(s => s.squadId);
-                log(`No squads selected, defaulting to all ${squadIds.length} non-empty squad(s).`);
+                log(`No teams selected, defaulting to all ${squadIds.length} non-empty team(s).`);
             }
             if (squadIds.length === 0) { log("Roster is empty, build it in section 2 first."); return; }
-            if (!confirm(`Send the Team composition post for ${squadIds.length} squad(s) to Discord now? This will really ping everyone in them.`)) return;
+            if (!confirm(`Send the Team composition post for ${squadIds.length} team(s) to Discord now? This will really ping everyone in them.`)) return;
 
             connection.invoke("SendRosterMessage", { channelId, squadIds })
                 .then(res => log(`Sent team composition: ${res.realPings} real ping(s), ${res.fallbackPings} plain-text ping(s).`))
@@ -1535,6 +1912,37 @@
             document.getElementById('dc-message').value = lines.join('\n').trim();
             log('Preview filled into the message box below, this is just a preview, use "Send team composition" to actually send it with real pings.');
         }
+
+        // Modals
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            const backdrop = document.getElementById(id + '-backdrop');
+            if (!modal) return;
+            modal.classList.add('open');
+            if (backdrop) backdrop.classList.add('open');
+            requestAnimationFrame(() => {
+                modal.classList.add('visible');
+                if (backdrop) backdrop.classList.add('visible');
+            });
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            const backdrop = document.getElementById(id + '-backdrop');
+            if (!modal) return;
+            modal.classList.remove('visible');
+            if (backdrop) backdrop.classList.remove('visible');
+            setTimeout(() => {
+                modal.classList.remove('open');
+                if (backdrop) backdrop.classList.remove('open');
+            }, 180);
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Escape') return;
+            document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
+        });
 
         function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
         function log(msg) {

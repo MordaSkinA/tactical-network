@@ -6,8 +6,12 @@
 <title>GvG - Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 <script src="/js/auth.js"></script>
+<link rel="stylesheet" href="/css/theme.css">
+<script src="/js/sidebar.js"></script>
 <style>
-  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 720px; margin: 0 auto; }
+  #app-content { display: flex; justify-content: center; }
+  #dash-inner { width: 100%; max-width: 720px; }
+  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; }
   h2 { margin-bottom: 2px; }
   #status { color:#666; font-size:12px; margin-bottom: 4px; }
   #battle-status { font-size:13px; font-weight:600; margin-bottom: 18px; padding: 8px 12px; border-radius: 6px; display:inline-block; }
@@ -37,7 +41,7 @@
   .cat-defend      { border-left-color:#4c7a4f; }
   .cat-hold        { border-left-color:#2e5230; }
   .cat-protect     { border-left-color:#4fae82; }
-  .cat-tactic      { border-left-color:#2f6fb2; }
+  .cat-tactic      { border-left-color:#7c6cf0; }
   .cat-fallback    { border-left-color:#4a90c4; }
   .cat-jungle      { border-left-color:#1e3a5f; }
   .cat-neutral     { border-left-color:#6b7280; }
@@ -78,7 +82,7 @@
     border: 2px solid #3a3a3a; background: #202020; color: #bbb; cursor: pointer;
   }
   .squad-chip:active { transform: scale(0.96); }
-  .squad-chip.selected { border-color: #eee; background: #2f6fb2; color: #fff; }
+  .squad-chip.selected { border-color: #eee; background: #7c6cf0; color: #fff; }
   #order-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
   #order-buttons.disabled { opacity: 0.4; pointer-events: none; }
   .order-btn { font-size: 13px; padding: 8px 12px; border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: 600; }
@@ -88,7 +92,7 @@
   .order-btn.defend     { background: #4c7a4f; }
   .order-btn.hold       { background: #2e5230; }
   .order-btn.protect    { background: #4fae82; }
-  .order-btn.tactic     { background: #2f6fb2; }
+  .order-btn.tactic     { background: #7c6cf0; }
   .order-btn.fallback   { background: #4a90c4; }
   .order-btn.jungle     { background: #1e3a5f; }
   .squad-card { cursor: pointer; border: 2px solid transparent; position: relative; overflow: hidden; }
@@ -157,19 +161,53 @@
     background: rgba(0,0,0,0.25); border: none; color: #ddd; width: 18px; height: 18px;
     border-radius: 50%; line-height: 1; font-size: 11px; cursor: pointer; padding: 0;
   }
-  #macro-save-row { display: flex; gap: 8px; margin-top: 10px; }
+  #macro-save-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   #macro-save-row input {
-    flex: 1; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px;
+    flex: 1 1 160px; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px;
     padding: 8px 10px; font-size: 13px;
   }
   #macro-save-btn { font-size: 12px; padding: 8px 12px; border: none; border-radius: 6px; background: #333; color: #fff; cursor: pointer; }
+
+  /* Order type dropdown (custom, replaces bare <select>) */
+  .order-type-select { position: relative; flex: 1 1 170px; }
+  .order-type-trigger {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    background: #222; color: #eee; border: 1px solid #444; border-radius: 6px;
+    padding: 8px 10px; font-size: 13px; cursor: pointer; text-align: left;
+  }
+  .order-type-trigger:hover { border-color: #666; }
+  .order-type-trigger:focus-visible { outline: 2px solid #9b8ff5; outline-offset: 1px; }
+  .order-type-trigger .order-type-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .order-type-trigger .order-type-caret { color: #777; font-size: 10px; transition: transform 0.15s ease; }
+  .order-type-select.open .order-type-caret { transform: rotate(180deg); }
+  .order-type-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; background: #555; }
+  .order-type-dot.attack     { background: #c1622b; }
+  .order-type-dot.attack-key { background: #e8790f; }
+  .order-type-dot.defend     { background: #4c7a4f; }
+  .order-type-dot.hold       { background: #2e5230; }
+  .order-type-dot.protect    { background: #4fae82; }
+  .order-type-dot.tactic     { background: #7c6cf0; }
+  .order-type-dot.fallback   { background: #4a90c4; }
+  .order-type-dot.jungle     { background: #1e3a5f; }
+  .order-type-menu {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
+    max-height: 260px; overflow-y: auto; background: #1c1c1c; border: 1px solid #333;
+    border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); padding: 4px;
+  }
+  .order-type-select.open .order-type-menu { display: block; }
+  .order-type-option {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-size: 13px;
+    color: #ddd; border-radius: 6px; cursor: pointer;
+  }
+  .order-type-option:hover, .order-type-option.highlighted { background: #2a2a2a; }
+  .order-type-option.selected { color: #fff; background: #262626; }
 </style>
 </head>
 <body>
+  <div id="app-sidebar"></div>
+  <div id="app-content"><div id="dash-inner">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
     <h2 style="margin: 0;">Main Commander. Live Feed</h2>
-    <a class="menu-nav-btn" href="/menu.html">Menu</a>
-    <button onclick="logout()" style="font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Log out</button>
   </div>
   <div id="status">connecting...</div>
   <div id="battle-status" class="inactive">No active battle</div>
@@ -184,13 +222,21 @@
     <div id="macro-list"></div>
     <div id="macro-save-row">
       <input id="macro-name-input" placeholder="Macro name, e.g. Fall back everyone">
-      <select id="macro-order-type"></select>
+      <div class="order-type-select" id="macro-order-type-select">
+        <button type="button" class="order-type-trigger" id="macro-order-type-trigger"
+                onclick="toggleMacroOrderTypeMenu()" aria-haspopup="listbox" aria-expanded="false">
+          <span class="order-type-dot" id="macro-order-type-dot"></span>
+          <span class="order-type-label" id="macro-order-type-label">Choose order…</span>
+          <span class="order-type-caret">▾</span>
+        </button>
+        <div class="order-type-menu" id="macro-order-type-menu" role="listbox"></div>
+      </div>
       <label style="display:flex; align-items:center; gap:4px; color:#999; font-size:12px; white-space:nowrap;">
-        <input type="checkbox" id="macro-all-squads" style="width:auto; flex:none;"> All squads
+        <input type="checkbox" id="macro-all-squads" style="width:auto; flex:none;"> All teams
       </label>
       <button id="macro-save-btn" onclick="saveCurrentAsMacro()">Save as macro</button>
     </div>
-    <div style="margin-top:6px; font-size:11px; color:#666;" id="macro-save-hint">Uses the squads currently selected below, unless "All squads" is checked.</div>
+    <div style="margin-top:6px; font-size:11px; color:#666;" id="macro-save-hint">Uses the teams currently selected below, unless "All teams" is checked.</div>
   </div>
 
   <div id="order-panel">
@@ -204,7 +250,7 @@
     <div id="order-buttons" class="disabled"></div>
   </div>
 
-  <div class="section-heading">Squads</div>
+  <div class="section-heading">Teams</div>
   <div id="roster"></div>
   <div id="reserves-section"></div>
 
@@ -212,9 +258,11 @@
     <div class="section-heading">Event feed</div>
     <div id="feed"></div>
   </div>
+  </div></div>
 
 <script>
   const currentUser = requireAuth(['Commander', 'Admin', 'Developer']);
+  renderSidebar('/dashboard.html');
 
   const connection = new signalR.HubConnectionBuilder()
     .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
@@ -247,7 +295,7 @@
 
   // Colors + labels 
   const STATUS_INFO = {
-    SquadWiped:  { color: '#e33',    label: 'SQUAD WIPED' },
+    SquadWiped:  { color: '#e33',    label: 'TEAM WIPED' },
     Regroup:     { color: '#4c7a4f', label: 'REGROUP' },
     NeedHelp:    { color: '#4fae82', label: 'NEED HELP' },
     Retreating:  { color: '#4a90c4', label: 'RETREATING' },
@@ -330,9 +378,48 @@
     `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${o.label}</button>`
   ).join('');
 
-  document.getElementById('macro-order-type').innerHTML = ORDER_TYPES.map(o =>
-    `<option value="${o.type}">${o.label}</option>`
+  // Custom order-type dropdown for macros (replaces the old bare <select>)
+  let macroOrderType = ORDER_TYPES[0].type;
+
+  document.getElementById('macro-order-type-menu').innerHTML = ORDER_TYPES.map(o =>
+    `<div class="order-type-option ${o.cls}" role="option" data-type="${o.type}" onclick="selectMacroOrderType('${o.type}')">
+       <span class="order-type-dot ${o.cls}"></span>${o.label}
+     </div>`
   ).join('');
+
+  function selectMacroOrderType(type) {
+    const o = ORDER_TYPES.find(x => x.type === type);
+    if (!o) return;
+    macroOrderType = type;
+    document.getElementById('macro-order-type-label').textContent = o.label;
+    document.getElementById('macro-order-type-dot').className = 'order-type-dot ' + o.cls;
+    document.querySelectorAll('#macro-order-type-menu .order-type-option').forEach(el =>
+      el.classList.toggle('selected', el.dataset.type === type)
+    );
+    closeMacroOrderTypeMenu();
+  }
+
+  function toggleMacroOrderTypeMenu() {
+    const wrap = document.getElementById('macro-order-type-select');
+    wrap.classList.toggle('open');
+    document.getElementById('macro-order-type-trigger').setAttribute('aria-expanded', wrap.classList.contains('open'));
+  }
+
+  function closeMacroOrderTypeMenu() {
+    document.getElementById('macro-order-type-select').classList.remove('open');
+    document.getElementById('macro-order-type-trigger').setAttribute('aria-expanded', 'false');
+  }
+
+  document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('macro-order-type-select');
+    if (wrap && !wrap.contains(e.target)) closeMacroOrderTypeMenu();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMacroOrderTypeMenu();
+  });
+
+  selectMacroOrderType(ORDER_TYPES[0].type);
 
   // Order macros
 
@@ -350,7 +437,7 @@
   function renderMacros() {
     const el = document.getElementById('macro-list');
     el.innerHTML = macros.map(m => {
-      const targetLabel = (m.squadIds && m.squadIds.length) ? m.squadIds.join(', ') : 'all squads';
+      const targetLabel = (m.squadIds && m.squadIds.length) ? m.squadIds.join(', ') : 'all teams';
       const orderLabel = (ORDER_TYPES.find(o => o.type === m.type) || {}).label || m.type;
       return `<button class="macro-btn" onclick="runMacro('${m.id}')" title="${orderLabel} → ${targetLabel}">
           ${escapeHtml(m.name)}
@@ -378,9 +465,9 @@
     if (!name) { setStatus("Give the macro a name first."); return; }
 
     const allSquads = document.getElementById('macro-all-squads').checked;
-    if (!allSquads && selectedSquadIds.size === 0) { setStatus("Select at least one squad, or check \"All squads\"."); return; }
+    if (!allSquads && selectedSquadIds.size === 0) { setStatus("Select at least one team, or check \"All teams\"."); return; }
 
-    const type = document.getElementById('macro-order-type').value;
+    const type = macroOrderType;
     const squadIds = allSquads ? [] : [...selectedSquadIds];
 
     connection.invoke("UpsertOrderMacro", { id: null, name, type, squadIds })
@@ -433,7 +520,7 @@
   }
 
   function issueOrder(type) {
-    if (selectedSquadIds.size === 0) { setStatus('Select at least one squad first'); return; }
+    if (selectedSquadIds.size === 0) { setStatus('Select at least one team first'); return; }
     connection.invoke("IssueOrder", { type, targetSquadIds: [...selectedSquadIds] })
       .catch(err => setStatus("Error: " + err));
   }

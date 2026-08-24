@@ -6,15 +6,17 @@
     <title>GvG - Player</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/sidebar.js"></script>
     <style>
         body {
             background: #0b0b0b;
             color: #eee;
             font-family: system-ui, sans-serif;
-            padding: 20px;
-            max-width: 480px;
-            margin: 0 auto;
         }
+
+        #app-content { display: flex; justify-content: center; }
+        #player-inner { width: 100%; max-width: 480px; }
 
         .header {
             display: flex;
@@ -70,7 +72,7 @@
             }
 
             #order-banner.has-order {
-                border-color: #2f6fb2;
+                border-color: #7c6cf0;
             }
 
             #order-banner.cat-critical {
@@ -104,7 +106,7 @@
             }
 
             #order-banner.cat-tactic {
-                border-color: #2f6fb2;
+                border-color: #7c6cf0;
                 background: #101a26;
             }
 
@@ -200,10 +202,10 @@
     </style>
 </head>
 <body>
+    <div id="app-sidebar"></div>
+    <div id="app-content"><div id="player-inner">
     <div class="header">
         <div id="status">connecting...</div>
-        <a class="menu-nav-btn" href="/menu.html">Menu</a>
-        <button class="logout-btn" onclick="logout()">Log out</button>
     </div>
 
     <div class="user-info" id="user-info">Loading...</div>
@@ -218,10 +220,12 @@
     <div id="alerts"></div>
 
     <button id="sos" onclick="sendSos()">NEED HELP</button>
+    </div></div>
 
     <script>
 
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
+        renderSidebar('/player.html');
         if (currentUser) {
             document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'None')}`;
         }
