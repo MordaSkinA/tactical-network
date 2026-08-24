@@ -173,6 +173,10 @@
   </div>
   <div id="status">connecting...</div>
   <div id="battle-status" class="inactive">No active battle</div>
+  <div id="battle-controls" style="margin-bottom: 14px;">
+    <button class="menu-nav-btn" style="background:#2e5230;" onclick="startBattleFromDashboard()">Start Battle</button>
+    <button class="menu-nav-btn" style="background:#6e1c1c;" onclick="endBattleFromDashboard()">End Battle</button>
+  </div>
   <div id="spawn-toast"></div>
 
   <div id="macro-panel">
@@ -707,6 +711,19 @@
 
   function setStatus(text) {
     document.getElementById('status').textContent = text;
+  }
+
+  function startBattleFromDashboard() {
+    connection.invoke("StartBattle")
+      .then(() => setStatus("connected · battle started"))
+      .catch(err => setStatus("connected · error: " + err));
+  }
+
+  function endBattleFromDashboard() {
+    if (!confirm("History will be archived to a file on the server, then cleared for everyone. Continue?")) return;
+    connection.invoke("EndBattle")
+      .then(() => setStatus("connected · battle ended, history archived"))
+      .catch(err => setStatus("connected · error: " + err));
   }
 
   let battleStartedAt = null;
