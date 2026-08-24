@@ -718,6 +718,12 @@
         }
         .config-trigger:hover .config-trigger-arrow { transform: translateX(2px); color: var(--text-dim); }
 
+        .config-topbar {
+            max-width: 460px;
+            margin-bottom: 22px;
+        }
+        .config-topbar .config-trigger { margin-bottom: 0; }
+
         /* ---------------- Modal ---------------- */
 
         .modal-backdrop {
@@ -821,6 +827,7 @@
             top: 20px;
             max-height: calc(100vh - 40px);
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
         /* Emoji config: compact grid instead of a stacked column of labels */
@@ -874,8 +881,20 @@
 
     <!-- ADMIN TAB-->
     <div id="tab-admin" class="tab-panel active">
-        <div class="layout-grid">
-            <div class="layout-main">
+        <div class="config-topbar">
+            <button type="button" class="config-trigger" onclick="openModal('discord-config-modal')">
+                <span class="config-trigger-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 12a4 4 0 0 1 4-4h3a4 4 0 1 1 0 8h-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 12a4 4 0 0 1-4 4H9a4 4 0 1 1 0-8h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+                <span class="config-trigger-text">
+                    <span class="config-trigger-title">Discord &amp; messaging</span>
+                    <span class="config-trigger-sub" id="discord-channels-summary">No channels configured</span>
+                </span>
+                <span class="config-trigger-arrow">›</span>
+            </button>
+        </div>
+
+        <div class="layout-main">
                 <h3 class="step"><span class="step-num">1</span> Add members to the pool</h3>
                 <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
                 <button class="primary" onclick="addToPool()">Add to pool</button>
@@ -930,21 +949,6 @@
                     <button class="primary" onclick="startBattle()">Start Battle</button>
                     <button class="danger" onclick="endBattle()">End Battle (archive &amp; clear)</button>
                 </div>
-            </div>
-
-            <div class="layout-side">
-                <h3>Configuration</h3>
-                <button type="button" class="config-trigger" onclick="openModal('discord-config-modal')">
-                    <span class="config-trigger-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 12a4 4 0 0 1 4-4h3a4 4 0 1 1 0 8h-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 12a4 4 0 0 1-4 4H9a4 4 0 1 1 0-8h1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                    </span>
-                    <span class="config-trigger-text">
-                        <span class="config-trigger-title">Discord &amp; messaging</span>
-                        <span class="config-trigger-sub" id="discord-channels-summary">No channels configured</span>
-                    </span>
-                    <span class="config-trigger-arrow">›</span>
-                </button>
-            </div>
         </div>
 
         <!-- Configuration modal: Discord webhooks, emoji, and message sending -->

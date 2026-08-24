@@ -58,6 +58,35 @@ body.app {
   align-self: flex-start;
 }
 
+@keyframes sbFadeInUp {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes sbShimmer {
+  to { background-position: 220% 0; }
+}
+@keyframes sbLogoPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(124, 108, 240, 0); }
+  50%      { box-shadow: 0 0 16px rgba(124, 108, 240, 0.6); }
+}
+@keyframes sbSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes sbGlowPulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(124, 108, 240, 0.35); }
+  50%      { box-shadow: 0 4px 24px rgba(124, 108, 240, 0.58); }
+}
+@keyframes sbShake {
+  10%, 90% { transform: translateX(-1px) rotate(-4deg); }
+  20%, 80% { transform: translateX(2px) rotate(4deg); }
+  30%, 50%, 70% { transform: translateX(-3px) rotate(-5deg); }
+  40%, 60% { transform: translateX(3px) rotate(5deg); }
+}
+
+#app-sidebar::-webkit-scrollbar { width: 6px; }
+#app-sidebar::-webkit-scrollbar-thumb { background: var(--accent-dim); border-radius: 4px; }
+#app-sidebar::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
 .sb-logo {
   display: flex;
   align-items: center;
@@ -68,14 +97,28 @@ body.app {
   font-size: 15px;
   letter-spacing: 0.06em;
   color: var(--text);
+  animation: sbFadeInUp 0.45s ease backwards;
 }
 
 .sb-logo .sb-logo-dot {
+  position: relative;
   width: 26px;
   height: 26px;
   border-radius: 8px;
   background: linear-gradient(135deg, var(--accent), #4d3fc7);
   flex: 0 0 auto;
+  overflow: hidden;
+  animation: sbLogoPulse 3s ease-in-out infinite;
+}
+
+.sb-logo .sb-logo-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%);
+  background-size: 250% 100%;
+  background-position: -120% 0;
+  animation: sbShimmer 3s ease-in-out infinite;
 }
 
 .sb-nav {
@@ -85,6 +128,7 @@ body.app {
 }
 
 .sb-link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -94,10 +138,62 @@ body.app {
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 600;
-  transition: background 0.15s ease, color 0.15s ease;
+  overflow: hidden;
+  isolation: isolate;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  animation: sbFadeInUp 0.4s ease backwards;
+}
+
+.sb-nav .sb-link:nth-child(1) { animation-delay: 0.04s; }
+.sb-nav .sb-link:nth-child(2) { animation-delay: 0.09s; }
+.sb-nav .sb-link:nth-child(3) { animation-delay: 0.14s; }
+.sb-nav .sb-link:nth-child(4) { animation-delay: 0.19s; }
+.sb-nav .sb-link:nth-child(5) { animation-delay: 0.24s; }
+.sb-nav .sb-link:nth-child(6) { animation-delay: 0.29s; }
+
+/* left accent bar that grows out of the edge */
+.sb-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent-light);
+  transform: translateY(-50%);
+  transition: height 0.25s ease;
+  z-index: 2;
+}
+
+/* diagonal light sweep across the link on hover */
+.sb-link::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.10), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.55s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.sb-link:hover::before { height: 60%; }
+.sb-link:hover::after { left: 130%; }
+.sb-link:hover { transform: translateX(2px); }
+
+.sb-link:active { transform: translateX(2px) scale(0.98); }
+
+.sb-link:focus-visible {
+  outline: 2px solid var(--accent-light);
+  outline-offset: 2px;
 }
 
 .sb-link .sb-icon {
+  position: relative;
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
@@ -105,6 +201,65 @@ body.app {
   align-items: center;
   justify-content: center;
   opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+/* Corner-bracket hover effect — corners grow along each edge and
+   meet in the middle, "pouring" into a full frame. */
+.sb-link .sb-icon::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 7px;
+  opacity: 0.55;
+  pointer-events: none;
+  color: var(--text-faint);
+  transition: background-size 0.4s cubic-bezier(.2, .8, .2, 1),
+              opacity 0.3s ease,
+              color 0.3s ease;
+  background-repeat: no-repeat;
+  background-image:
+    radial-gradient(circle, var(--accent-soft-bg) 0%, transparent 72%),
+    linear-gradient(to right,  currentColor 2px, transparent 2px),
+    linear-gradient(to bottom, currentColor 2px, transparent 2px),
+    linear-gradient(to left,   currentColor 2px, transparent 2px),
+    linear-gradient(to bottom, currentColor 2px, transparent 2px),
+    linear-gradient(to left,   currentColor 2px, transparent 2px),
+    linear-gradient(to top,    currentColor 2px, transparent 2px),
+    linear-gradient(to right,  currentColor 2px, transparent 2px),
+    linear-gradient(to top,    currentColor 2px, transparent 2px);
+  background-position:
+    center,
+    top left, top left,
+    top right, top right,
+    bottom right, bottom right,
+    bottom left, bottom left;
+  /* rest state: short stub marks in each corner */
+  background-size:
+    0% 0%,
+    7px 2px, 2px 7px,
+    7px 2px, 2px 7px,
+    7px 2px, 2px 7px,
+    7px 2px, 2px 7px;
+}
+
+.sb-link:hover .sb-icon {
+  opacity: 1;
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 5px var(--accent-light));
+}
+
+.sb-link:hover .sb-icon::before {
+  opacity: 1;
+  color: var(--accent-light);
+  /* hover state: each stub grows to 50% and meets its opposite
+     number at the midpoint of every edge, closing the frame */
+  background-size:
+    100% 100%,
+    50% 2px, 2px 50%,
+    50% 2px, 2px 50%,
+    50% 2px, 2px 50%,
+    50% 2px, 2px 50%;
 }
 
 .sb-link:hover {
@@ -115,10 +270,20 @@ body.app {
 .sb-link.active {
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(124, 108, 240, 0.35);
+  animation: sbGlowPulse 2.6s ease-in-out infinite;
 }
 
+.sb-link.active::before { height: 70%; background: #fff; }
 .sb-link.active .sb-icon { opacity: 1; }
+.sb-link.active .sb-icon::before { opacity: 0; }
+
+/* the gear-style Menu link gets its own little spin on hover */
+a.sb-link[href="/menu.html"] .sb-icon svg {
+  transition: transform 0.6s cubic-bezier(.2, .8, .2, 1);
+}
+a.sb-link[href="/menu.html"]:hover .sb-icon svg {
+  transform: rotate(90deg);
+}
 
 .sb-spacer { flex: 1; }
 
@@ -138,9 +303,16 @@ body.app {
   padding: 12px 10px;
   border-top: 1px solid var(--border-soft);
   margin-top: 12px;
+  animation: sbFadeInUp 0.4s ease backwards;
+  animation-delay: 0.34s;
+  transition: background 0.2s ease;
+  border-radius: var(--radius-md);
 }
 
+.sb-user:hover { background: var(--surface-2); }
+
 .sb-avatar {
+  position: relative;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -152,6 +324,19 @@ body.app {
   font-weight: 700;
   font-size: 13px;
   flex: 0 0 auto;
+  z-index: 0;
+}
+
+/* slow-spinning conic-gradient ring around the avatar */
+.sb-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--accent) 0deg, var(--accent-light) 90deg, transparent 190deg, var(--accent) 360deg);
+  z-index: -1;
+  opacity: 0.8;
+  animation: sbSpin 4.5s linear infinite;
 }
 
 .sb-user-info { min-width: 0; flex: 1; }
@@ -166,9 +351,18 @@ body.app {
   padding: 6px;
   border-radius: var(--radius-sm);
   flex: 0 0 auto;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
-.sb-logout:hover { background: var(--surface-3); color: var(--text); }
+.sb-logout:hover {
+  background: var(--danger-dim);
+  color: var(--danger);
+  transform: scale(1.08);
+}
+.sb-logout:hover svg { animation: sbShake 0.5s ease; }
+.sb-logout:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
 
 /* ---------------- Page shell ---------------- */
 
