@@ -5,7 +5,8 @@ public enum UserRole
     Admin,
     Commander,
     Leader,
-    Player
+    Player,
+    Developer
 }
 
 public enum EnemyRole
@@ -62,11 +63,16 @@ public enum MemberRole
     Healer
 }
 
+
 public enum MemberTag
 {
     Jungle,
     Boss,
-    Backup
+    Backup,
+    JungleTopOwn,
+    JungleBotOwn,
+    JungleTopEnemy,
+    JungleBotEnemy
 }
 
 public enum BulwarkPosition
@@ -87,6 +93,10 @@ public class UserAccount
     public string? SquadId { get; set; }
     public string? DiscordId { get; set; }
     public string? DiscordUsername { get; set; }
+
+    // Security info
+    public DateTimeOffset? LastLoginAt { get; set; }
+    public string? LastLoginIp { get; set; }
 }
 
 // Auth
@@ -135,7 +145,15 @@ public record SquadStatusPushDto(
 // Battle
 
 public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
-public record SpawnReminderDto(string Kind, int RemainingMinutes, DateTimeOffset FiredAt);
+
+public record SpawnReminderDto(string Kind, int RemainingMinutes, DateTimeOffset FiredAt, string? TargetSquadId = null, List<MemberTag>? Tags = null);
+
+public static class MemberTagHelpers
+{
+    public static readonly MemberTag[] SpecificJungleTags = {
+        MemberTag.JungleTopOwn, MemberTag.JungleBotOwn, MemberTag.JungleTopEnemy, MemberTag.JungleBotEnemy
+    };
+}
 
 // Roster 
 
@@ -184,6 +202,10 @@ public record SendDiscordMessageResultDto(bool Success, string? Message, int Rea
 // Auto-generated message from the current roster
 public record SendRosterMessageDto(string ChannelId, List<string>? SquadIds);
 
+
+public record OrderMacroDto(string Id, string Name, OrderType Type, List<string> SquadIds);
+public record UpsertOrderMacroDto(string? Id, string Name, OrderType Type, List<string>? SquadIds);
+
 // Custom emoji
 // ♜↑  ♜  ♜↓
 public record RoleEmojiEntryDto(MemberRole Role, string? Emoji);
@@ -192,9 +214,21 @@ public record EmojiSettingsDto(List<RoleEmojiEntryDto> Roles, List<TagEmojiEntry
 
 // Accounts 
 
-public record AccountSummaryDto(string Username, UserRole Role, string? SquadId, string? DiscordUsername);
+// LastLoginAt/LastLoginIp 
+public record AccountSummaryDto(string Username, UserRole Role, string? SquadId, string? DiscordUsername, DateTimeOffset? LastLoginAt = null, string? LastLoginIp = null);
 
 public record UpsertAccountDto(string Username, UserRole Role, string? SquadId, string? Password);
+
+
+public record AssignAccountRoleDto(string Username, UserRole Role, string? SquadId);
+
+public record BulkAssignAccountRoleDto(List<AssignAccountRoleDto> Assignments);
+public record BulkDeleteAccountsDto(List<string> Usernames);
+public record BulkCreateAccountDto(string Username, string Password, UserRole Role, string? SquadId);
+public record BulkCreateAccountsDto(List<BulkCreateAccountDto> Accounts);
+
+public record BulkAccountErrorDto(string Username, string Error);
+public record BulkAccountResultDto(List<string> Succeeded, List<BulkAccountErrorDto> Failed);
 public record ChangePasswordDto(string OldPassword, string NewPassword);
 public record DiscordConfigDto(string ClientId, string RedirectUri);
 public record MyAccountDto(string Username, UserRole Role, string? SquadId, bool DiscordLinked, string? DiscordUsername);

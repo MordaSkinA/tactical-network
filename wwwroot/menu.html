@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG - Menu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <style>
+        body {
+            background: #111;
+            color: #eee;
+            font-family: system-ui, sans-serif;
+            padding: 40px 20px;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        h3 {
+            margin-top: 32px;
+            margin-bottom: 10px;
+            color: #aaa;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .hint {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+
+        .tab-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 16px 18px;
+            color: #eee;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background 0.15s;
+            cursor: pointer;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+            .tab-btn:hover {
+                background: #222;
+            }
+
+            .tab-btn .arrow {
+                color: #666;
+            }
+
+        .header-btn {
+            font-size: 12px;
+            padding: 6px 12px;
+            background: #333;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        #discord-status {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+
+        details {
+            margin-top: 20px;
+            border-top: 1px solid #2a2a2a;
+            padding-top: 14px;
+        }
+
+        summary {
+            color: #888;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 6px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 4px;
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        #password-msg {
+            font-size: 12px;
+            margin-top: 8px;
+            min-height: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Menu <button class="header-btn" onclick="logout()">Log out</button></h2>
+    <div class="hint" id="hint">Loading...</div>
+    <div class="tab-list" id="tab-list"></div>
+
+    <h3>Account</h3>
+    <div id="discord-status">Loading…</div>
+    <button class="tab-btn" id="discord-link-btn" style="justify-content:center;" onclick="linkDiscord()">Link Discord account</button>
+
+    <details>
+        <summary>Change password</summary>
+        <label>Current password
+            <input id="old-password" type="password" autocomplete="current-password">
+        </label>
+        <label>New password
+            <input id="new-password" type="password" autocomplete="new-password">
+        </label>
+        <button class="header-btn" onclick="changePassword()">Change password</button>
+        <div id="password-msg"></div>
+    </details>
+
+    <script>
+        const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
+
+        document.getElementById('hint').textContent =
+            `Signed in as ${currentUser.username} (${currentUser.role}). Available tabs:`;
+
+        const labels = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel', Replay: 'Replay' };
+
+        const tabs = getAccessibleTabs(currentUser.role);
+        document.getElementById('tab-list').innerHTML = tabs.map(t => `
+            <a class="tab-btn" href="${t.url}">
+                <span>${labels[t.label] || t.label}</span>
+                <span class="arrow">→</span>
+            </a>
+        `).join('');
+
+        // Discord link + change password 
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
+            .withAutomaticReconnect()
+            .build();
+
+        connection.start().then(loadAccountInfo).catch(err => console.error(err));
+
+        async function loadAccountInfo() {
+            try {
+                const info = await connection.invoke("GetMyAccount");
+                const el = document.getElementById('discord-status');
+                if (info.discordLinked) {
+                    el.textContent = 'Discord: linked as ' + info.discordUsername;
+                    document.getElementById('discord-link-btn').textContent = 'Re-link Discord account';
+                } else {
+                    el.textContent = 'Discord: not linked';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function linkDiscord() {
+            const res = await fetch('/api/auth/discord/config');
+            const cfg = await res.json();
+            const params = new URLSearchParams({
+                client_id: cfg.clientId,
+                redirect_uri: cfg.redirectUri,
+                response_type: 'code',
+                scope: 'identify guilds',
+                state: currentUser.token
+            });
+            location.href = 'https://discord.com/api/oauth2/authorize?' + params.toString();
+        }
+
+        function changePassword() {
+            const oldPassword = document.getElementById('old-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const msg = document.getElementById('password-msg');
+
+            if (!oldPassword || !newPassword) {
+                msg.style.color = '#e33';
+                msg.textContent = 'Fill in both fields.';
+                return;
+            }
+
+            connection.invoke("ChangePassword", { oldPassword, newPassword })
+                .then(() => {
+                    msg.style.color = '#4caf50';
+                    msg.textContent = 'Password changed.';
+                    document.getElementById('old-password').value = '';
+                    document.getElementById('new-password').value = '';
+                })
+                .catch(err => {
+                    msg.style.color = '#e33';
+                    msg.textContent = 'Error: ' + err;
+                });
+        }
+    </script>
+</body>
+</html>

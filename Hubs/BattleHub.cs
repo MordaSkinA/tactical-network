@@ -17,10 +17,12 @@ public class BattleHub : Hub
     private readonly IMemberPresetStore _presets;
     private readonly IDiscordWebhookStore _discordChannels;
     private readonly IEmojiSettingsStore _emojiSettings;
+    private readonly IOrderMacroStore _macros;
     private readonly IHttpClientFactory _httpClientFactory;
 
     public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter,
-        IConnectionTracker connections, IMemberPresetStore presets, IDiscordWebhookStore discordChannels, IEmojiSettingsStore emojiSettings, IHttpClientFactory httpClientFactory)
+        IConnectionTracker connections, IMemberPresetStore presets, IDiscordWebhookStore discordChannels, IEmojiSettingsStore emojiSettings,
+        IOrderMacroStore macros, IHttpClientFactory httpClientFactory)
     {
         _state = state;
         _sessions = sessions;
@@ -30,6 +32,7 @@ public class BattleHub : Hub
         _presets = presets;
         _discordChannels = discordChannels;
         _emojiSettings = emojiSettings;
+        _macros = macros;
         _httpClientFactory = httpClientFactory;
     }
 
@@ -58,20 +61,46 @@ public class BattleHub : Hub
 
         if (session.Role == UserRole.Commander)
             await Groups.AddToGroupAsync(Context.ConnectionId, CommanderGroup);
-        if (session.Role == UserRole.Admin)
+        if (session.Role is UserRole.Admin or UserRole.Developer)
             await Groups.AddToGroupAsync(Context.ConnectionId, AdminGroup);
 
         await Clients.Caller.SendAsync("Snapshot", _state.GetRecentHistory());
         await Clients.Caller.SendAsync("RosterUpdated", _state.GetRoster());
         await Clients.Caller.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
+        await Clients.Caller.SendAsync("OnlineUsernames", _connections.GetOnlineUsernames());
         await base.OnConnectedAsync();
+
+        // announce presence on the user's first connection 
+        if (_connections.GetConnections(session.Username).Count == 1)
+            await BroadcastPresence(session.Username, squadId, online: true);
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public override async Task OnDisconnectedAsync(Exception? exception)
     {
         _rateLimiter.Reset(Context.ConnectionId);
-        _connections.Remove(Context.ConnectionId);
-        return base.OnDisconnectedAsync(exception);
+        var username = _connections.Remove(Context.ConnectionId);
+
+        if (!string.IsNullOrEmpty(username) && !_connections.IsOnline(username))
+        {
+            var squadId = _accounts.Find(username)?.SquadId;
+            await BroadcastPresence(username, squadId, online: false);
+        }
+
+        await base.OnDisconnectedAsync(exception);
+    }
+
+    private Task BroadcastPresence(string username, string? squadId, bool online)
+    {
+        var groups = new List<string> { CommanderGroup, AdminGroup };
+        if (!string.IsNullOrEmpty(squadId)) groups.Add(SquadGroup(squadId));
+        return Clients.Groups(groups).SendAsync("PresenceChanged", new { username, online });
+    }
+
+
+    public Task<List<string>> GetOnlineUsernames()
+    {
+        RequireAuthenticated();
+        return Task.FromResult(_connections.GetOnlineUsernames().ToList());
     }
 
     public async Task ReportEvent(ReportEventDto dto)
@@ -86,7 +115,7 @@ public class BattleHub : Hub
 
     public async Task IssueOrder(IssueOrderDto dto)
     {
-        var session = RequireRole(UserRole.Commander, UserRole.Admin);
+        var session = RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
 
         var targetSquadIds = (dto.TargetSquadIds ?? new()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (targetSquadIds.Count == 0)
@@ -106,6 +135,60 @@ public class BattleHub : Hub
         foreach (var squadId in targetSquadIds)
         {
             var order = _state.AddOrder(dto, session.Username, squadId);
+            await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
+        }
+    }
+
+    // Order macros
+
+    public Task<List<OrderMacroDto>> ListOrderMacros()
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        return Task.FromResult(_macros.All().OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
+    }
+
+    public Task<OrderMacroDto> UpsertOrderMacro(UpsertOrderMacroDto dto)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            throw new HubException("Give the macro a name.");
+
+        var macro = _macros.Upsert(dto.Id, dto.Name.Trim(), dto.Type, dto.SquadIds);
+        return Task.FromResult(macro);
+    }
+
+    public Task DeleteOrderMacro(string id)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        _macros.Delete(id);
+        return Task.CompletedTask;
+    }
+
+    public async Task ExecuteOrderMacro(string id)
+    {
+        var session = RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        var macro = _macros.Find(id) ?? throw new HubException("That macro doesn't exist anymore.");
+        RequireNotRateLimited();
+
+        var roster = _state.GetRoster();
+        var nonReserveSquadIds = roster
+            .Where(s => !string.Equals(s.SquadId, RosterConstants.ReserveSquadId, StringComparison.OrdinalIgnoreCase))
+            .Select(s => s.SquadId)
+            .ToList();
+
+
+        var targetSquadIds = (macro.SquadIds is { Count: > 0 } ? macro.SquadIds : nonReserveSquadIds)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(sid => nonReserveSquadIds.Contains(sid, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        if (targetSquadIds.Count == 0)
+            throw new HubException("None of this macro's squads exist in the current roster.");
+
+        var orderDto = new IssueOrderDto(macro.Type, targetSquadIds);
+        foreach (var squadId in targetSquadIds)
+        {
+            var order = _state.AddOrder(orderDto, session.Username, squadId);
             await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
         }
     }
@@ -132,7 +215,7 @@ public class BattleHub : Hub
 
     public async Task UpdateRoster(UpdateRosterDto dto)
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         _state.SetRoster(dto.Squads);
         _presets.SaveMany(dto.Squads.SelectMany(s => s.Members));
         await SyncAccountSquadsWithRoster(dto.Squads);
@@ -142,7 +225,7 @@ public class BattleHub : Hub
     // Remembered role by nickname
     public Task<Dictionary<string, MemberPresetDto>> GetMemberPresets()
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         return Task.FromResult(_presets.All().ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase));
     }
 
@@ -181,20 +264,20 @@ public class BattleHub : Hub
 
     public Task<List<DiscordChannelDto>> ListDiscordChannels()
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         return Task.FromResult(_discordChannels.All().ToList());
     }
 
     public Task<List<DiscordChannelSummaryDto>> ListDiscordChannelNames()
     {
-        RequireRole(UserRole.Commander, UserRole.Admin);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         var list = _discordChannels.All().Select(c => new DiscordChannelSummaryDto(c.Id, c.Name)).ToList();
         return Task.FromResult(list);
     }
 
     public Task<DiscordChannelDto> UpsertDiscordChannel(UpsertDiscordChannelDto dto)
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Name))
             throw new HubException("Channel name is required.");
         if (string.IsNullOrWhiteSpace(dto.WebhookUrl) || !dto.WebhookUrl.StartsWith("https://discord.com/api/webhooks/", StringComparison.OrdinalIgnoreCase))
@@ -206,7 +289,7 @@ public class BattleHub : Hub
 
     public Task DeleteDiscordChannel(string id)
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         _discordChannels.Delete(id);
         return Task.CompletedTask;
     }
@@ -214,7 +297,7 @@ public class BattleHub : Hub
     // Sends a message to Discord 
     public async Task<SendDiscordMessageResultDto> SendDiscordMessage(SendDiscordMessageDto dto)
     {
-        RequireRole(UserRole.Commander, UserRole.Admin);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
 
         var channel = _discordChannels.Find(dto.ChannelId);
         if (channel is null) throw new HubException("Unknown Discord channel.");
@@ -261,7 +344,7 @@ public class BattleHub : Hub
     // Team composition message from the current roster 
     public async Task<SendDiscordMessageResultDto> SendRosterMessage(SendRosterMessageDto dto)
     {
-        RequireRole(UserRole.Commander, UserRole.Admin);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
 
         var channel = _discordChannels.Find(dto.ChannelId);
         if (channel is null) throw new HubException("Unknown Discord channel.");
@@ -344,13 +427,13 @@ public class BattleHub : Hub
 
     public Task<EmojiSettingsDto> UpdateEmojiSettings(EmojiSettingsDto dto)
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         return Task.FromResult(_emojiSettings.Update(dto));
     }
 
     public async Task StartBattle()
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         var status = _state.StartBattle();
         await Clients.All.SendAsync("BattleStatusChanged", status);
     }
@@ -359,7 +442,7 @@ public class BattleHub : Hub
     // log and clearing
     public async Task EndBattle()
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         _state.EndBattle();
         await Clients.All.SendAsync("HistoryReset");
         await Clients.All.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
@@ -367,19 +450,19 @@ public class BattleHub : Hub
 
     public Task<string> SaveLogSnapshot()
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Admin, UserRole.Developer);
         return Task.FromResult(_state.SaveLogSnapshot());
     }
 
     public Task<IReadOnlyList<LogFileSummaryDto>> ListLogFiles()
     {
-        RequireRole(UserRole.Commander, UserRole.Admin);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         return Task.FromResult(_state.ListLogFiles());
     }
 
     public Task<string> GetLogFile(string fileName)
     {
-        RequireRole(UserRole.Commander, UserRole.Admin);
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         var content = _state.ReadLogFile(fileName);
         if (content is null) throw new HubException("Log file not found.");
         return Task.FromResult(content);
@@ -387,22 +470,140 @@ public class BattleHub : Hub
 
     public Task<List<AccountSummaryDto>> ListAccounts()
     {
-        RequireRole(UserRole.Admin);
+        var session = RequireRole(UserRole.Admin, UserRole.Developer);
+        // Security info 
+        var isDeveloper = session.Role == UserRole.Developer;
         var summaries = _accounts.All()
-            .Select(a => new AccountSummaryDto(a.Username, a.Role, a.SquadId, a.DiscordUsername))
+            .Select(a => new AccountSummaryDto(
+                a.Username, a.Role, a.SquadId, a.DiscordUsername,
+                isDeveloper ? a.LastLoginAt : null,
+                isDeveloper ? a.LastLoginIp : null))
             .OrderBy(a => a.Role).ThenBy(a => a.Username)
             .ToList();
         return Task.FromResult(summaries);
     }
 
+
     public Task UpsertAccount(UpsertAccountDto dto)
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Username))
             throw new HubException("Username is required.");
 
         _accounts.Upsert(dto.Username.Trim(), dto.Role, dto.SquadId, dto.Password);
         return Task.CompletedTask;
+    }
+
+
+    public Task AssignAccountRole(AssignAccountRoleDto dto)
+    {
+        var session = RequireRole(UserRole.Admin, UserRole.Developer);
+        if (string.IsNullOrWhiteSpace(dto.Username))
+            throw new HubException("Username is required.");
+
+        var target = _accounts.Find(dto.Username.Trim());
+        if (target is null)
+            throw new HubException("That account isn't registered yet. Only already-registered accounts can be assigned a role.");
+
+        if (session.Role == UserRole.Admin && target.Role is UserRole.Admin or UserRole.Developer)
+            throw new HubException("Admin and Developer accounts can only be changed by a Developer.");
+
+        if (session.Role == UserRole.Admin && dto.Role is UserRole.Admin or UserRole.Developer)
+            throw new HubException("Only a Developer can grant Admin or Developer access.");
+
+        _accounts.AssignRoleAndSquad(dto.Username.Trim(), dto.Role, dto.SquadId);
+        return Task.CompletedTask;
+    }
+
+
+
+    public Task<BulkAccountResultDto> BulkAssignAccountRole(BulkAssignAccountRoleDto dto)
+    {
+        var session = RequireRole(UserRole.Admin, UserRole.Developer);
+        var succeeded = new List<string>();
+        var failed = new List<BulkAccountErrorDto>();
+
+        foreach (var item in dto.Assignments ?? new())
+        {
+            var username = (item.Username ?? "").Trim();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username))
+                    throw new HubException("Username is required.");
+                var target = _accounts.Find(username);
+                if (target is null)
+                    throw new HubException("Not registered yet - only already-registered accounts can be assigned.");
+                if (session.Role == UserRole.Admin && target.Role is UserRole.Admin or UserRole.Developer)
+                    throw new HubException("Admin and Developer accounts can only be changed by a Developer.");
+                if (session.Role == UserRole.Admin && item.Role is UserRole.Admin or UserRole.Developer)
+                    throw new HubException("Only a Developer can grant Admin or Developer access.");
+
+                _accounts.AssignRoleAndSquad(username, item.Role, item.SquadId);
+                succeeded.Add(username);
+            }
+            catch (Exception ex)
+            {
+                failed.Add(new BulkAccountErrorDto(string.IsNullOrWhiteSpace(username) ? "(blank)" : username, ex.Message));
+            }
+        }
+        return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
+    }
+
+    public Task<BulkAccountResultDto> BulkDeleteAccounts(BulkDeleteAccountsDto dto)
+    {
+        RequireRole(UserRole.Developer);
+        var succeeded = new List<string>();
+        var failed = new List<BulkAccountErrorDto>();
+
+        foreach (var raw in dto.Usernames ?? new())
+        {
+            var username = (raw ?? "").Trim();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username))
+                    throw new HubException("Username is required.");
+                if (ProtectedAccounts.Contains(username))
+                    throw new HubException("This account is protected and cannot be deleted.");
+                if (_accounts.Find(username) is null)
+                    throw new HubException("Account not found.");
+
+                _accounts.Delete(username);
+                succeeded.Add(username);
+            }
+            catch (Exception ex)
+            {
+                failed.Add(new BulkAccountErrorDto(string.IsNullOrWhiteSpace(username) ? "(blank)" : username, ex.Message));
+            }
+        }
+        return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
+    }
+
+    // Import/create many accounts at once 
+    public Task<BulkAccountResultDto> BulkCreateAccounts(BulkCreateAccountsDto dto)
+    {
+        RequireRole(UserRole.Developer);
+        var succeeded = new List<string>();
+        var failed = new List<BulkAccountErrorDto>();
+
+        foreach (var item in dto.Accounts ?? new())
+        {
+            var username = (item.Username ?? "").Trim();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(username))
+                    throw new HubException("Username is required.");
+                if (string.IsNullOrWhiteSpace(item.Password) || item.Password.Length < 4)
+                    throw new HubException("Password is too short.");
+
+                _accounts.Upsert(username, item.Role, item.SquadId, item.Password);
+                succeeded.Add(username);
+            }
+            catch (Exception ex)
+            {
+                failed.Add(new BulkAccountErrorDto(string.IsNullOrWhiteSpace(username) ? "(blank)" : username, ex.Message));
+            }
+        }
+        return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
     }
 
     public Task<MyAccountDto> GetMyAccount()
@@ -437,7 +638,7 @@ public class BattleHub : Hub
 
     public Task DeleteAccount(string username)
     {
-        RequireRole(UserRole.Admin);
+        RequireRole(UserRole.Developer);
         if (ProtectedAccounts.Contains(username?.Trim() ?? string.Empty))
             throw new HubException("This account is protected and cannot be deleted.");
         _accounts.Delete(username);

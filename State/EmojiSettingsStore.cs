@@ -35,7 +35,11 @@ public class FileEmojiSettingsStore : IEmojiSettingsStore
     private static readonly Dictionary<MemberTag, string> DefaultTagEmoji = new() {
         [MemberTag.Jungle] = "🌲",
         [MemberTag.Boss] = "👹",
-        [MemberTag.Backup] = "🔁"
+        [MemberTag.Backup] = "🔁",
+        [MemberTag.JungleTopOwn] = "🌲⬆️",
+        [MemberTag.JungleBotOwn] = "🌲⬇️",
+        [MemberTag.JungleTopEnemy] = "☠️⬆️",
+        [MemberTag.JungleBotEnemy] = "☠️⬇️"
     };
 
     public FileEmojiSettingsStore(IHostEnvironment env)

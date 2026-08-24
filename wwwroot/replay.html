@@ -61,7 +61,7 @@
   </div>
 
 <script>
-  const currentUser = requireAuth(['Commander', 'Admin']);
+  const currentUser = requireAuth(['Commander', 'Admin', 'Developer']);
 
   const connection = new signalR.HubConnectionBuilder()
     .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
