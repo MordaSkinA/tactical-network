@@ -57,7 +57,13 @@
   .role-badge.Tank { background: #1a2a3a; color: #7dc0e8; }
   .role-badge.Healer { background: #1a3a1a; color: #7dd87d; }
   .tag-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: #2a2a2a; color: #999; }
+  .comp-warning {
+    font-size: 10px; font-weight: 700; color: #f0a0a0; background: #2a1414;
+    border: 1px solid #6e1c1c; border-radius: 4px; padding: 2px 7px; margin: 4px 0; display: inline-block;
+  }
   .bulwark-badge { font-size: 12px; }
+  .presence-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: #444; }
+  .presence-dot.online { background: #4fd15a; box-shadow: 0 0 5px #4fd15a; }
   .squad-card.Defense { border-left: 3px solid #3d8ee8; }
   .squad-card.Attack  { border-left: 3px solid #e8a33d; }
   .squad-card.Flex    { border-left: 3px solid #8a4de8; }
@@ -135,6 +141,28 @@
   }
   #feed-section .section-heading { margin-top: 0; }
   #feed:empty::after { content: 'No events yet.'; color: #555; font-size: 13px; }
+
+  /* Order macros */
+  #macro-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
+  #macro-panel h4 { margin: 0 0 10px 0; font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+  #macro-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  #macro-list:empty::after { content: 'No macros saved yet - build a target + order below, then "Save as macro".'; color: #555; font-size: 12px; }
+  .macro-btn {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+    padding: 8px 10px 8px 14px; border-radius: 999px; border: none; color: #fff;
+    background: #3a2f6e; cursor: pointer;
+  }
+  .macro-btn:active { transform: scale(0.97); }
+  .macro-btn .macro-delete {
+    background: rgba(0,0,0,0.25); border: none; color: #ddd; width: 18px; height: 18px;
+    border-radius: 50%; line-height: 1; font-size: 11px; cursor: pointer; padding: 0;
+  }
+  #macro-save-row { display: flex; gap: 8px; margin-top: 10px; }
+  #macro-save-row input {
+    flex: 1; background: #222; color: #eee; border: 1px solid #444; border-radius: 6px;
+    padding: 8px 10px; font-size: 13px;
+  }
+  #macro-save-btn { font-size: 12px; padding: 8px 12px; border: none; border-radius: 6px; background: #333; color: #fff; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -146,6 +174,20 @@
   <div id="status">connecting...</div>
   <div id="battle-status" class="inactive">No active battle</div>
   <div id="spawn-toast"></div>
+
+  <div id="macro-panel">
+    <h4>Order macros</h4>
+    <div id="macro-list"></div>
+    <div id="macro-save-row">
+      <input id="macro-name-input" placeholder="Macro name, e.g. Fall back everyone">
+      <select id="macro-order-type"></select>
+      <label style="display:flex; align-items:center; gap:4px; color:#999; font-size:12px; white-space:nowrap;">
+        <input type="checkbox" id="macro-all-squads" style="width:auto; flex:none;"> All squads
+      </label>
+      <button id="macro-save-btn" onclick="saveCurrentAsMacro()">Save as macro</button>
+    </div>
+    <div style="margin-top:6px; font-size:11px; color:#666;" id="macro-save-hint">Uses the squads currently selected below, unless "All squads" is checked.</div>
+  </div>
 
   <div id="order-panel">
     <h4>Issue order</h4>
@@ -168,7 +210,7 @@
   </div>
 
 <script>
-  const currentUser = requireAuth(['Commander', 'Admin']);
+  const currentUser = requireAuth(['Commander', 'Admin', 'Developer']);
 
   const connection = new signalR.HubConnectionBuilder()
     .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
@@ -284,6 +326,68 @@
     `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${o.label}</button>`
   ).join('');
 
+  document.getElementById('macro-order-type').innerHTML = ORDER_TYPES.map(o =>
+    `<option value="${o.type}">${o.label}</option>`
+  ).join('');
+
+  // Order macros
+
+  let macros = [];
+
+  async function refreshMacros() {
+    try {
+      macros = await connection.invoke("ListOrderMacros");
+      renderMacros();
+    } catch (err) {
+      setStatus("Failed to load macros: " + err);
+    }
+  }
+
+  function renderMacros() {
+    const el = document.getElementById('macro-list');
+    el.innerHTML = macros.map(m => {
+      const targetLabel = (m.squadIds && m.squadIds.length) ? m.squadIds.join(', ') : 'all squads';
+      const orderLabel = (ORDER_TYPES.find(o => o.type === m.type) || {}).label || m.type;
+      return `<button class="macro-btn" onclick="runMacro('${m.id}')" title="${orderLabel} → ${targetLabel}">
+          ${escapeHtml(m.name)}
+          <span class="macro-delete" onclick="event.stopPropagation(); deleteMacro('${m.id}')" title="Delete macro">×</span>
+        </button>`;
+    }).join('');
+  }
+
+  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  function runMacro(id) {
+    connection.invoke("ExecuteOrderMacro", id).catch(err => setStatus("Error: " + err));
+  }
+
+  function deleteMacro(id) {
+    const macro = macros.find(m => m.id === id);
+    if (!confirm(`Delete macro "${macro ? macro.name : id}"?`)) return;
+    connection.invoke("DeleteOrderMacro", id)
+      .then(refreshMacros)
+      .catch(err => setStatus("Error: " + err));
+  }
+
+  function saveCurrentAsMacro() {
+    const name = document.getElementById('macro-name-input').value.trim();
+    if (!name) { setStatus("Give the macro a name first."); return; }
+
+    const allSquads = document.getElementById('macro-all-squads').checked;
+    if (!allSquads && selectedSquadIds.size === 0) { setStatus("Select at least one squad, or check \"All squads\"."); return; }
+
+    const type = document.getElementById('macro-order-type').value;
+    const squadIds = allSquads ? [] : [...selectedSquadIds];
+
+    connection.invoke("UpsertOrderMacro", { id: null, name, type, squadIds })
+      .then(() => {
+        document.getElementById('macro-name-input').value = '';
+        document.getElementById('macro-all-squads').checked = false;
+        refreshMacros();
+      })
+      .catch(err => setStatus("Error: " + err));
+  }
+
   let selectedSquadIds = new Set();
 
   function persistSelection() {
@@ -331,7 +435,7 @@
   }
 
   connection.onreconnecting(() => setStatus("reconnecting..."));
-  connection.onreconnected(() => setStatus("connected"));
+  connection.onreconnected(() => { setStatus("connected"); refreshMacros(); });
 
   connection.on("BattleEvent", evt =>
     addItem(alertClass(evt), `${evt.enemyRole ?? evt.note ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
@@ -352,18 +456,54 @@
 
   connection.on("SpawnReminder", showSpawnToast);
 
+  // Online/offline presence
+  let onlineUsernames = new Set();
+
+  connection.on("OnlineUsernames", names => {
+    onlineUsernames = new Set(names);
+    paintAllPresence();
+  });
+
+  connection.on("PresenceChanged", p => {
+    if (p.online) onlineUsernames.add(p.username); else onlineUsernames.delete(p.username);
+    paintPresence(p.username);
+  });
+
+  function paintPresence(username) {
+    document.querySelectorAll(`.presence-dot[data-username="${CSS.escape(username)}"]`).forEach(dot => {
+      dot.classList.toggle('online', onlineUsernames.has(username));
+    });
+  }
+
+  function paintAllPresence() {
+    document.querySelectorAll('.presence-dot').forEach(dot => {
+      dot.classList.toggle('online', onlineUsernames.has(dot.dataset.username));
+    });
+  }
+
   let spawnToastTimer = null;
-  const SPAWN_TOAST_TEXT = {
-    Jungle: 'ЛЕСНЫЕ КЕМПЫ СПАВНЯТСЯ',
-    Boss: 'БОСС СПАВНИТСЯ',
-    JungleAndBoss: 'ЛЕС И БОСС СПАВНЯТСЯ'
+  const JUNGLE_TAG_TEXT = {
+    JungleTopOwn: 'ВЕРХНИЙ ЛЕС (СВОЙ)',
+    JungleBotOwn: 'НИЖНИЙ ЛЕС (СВОЙ)',
+    JungleTopEnemy: 'ВЕРХНИЙ ЛЕС (ВРАГ)',
+    JungleBotEnemy: 'НИЖНИЙ ЛЕС (ВРАГ)',
+    Jungle: 'ЛЕСНЫЕ КЕМПЫ'
   };
 
   function showSpawnToast(reminder) {
     const el = document.getElementById('spawn-toast');
-    el.textContent = SPAWN_TOAST_TEXT[reminder.kind] || 'СПАВН';
+    let text;
+    if (reminder.kind === 'Boss') {
+      text = 'БОСС СПАВНИТСЯ';
+    } else {
+      const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
+      const label = tags.map(t => JUNGLE_TAG_TEXT[t] || 'ЛЕСНЫЕ КЕМПЫ').join(' И ');
+      const prefix = reminder.targetSquadId ? `${reminder.targetSquadId}: ` : '';
+      text = `${prefix}${label} СПАВНИТСЯ`;
+    }
+    el.textContent = text;
     el.classList.remove('kind-Boss');
-    if (reminder.kind === 'Boss' || reminder.kind === 'JungleAndBoss') el.classList.add('kind-Boss');
+    if (reminder.kind === 'Boss') el.classList.add('kind-Boss');
     el.classList.add('show');
     if (spawnToastTimer) clearTimeout(spawnToastTimer);
     spawnToastTimer = setTimeout(() => el.classList.remove('show'), 8000);
@@ -387,10 +527,19 @@
   }
 
   connection.start()
-    .then(() => setStatus("connected"))
+    .then(() => { setStatus("connected"); refreshMacros(); })
     .catch(err => setStatus("connection failed: " + err));
 
   const RESERVE_SQUAD_ID = 'RESERVE';
+  const TAG_LABELS = {
+    Jungle: 'Jungle',
+    Boss: 'Boss',
+    Backup: 'Backup',
+    JungleTopOwn: 'Top jungle (own)',
+    JungleBotOwn: 'Bot jungle (own)',
+    JungleTopEnemy: 'Top jungle (enemy)',
+    JungleBotEnemy: 'Bot jungle (enemy)'
+  };
 
   function renderRoster(fullRoster) {
     fullRoster = fullRoster || [];
@@ -426,7 +575,7 @@
       (sq.tags || []).forEach(tag => {
         const tagEl = document.createElement('span');
         tagEl.className = 'tag-badge';
-        tagEl.textContent = tag;
+        tagEl.textContent = TAG_LABELS[tag] || tag;
         tagEl.style.marginLeft = '6px';
         h4.appendChild(tagEl);
       });
@@ -434,6 +583,19 @@
       const membersEl = document.createElement('div');
       membersEl.className = 'members';
       const members = sq.members || [];
+
+      let warnEl = null;
+      const hasTank = members.some(m => m.role === 'Tank');
+      const hasHealer = members.some(m => m.role === 'Healer');
+      if (members.length > 0 && (!hasTank || !hasHealer)) {
+        const missing = [];
+        if (!hasHealer) missing.push('healer');
+        if (!hasTank) missing.push('tank');
+        warnEl = document.createElement('div');
+        warnEl.className = 'comp-warning';
+        warnEl.textContent = `⚠ No ${missing.join(' / ')}`;
+      }
+
       if (members.length === 0) {
         membersEl.textContent = '-';
       } else {
@@ -444,6 +606,12 @@
           const nameEl = document.createElement('span');
           nameEl.textContent = m.nickname;
           row.appendChild(nameEl);
+
+          const presenceDot = document.createElement('span');
+          presenceDot.className = 'presence-dot' + (onlineUsernames.has(m.nickname) ? ' online' : '');
+          presenceDot.dataset.username = m.nickname;
+          presenceDot.title = onlineUsernames.has(m.nickname) ? 'Online' : 'Offline';
+          row.appendChild(presenceDot);
 
           if (m.role) {
             const roleEl = document.createElement('span');
@@ -474,7 +642,9 @@
       statusText.className = 'status-text';
       statusLabel.append(statusDot, statusText);
 
-      card.append(h4, membersEl, statusLabel, statusSide);
+      card.append(h4);
+      if (warnEl) card.append(warnEl);
+      card.append(membersEl, statusLabel, statusSide);
       el.appendChild(card);
     });
 
@@ -506,6 +676,12 @@
       const nameEl = document.createElement('span');
       nameEl.textContent = m.nickname;
       row.appendChild(nameEl);
+
+      const presenceDot = document.createElement('span');
+      presenceDot.className = 'presence-dot' + (onlineUsernames.has(m.nickname) ? ' online' : '');
+      presenceDot.dataset.username = m.nickname;
+      presenceDot.title = onlineUsernames.has(m.nickname) ? 'Online' : 'Offline';
+      row.appendChild(presenceDot);
 
       if (m.role) {
         const roleEl = document.createElement('span');

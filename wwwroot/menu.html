@@ -146,7 +146,7 @@
     </details>
 
     <script>
-        const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin']);
+        const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
 
         document.getElementById('hint').textContent =
             `Signed in as ${currentUser.username} (${currentUser.role}). Available tabs:`;

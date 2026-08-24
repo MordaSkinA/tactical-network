@@ -7,20 +7,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             background: #111;
             color: #eee;
             font-family: system-ui, sans-serif;
-            padding: 20px;
-            max-width: 720px;
-            margin: 0 auto;
+            padding: 20px 32px 60px;
+            margin: 0;
+            width: 100%;
         }
 
         h2 {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
 
         h3 {
@@ -54,7 +58,6 @@
             font-size: 14px;
             width: 100%;
             margin-top: 6px;
-            box-sizing: border-box;
         }
 
         textarea {
@@ -191,6 +194,21 @@
             gap: 6px;
         }
 
+        .presence-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #444;
+            margin-right: 6px;
+            flex: 0 0 auto;
+        }
+
+            .presence-dot.online {
+                background: #4fd15a;
+                box-shadow: 0 0 5px #4fd15a;
+            }
+
         .member-controls {
             display: flex;
             align-items: center;
@@ -282,7 +300,7 @@
 
         .squad-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 12px;
         }
 
@@ -291,6 +309,18 @@
             border-radius: 10px;
             padding: 12px;
             border: 1px solid #333;
+        }
+
+        .comp-warning {
+            font-size: 11px;
+            font-weight: 700;
+            color: #f0a0a0;
+            background: #2a1414;
+            border: 1px solid #6e1c1c;
+            border-radius: 4px;
+            padding: 3px 8px;
+            margin-bottom: 8px;
+            display: inline-block;
         }
 
         .squad-edit-header {
@@ -358,90 +388,232 @@
             text-decoration: none;
             margin-right: 8px;
         }
+
+        /* Section tab bar (Admin / Developer) */
+
+        .section-tab-bar {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #2a2a2a;
+            margin-bottom: 24px;
+        }
+
+        .section-tab-btn {
+            background: transparent;
+            color: #888;
+            border: none;
+            border-radius: 0;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0;
+            border-bottom: 2px solid transparent;
+        }
+
+            .section-tab-btn.active {
+                color: #eee;
+                border-bottom-color: #2f6fb2;
+            }
+
+            .section-tab-btn:hover {
+                color: #ccc;
+            }
+
+        .tab-panel {
+            display: none;
+        }
+
+            .tab-panel.active {
+                display: block;
+            }
+
+        /* Full-width two column layout, used instead of a narrow single column */
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 380px;
+            gap: 32px;
+            align-items: start;
+        }
+
+        .layout-side {
+            background: #161616;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 16px 20px;
+            position: sticky;
+            top: 20px;
+        }
+
+            .layout-side h3:first-child {
+                margin-top: 4px;
+            }
+
+        @media (max-width: 1100px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .layout-side {
+                position: static;
+            }
+        }
     </style>
 </head>
 <body>
     <h2>Admin Panel <span><a class="menu-nav-btn" href="/menu.html">Menu</a><button class="header-btn" onclick="logout()">Log out</button></span></h2>
 
-    <div id="battle-status" class="inactive">No active battle</div>
-
-    <h3>1. Add members to the pool</h3>
-    <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
-    <button class="primary" onclick="addToPool()">Add to pool</button>
-
-    <h3>Free players (Unassigned)</h3>
-    <div id="pool" class="chip-list"></div>
-
-    <h3>2. Teams. Assign players, set role and leaders</h3>
-    <div class="hint">"L" icon on a name - make leader (grants access to the Team Leader panel). "P" - create a player account.</div>
-    <div id="squads" class="squad-grid"></div>
-
-    <h3 id="reserves-heading">Reserves</h3>
-    <div class="hint">Players moved here are pulled out of their team entirely. They show up as their own list for the Commander too, and can't be targeted by combat orders.</div>
-    <div id="reserves" class="chip-list"></div>
-
-    <div style="margin-top:20px;">
-        <button class="primary" onclick="saveRoster()">Save roster</button>
-        <button class="secondary" onclick="saveLogNow()">Save log now</button>
+    <div class="section-tab-bar">
+        <button class="section-tab-btn active" data-tab="admin" onclick="switchTab('admin')">Admin</button>
+        <button class="section-tab-btn" data-tab="developer" id="developer-tab-btn" onclick="switchTab('developer')" style="display:none;">Developer</button>
     </div>
 
-    <h3>Battle</h3>
-    <div>
-        <button class="primary" onclick="startBattle()">Start Battle</button>
-        <button class="danger" onclick="endBattle()">End Battle (archive &amp; clear)</button>
+    <!-- ADMIN TAB-->
+    <div id="tab-admin" class="tab-panel active">
+        <div id="battle-status" class="inactive">No active battle</div>
+
+        <div class="layout-grid">
+            <div class="layout-main">
+                <h3>1. Add members to the pool</h3>
+                <textarea id="pool-input" placeholder="Toad, toad, toad, toad..."></textarea>
+                <button class="primary" onclick="addToPool()">Add to pool</button>
+
+                <h3>Free players (Unassigned)</h3>
+                <div id="pool" class="chip-list"></div>
+
+                <details id="unassigned-registered-block">
+                    <summary>Registered accounts not yet in the pool or a squad</summary>
+                    <div class="hint">Already have an account (e.g. self-registered via Discord) but aren't in the pool yet? Add them from here.</div>
+                    <div id="unassigned-registered" class="chip-list"></div>
+                </details>
+
+                <details id="admin-roles-block">
+                    <summary>Manage roles (Player / Leader / Commander)</summary>
+                    <div class="hint">Change an already-registered account's role. Admin and Developer accounts don't show up here and can't be changed from this screen.</div>
+                    <div id="admin-roles-bulk-bar" class="hint" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                        <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="admin-roles-select-all"> Select all</label>
+                        <span id="admin-roles-selected-count">0 selected</span>
+                        <select id="admin-roles-bulk-role">
+                            <option value="Player">Player</option>
+                            <option value="Leader">Leader</option>
+                            <option value="Commander">Commander</option>
+                        </select>
+                        <input id="admin-roles-bulk-squad" placeholder="Squad id (optional)" style="width:140px;">
+                        <button class="secondary" onclick="bulkAssignRoleAdmin()">Assign role to selected</button>
+                    </div>
+                    <div id="admin-roles-list"></div>
+                </details>
+
+                <h3>2. Teams. Assign players, set role and leaders</h3>
+                <div class="hint">"L" icon on a name - make leader (grants access to the Team Leader panel). "P" - create a player account.</div>
+                <div id="squads" class="squad-grid"></div>
+
+                <h3 id="reserves-heading">Reserves</h3>
+                <div class="hint">Players moved here are pulled out of their team entirely. They show up as their own list for the Commander too, and can't be targeted by combat orders.</div>
+                <div id="reserves" class="chip-list"></div>
+
+                <div style="margin-top:20px;">
+                    <button class="primary" onclick="saveRoster()">Save roster</button>
+                    <button class="secondary" onclick="saveLogNow()">Save log now</button>
+                </div>
+
+                <h3>Battle</h3>
+                <div>
+                    <button class="primary" onclick="startBattle()">Start Battle</button>
+                    <button class="danger" onclick="endBattle()">End Battle (archive &amp; clear)</button>
+                </div>
+            </div>
+
+            <div class="layout-side">
+                <h3>Discord channels (webhooks)</h3>
+                <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed, just right-click a channel in Discord -> Edit Channel --> Integrations -> Webhooks -> New Webhook -> Copy URL</div>
+                <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
+                <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
+                <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
+                <div id="discord-channels-list" style="margin-top:10px;"></div>
+
+                <h3>Emoji for roles &amp; tags</h3>
+                <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it, it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed and aren't customizable here</div>
+                <div id="emoji-role-inputs"></div>
+                <div id="emoji-tag-inputs" style="margin-top:10px;"></div>
+                <button class="secondary" onclick="saveEmojiSettings()">Save emoji</button>
+
+                <h3>Send a Discord message</h3>
+                <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text</div>
+                <label>Channel
+                    <select id="dc-send-channel"></select>
+                </label>
+                <label>Ping whole squads (click to toggle)</label>
+                <div id="dc-squad-toggles" class="chip-list" style="margin-bottom:14px;"></div>
+                <label>Also ping specific people
+                    <select id="dc-recipients" multiple size="6"></select>
+                </label>
+                <label>Message <textarea id="dc-message" placeholder="Hello, hello, hello, hello..."></textarea></label>
+                <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
+
+                <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected squads above</div>
+                <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
+                <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
+            </div>
+        </div>
+
+        <div id="log"></div>
     </div>
 
-    <h3>3. Accounts</h3>
-    <div id="accounts-list"></div>
+    <!-- DEVELOPER TAB -->
+    <div id="tab-developer" class="tab-panel">
+        <div class="layout-grid">
+            <div class="layout-main">
+                <h3>Accounts</h3>
+                <div id="accounts-bulk-bar" class="hint" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px;">
+                    <label style="display:flex; align-items:center; gap:4px;"><input type="checkbox" id="accounts-select-all"> Select all</label>
+                    <span id="accounts-selected-count">0 selected</span>
+                    <select id="bulk-role">
+                        <option value="Player">Player</option>
+                        <option value="Leader">Leader</option>
+                        <option value="Commander">Commander</option>
+                    </select>
+                    <input id="bulk-squad" placeholder="Squad id (optional)" style="width:140px;">
+                    <button class="secondary" onclick="bulkAssignRole()">Assign role to selected</button>
+                    <button class="danger" id="bulk-delete-btn" onclick="bulkDeleteAccounts()">Delete selected</button>
+                </div>
+                <div id="accounts-list"></div>
+            </div>
 
-    <h3>4. Discord channels (webhooks)</h3>
-    <div class="hint">Paste one webhook URL per channel you want to send to. No bot needed, just right-click a channel in Discord -> Edit Channel --> Integrations -> Webhooks -> New Webhook -> Copy URL</div>
-    <label>Channel name <input id="dc-name" placeholder="e.g. gvg-alerts"></label>
-    <label>Webhook URL <input id="dc-url" placeholder="https://discord.com/api/webhooks/..."></label>
-    <button class="secondary" onclick="addDiscordChannel()">Add channel</button>
-    <div id="discord-channels-list" style="margin-top:10px;"></div>
+            <div class="layout-side">
+                <h3>Bulk import accounts</h3>
+                <div class="hint">One account per line: <code>username password role squadId</code> (squadId optional). Example: <code>morda123 hunter2 Player alpha</code></div>
+                <textarea id="bulk-import-text" rows="6" placeholder="username password role squadId&#10;another_user pass1234 Player"></textarea>
+                <button class="primary" onclick="bulkImportAccounts()">Import</button>
 
-    <h3>5. Emoji for roles &amp; tags</h3>
-    <div class="hint">Custom server emoji: in Discord type <code>\:youremoji:</code> in any channel and send it, it turns into the raw code (like <code>&lt;:tank:123456789012345678&gt;</code>). Paste that here. Leave a field empty to use the default emoji. Bulwark markers are fixed and aren't customizable here</div>
-    <div id="emoji-role-inputs"></div>
-    <div id="emoji-tag-inputs" style="margin-top:10px;"></div>
-    <button class="secondary" onclick="saveEmojiSettings()">Save emoji</button>
-
-    <h3>6. Send a Discord message</h3>
-    <div class="hint">Players with Discord linked to their account get a real @mention. Everyone else is pinged as plain text</div>
-    <label>Channel
-        <select id="dc-send-channel"></select>
-    </label>
-    <label>Ping whole squads (click to toggle)</label>
-    <div id="dc-squad-toggles" class="chip-list" style="margin-bottom:14px;"></div>
-    <label>Also ping specific people
-        <select id="dc-recipients" multiple size="6"></select>
-    </label>
-    <label>Message <textarea id="dc-message" placeholder="Hello, hello, hello, hello..."></textarea></label>
-    <button class="primary" onclick="sendDiscordMessage()">Send custom message</button>
-
-    <div class="hint" style="margin-top:18px;">Or auto-build the "Team composition" post from the current roster and ping everyone in the selected squads above</div>
-    <button class="secondary" onclick="previewRosterMessage()">Preview text</button>
-    <button class="primary" onclick="sendRosterMessage()">Send team composition</button>
-
-    <details>
-        <summary>Add a Commander/Admin account</summary>
-        <label>Username <input id="new-acc-username"></label>
-        <label>Password <input id="new-acc-password" type="password"></label>
-        <label>
-            Role
-            <select id="new-acc-role">
-                <option value="Commander">Commander</option>
-                <option value="Admin">Admin</option>
-            </select>
-        </label>
-        <button class="primary" onclick="addStandaloneAccount()">Create</button>
-    </details>
-
-    <div id="log"></div>
+                <h3>Add a Commander/Admin/Developer account</h3>
+                <label>Username <input id="new-acc-username"></label>
+                <label>Password <input id="new-acc-password" type="password"></label>
+                <label>
+                    Role
+                    <select id="new-acc-role">
+                        <option value="Commander">Commander</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Developer">Developer</option>
+                    </select>
+                </label>
+                <button class="primary" onclick="addStandaloneAccount()">Create</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        const currentUser = requireAuth(['Admin']);
+        const currentUser = requireAuth(['Admin', 'Developer']);
+        const isDeveloper = currentUser.role === 'Developer';
+
+        if (isDeveloper) document.getElementById('developer-tab-btn').style.display = '';
+
+        function switchTab(name) {
+            document.querySelectorAll('.section-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+            document.getElementById('tab-admin').classList.toggle('active', name === 'admin');
+            document.getElementById('tab-developer').classList.toggle('active', name === 'developer');
+        }
 
         let pool = [];
         let squads = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'].map(id => ({ squadId: id, side: 'Flex', leaderName: null, members: [], label: '', tags: [] }));
@@ -449,12 +621,20 @@
         let reserves = { squadId: RESERVE_SQUAD_ID, side: 'Flex', leaderName: null, members: [], label: 'Reserves', tags: [] };
         let roleEmoji = { Dps: '⚔️', Tank: '🛡️', Healer: '💚' };
 
-        let tagEmoji = { Jungle: '🌲', Boss: '👹', Backup: '🔁' };
+        let tagEmoji = { Jungle: '🌲', Boss: '👹', Backup: '🔁', JungleTopOwn: '🌲⬆️', JungleBotOwn: '🌲⬇️', JungleTopEnemy: '☠️⬆️', JungleBotEnemy: '☠️⬇️' };
+
+        const JUNGLE_TAG_OPTIONS = [
+            ['JungleTopOwn', 'Top jungle (own)'],
+            ['JungleBotOwn', 'Bottom jungle (own)'],
+            ['JungleTopEnemy', 'Top jungle (enemy)'],
+            ['JungleBotEnemy', 'Bottom jungle (enemy)']
+        ];
         const BULWARK_SYMBOL = { None: '', Bottom: ' ♜↓', Center: ' ♜', Top: ' ♜↑' };
         let initialized = false;
         let memberPresets = {};
         let discordChannels = [];
         let dcSelectedSquads = new Set();
+        let onlineUsernames = new Set();
 
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
@@ -469,6 +649,22 @@
 
         connection.on("HistoryReset", () => log("History archived and reset (broadcast confirmed)."));
         connection.on("BattleStatusChanged", status => renderBattleStatus(status));
+
+        connection.on("OnlineUsernames", names => {
+            onlineUsernames = new Set(names);
+            document.querySelectorAll('.presence-dot').forEach(dot => {
+                dot.classList.toggle('online', onlineUsernames.has(dot.dataset.username));
+                dot.title = onlineUsernames.has(dot.dataset.username) ? 'Online' : 'Offline';
+            });
+        });
+
+        connection.on("PresenceChanged", p => {
+            if (p.online) onlineUsernames.add(p.username); else onlineUsernames.delete(p.username);
+            document.querySelectorAll(`.presence-dot[data-username="${CSS.escape(p.username)}"]`).forEach(dot => {
+                dot.classList.toggle('online', p.online);
+                dot.title = p.online ? 'Online' : 'Offline';
+            });
+        });
 
         connection.start()
             .then(() => { log("Connected."); refreshAccounts(); refreshMemberPresets(); refreshDiscordChannels(); refreshEmojiSettings(); })
@@ -500,7 +696,11 @@
           <label>${role} emoji <input id="emoji-role-${role}" value="${escapeHtml(roleEmoji[role] || '')}" placeholder="default"></label>
         `).join('');
 
-            const tagLabel = { Jungle: 'Jungle', Boss: 'Boss', Backup: 'Reserves' };
+            const tagLabel = {
+                Jungle: 'Jungle (legacy)', Boss: 'Boss', Backup: 'Reserves',
+                JungleTopOwn: 'Top jungle (own)', JungleBotOwn: 'Bottom jungle (own)',
+                JungleTopEnemy: 'Top jungle (enemy)', JungleBotEnemy: 'Bottom jungle (enemy)'
+            };
             const tagEl = document.getElementById('emoji-tag-inputs');
             tagEl.innerHTML = Object.keys(tagEmoji).map(tag => `
           <label>${tagLabel[tag] || tag} emoji <input id="emoji-tag-${tag}" value="${escapeHtml(tagEmoji[tag] || '')}" placeholder="default"></label>
@@ -603,6 +803,21 @@
         // leads, players, accounts
 
         function makeAccount(name, squadId, role) {
+            const existing = knownAccounts.find(a => a.username.toLowerCase() === name.toLowerCase());
+
+            if (existing) {
+
+                connection.invoke("AssignAccountRole", { username: existing.username, role, squadId: squadId || null })
+                    .then(() => { log(`Role assigned: ${existing.username} (${role}${squadId ? ', ' + squadId : ''})`); refreshAccounts(); })
+                    .catch(err => log("Error: " + err));
+                return;
+            }
+
+            if (!isDeveloper) {
+                log(`${name} isn't a registered account yet - have them log in via Discord first, or ask a Developer to create the account.`);
+                return;
+            }
+
             const username = prompt(`Username for ${name}:`, name);
             if (!username) return;
             const password = prompt(`Password for ${name}:`);
@@ -632,6 +847,8 @@
 
         function setMemberRole(si, mi, role) {
             squads[si].members[mi].role = role;
+            const el = document.getElementById(`comp-warning-${si}`);
+            if (el) el.innerHTML = compositionWarning(squads[si].members);
         }
 
         function setMemberBulwark(si, mi, bulwark) {
@@ -641,8 +858,6 @@
         function tagsSummaryText(tags) {
             return tags && tags.length > 0 ? tags.join(', ') : 'Tags ▾';
         }
-
-
 
         function renderPool() {
             const el = document.getElementById('pool');
@@ -659,6 +874,18 @@
           </div>
         `).join('');
             renderDiscordRecipientOptions();
+            renderUnassignedRegistered();
+        }
+
+        function compositionWarning(members) {
+            if (!members || members.length === 0) return '';
+            const hasTank = members.some(m => m.role === 'Tank');
+            const hasHealer = members.some(m => m.role === 'Healer');
+            if (hasTank && hasHealer) return '';
+            const missing = [];
+            if (!hasHealer) missing.push('healer');
+            if (!hasTank) missing.push('tank');
+            return `<div class="comp-warning">⚠ No ${missing.join(' / ')}</div>`;
         }
 
         function renderSquads() {
@@ -673,12 +900,13 @@
                 <option value="Flex" ${sq.side === 'Flex' ? 'selected' : ''}>Flex</option>
               </select>
             </div>
+            <div id="comp-warning-${si}">${compositionWarning(sq.members)}</div>
             <input type="text" placeholder="Team label for Discord post, e.g. J3 + B or Pressure" value="${escapeHtml(sq.label || '')}"
                    oninput="setSquadLabel(${si}, this.value)" style="margin:0 0 8px 0;">
             <details class="tag-dropdown" style="margin-bottom:10px;">
               <summary id="squad-tag-summary-${si}">${tagsSummaryText(sq.tags)}</summary>
               <div class="tag-options">
-                <label><input type="checkbox" ${sq.tags.includes('Jungle') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Jungle')"> ${tagEmoji.Jungle || ''} Jungle</label>
+                ${JUNGLE_TAG_OPTIONS.map(([tag, tagLabel]) => `<label><input type="checkbox" ${sq.tags.includes(tag) ? 'checked' : ''} onchange="toggleSquadTag(${si}, '${tag}')"> ${tagEmoji[tag] || ''} ${tagLabel}</label>`).join('')}
                 <label><input type="checkbox" ${sq.tags.includes('Boss') ? 'checked' : ''} onchange="toggleSquadTag(${si}, 'Boss')"> ${tagEmoji.Boss || ''} Boss</label>
               </div>
             </details>
@@ -687,7 +915,7 @@
                     ? sq.members.map((m, mi) => `
                     <div class="member-chip">
                       <div class="member-top">
-                        <span>${escapeHtml(m.nickname)}</span>
+                        <span><span class="presence-dot ${onlineUsernames.has(m.nickname) ? 'online' : ''}" data-username="${escapeHtml(m.nickname)}" title="${onlineUsernames.has(m.nickname) ? 'Online' : 'Offline'}"></span>${escapeHtml(m.nickname)}</span>
                         <button class="chip-remove" data-action="unassign" data-squad-index="${si}" data-member-index="${mi}" title="Remove from squad">×</button>
                       </div>
                       <div class="member-controls">
@@ -714,6 +942,7 @@
         `).join('');
             renderDiscordSquadToggles();
             renderDiscordRecipientOptions();
+            renderUnassignedRegistered();
         }
 
         function renderReserves() {
@@ -724,7 +953,7 @@
             el.innerHTML = reserves.members.map((m, mi) => `
           <div class="member-chip">
             <div class="member-top">
-              <span>${escapeHtml(m.nickname)}</span>
+              <span><span class="presence-dot ${onlineUsernames.has(m.nickname) ? 'online' : ''}" data-username="${escapeHtml(m.nickname)}" title="${onlineUsernames.has(m.nickname) ? 'Online' : 'Offline'}"></span>${escapeHtml(m.nickname)}</span>
               <button class="chip-remove" onclick="removeFromReserve(${mi})" title="Back to pool">×</button>
             </div>
             <div class="member-controls">
@@ -832,56 +1061,161 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // accounts
+        // accounts (Developer tab: full account management)
+
+        let knownAccounts = [];
 
         async function refreshAccounts() {
             try {
                 const accounts = await connection.invoke("ListAccounts");
-                const el = document.getElementById('accounts-list');
-                if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
-                el.innerHTML = '<table><tr><th>Username</th><th>Discord</th><th>Role</th><th>Squad</th><th></th></tr>' +
-                    accounts.map(a => {
-                        const unassigned = !a.squadId && (a.role === 'Player' || a.role === 'Leader');
-                        const inPoolOrSquad = pool.includes(a.username) || squads.some(s => s.members.some(m => m.nickname === a.username));
-                        const addBtn = unassigned && !inPoolOrSquad
-                            ? `<button class="chip-action player" data-add-to-pool="${escapeHtml(a.username)}" title="Add to pool">+</button>`
-                            : '';
-                        return `
-              <tr>
-                <td>${escapeHtml(a.username)}</td>
-                <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">-</span>'}</td>
-                <td>${a.role}</td>
-                <td>${a.squadId || '-'}</td>
-                <td>${addBtn}<button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
-              </tr>
-            `;
-                    }).join('') + '</table>';
+                knownAccounts = accounts;
+                renderUnassignedRegistered();
+                renderAdminRolesTable(accounts);
+                if (isDeveloper) renderAccountsTable(accounts);
             } catch (err) {
                 log("Failed to load accounts: " + err);
             }
         }
 
+
+        function renderUnassignedRegistered() {
+            const el = document.getElementById('unassigned-registered');
+            if (!el) return;
+            const inPoolOrSquad = name => pool.includes(name) || squads.some(s => s.members.some(m => m.nickname === name));
+            const candidates = knownAccounts.filter(a =>
+                (a.role === 'Player' || a.role === 'Leader') && !inPoolOrSquad(a.username));
+            if (candidates.length === 0) { el.innerHTML = '<span class="empty-hint">None</span>'; return; }
+            el.innerHTML = candidates.map(a => `
+          <div class="chip">
+            <span>${escapeHtml(a.username)} <span style="color:#666;">(${a.role})</span></span>
+            <button class="chip-action player" data-add-to-pool="${escapeHtml(a.username)}" title="Add to pool">+</button>
+          </div>
+        `).join('');
+        }
+
+        document.getElementById('unassigned-registered').addEventListener('click', e => {
+            const addBtn = e.target.closest('button[data-add-to-pool]');
+            if (!addBtn) return;
+            const username = addBtn.dataset.addToPool;
+            if (!pool.includes(username)) {
+                pool.push(username);
+                renderPool();
+                log(`Added to pool: ${username}`);
+            }
+        });
+
+
+        function renderAdminRolesTable(accounts) {
+            const el = document.getElementById('admin-roles-list');
+            if (!el) return;
+            const rows = accounts.filter(a => a.role === 'Player' || a.role === 'Leader' || a.role === 'Commander');
+            if (rows.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
+            el.innerHTML = '<table><tr><th></th><th>Username</th><th>Role</th><th>Squad</th></tr>' +
+                rows.map(a => `
+              <tr>
+                <td><input type="checkbox" class="admin-role-select" data-username="${escapeHtml(a.username)}"></td>
+                <td>${escapeHtml(a.username)}</td>
+                <td>
+                  <select onchange="setAccountRole('${escapeHtml(a.username)}', this.value)">
+                    <option value="Player" ${a.role === 'Player' ? 'selected' : ''}>Player</option>
+                    <option value="Leader" ${a.role === 'Leader' ? 'selected' : ''}>Leader</option>
+                    <option value="Commander" ${a.role === 'Commander' ? 'selected' : ''}>Commander</option>
+                  </select>
+                </td>
+                <td>${a.squadId || '-'}</td>
+              </tr>
+            `).join('') + '</table>';
+            const selectAll = document.getElementById('admin-roles-select-all');
+            if (selectAll) selectAll.checked = false;
+            updateAdminRolesSelectedCount();
+        }
+
+        function setAccountRole(username, role) {
+            const account = knownAccounts.find(a => a.username === username);
+            const squadId = account ? account.squadId || null : null;
+            connection.invoke("AssignAccountRole", { username, role, squadId })
+                .then(() => { log(`Role assigned: ${username} (${role})`); refreshAccounts(); })
+                .catch(err => { log("Error: " + err); refreshAccounts(); });
+        }
+
+        function getSelectedUsernamesAdmin() {
+            return Array.from(document.querySelectorAll('.admin-role-select:checked')).map(cb => cb.dataset.username);
+        }
+
+        function updateAdminRolesSelectedCount() {
+            const countEl = document.getElementById('admin-roles-selected-count');
+            if (countEl) countEl.textContent = getSelectedUsernamesAdmin().length + ' selected';
+        }
+
+        document.getElementById('admin-roles-select-all')?.addEventListener('change', e => {
+            document.querySelectorAll('.admin-role-select').forEach(cb => cb.checked = e.target.checked);
+            updateAdminRolesSelectedCount();
+        });
+
+        document.getElementById('admin-roles-list')?.addEventListener('change', e => {
+            if (e.target.classList.contains('admin-role-select')) updateAdminRolesSelectedCount();
+        });
+
+        function bulkAssignRoleAdmin() {
+            const usernames = getSelectedUsernamesAdmin();
+            if (usernames.length === 0) { log("Select at least one account."); return; }
+            const role = document.getElementById('admin-roles-bulk-role').value;
+            const squadId = document.getElementById('admin-roles-bulk-squad').value.trim() || null;
+            const assignments = usernames.map(username => ({ username, role, squadId }));
+
+            connection.invoke("BulkAssignAccountRole", { assignments })
+                .then(result => {
+                    log(`Role assigned to ${result.succeeded.length}/${usernames.length} account(s) (${role}).`);
+                    result.failed.forEach(f => log(`  ${f.username}: ${f.error}`));
+                    refreshAccounts();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        function renderAccountsTable(accounts) {
+            const el = document.getElementById('accounts-list');
+            if (accounts.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts yet.</span>'; return; }
+            el.innerHTML = '<table><tr><th></th><th>Username</th><th>Discord</th><th>Role</th><th>Squad</th><th>Last login</th><th></th></tr>' +
+                accounts.map(a => `
+              <tr>
+                <td><input type="checkbox" class="account-select" data-username="${escapeHtml(a.username)}"></td>
+                <td>${escapeHtml(a.username)}</td>
+                <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">-</span>'}</td>
+                <td>${a.role}</td>
+                <td>${a.squadId || '-'}</td>
+                <td>${a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString() + (a.lastLoginIp ? ' · ' + escapeHtml(a.lastLoginIp) : '') : '<span class="empty-hint">never</span>'}</td>
+                <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
+              </tr>
+            `).join('') + '</table>';
+            document.getElementById('accounts-select-all').checked = false;
+            updateSelectedCount();
+        }
+
+        function getSelectedUsernames() {
+            return Array.from(document.querySelectorAll('.account-select:checked')).map(cb => cb.dataset.username);
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('accounts-selected-count').textContent = getSelectedUsernames().length + ' selected';
+        }
+
+        document.getElementById('accounts-select-all').addEventListener('change', e => {
+            document.querySelectorAll('.account-select').forEach(cb => cb.checked = e.target.checked);
+            updateSelectedCount();
+        });
+
+        document.getElementById('accounts-list').addEventListener('change', e => {
+            if (e.target.classList.contains('account-select')) updateSelectedCount();
+        });
+
         document.getElementById('accounts-list').addEventListener('click', e => {
             const deleteBtn = e.target.closest('button[data-delete-username]');
-            if (deleteBtn) {
-                const username = deleteBtn.dataset.deleteUsername;
-                if (!confirm(`Delete account "${username}"?`)) return;
-                connection.invoke("DeleteAccount", username)
-                    .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
-                    .catch(err => log("Error: " + err));
-                return;
-            }
-
-            const addBtn = e.target.closest('button[data-add-to-pool]');
-            if (addBtn) {
-                const username = addBtn.dataset.addToPool;
-                if (!pool.includes(username) && !squads.some(s => s.members.some(m => m.nickname === username))) {
-                    pool.push(username);
-                    renderPool();
-                    log(`Added to pool: ${username}`);
-                    refreshAccounts();
-                }
-            }
+            if (!deleteBtn) return;
+            const username = deleteBtn.dataset.deleteUsername;
+            if (!confirm(`Delete account "${username}"?`)) return;
+            connection.invoke("DeleteAccount", username)
+                .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
+                .catch(err => log("Error: " + err));
         });
 
         function addStandaloneAccount() {
@@ -895,6 +1229,64 @@
                     log(`Account created: ${username} (${role})`);
                     document.getElementById('new-acc-username').value = '';
                     document.getElementById('new-acc-password').value = '';
+                    refreshAccounts();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        function bulkAssignRole() {
+            const usernames = getSelectedUsernames();
+            if (usernames.length === 0) { log("Select at least one account."); return; }
+            const role = document.getElementById('bulk-role').value;
+            const squadId = document.getElementById('bulk-squad').value.trim() || null;
+            const assignments = usernames.map(username => ({ username, role, squadId }));
+
+            connection.invoke("BulkAssignAccountRole", { assignments })
+                .then(result => {
+                    log(`Role assigned to ${result.succeeded.length}/${usernames.length} account(s)${role ? ' (' + role + ')' : ''}.`);
+                    result.failed.forEach(f => log(`  ${f.username}: ${f.error}`));
+                    refreshAccounts();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        function bulkDeleteAccounts() {
+            const usernames = getSelectedUsernames();
+            if (usernames.length === 0) { log("Select at least one account."); return; }
+            if (!confirm(`Delete ${usernames.length} account(s)? This can't be undone.`)) return;
+
+            connection.invoke("BulkDeleteAccounts", { usernames })
+                .then(result => {
+                    log(`Deleted ${result.succeeded.length}/${usernames.length} account(s).`);
+                    result.failed.forEach(f => log(`  ${f.username}: ${f.error}`));
+                    refreshAccounts();
+                })
+                .catch(err => log("Error: " + err));
+        }
+
+        function bulkImportAccounts() {
+            const raw = document.getElementById('bulk-import-text').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length === 0) { log("Nothing to import."); return; }
+
+            const validRoles = ['Player', 'Leader', 'Commander', 'Admin', 'Developer'];
+            const accountsToCreate = [];
+            const parseErrors = [];
+            for (const line of lines) {
+                const parts = line.split(/\s+/);
+                if (parts.length < 3) { parseErrors.push(`"${line}": expected "username password role [squadId]"`); continue; }
+                const [username, password, role, squadId] = parts;
+                if (!validRoles.includes(role)) { parseErrors.push(`"${line}": unknown role "${role}" (use ${validRoles.join('/')})`); continue; }
+                accountsToCreate.push({ username, password, role, squadId: squadId || null });
+            }
+            parseErrors.forEach(e => log("Skipped: " + e));
+            if (accountsToCreate.length === 0) return;
+
+            connection.invoke("BulkCreateAccounts", { accounts: accountsToCreate })
+                .then(result => {
+                    log(`Imported ${result.succeeded.length}/${accountsToCreate.length} account(s).`);
+                    result.failed.forEach(f => log(`  ${f.username}: ${f.error}`));
+                    if (result.succeeded.length > 0) document.getElementById('bulk-import-text').value = '';
                     refreshAccounts();
                 })
                 .catch(err => log("Error: " + err));

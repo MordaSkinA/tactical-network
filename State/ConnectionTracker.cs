@@ -2,12 +2,13 @@ using System.Collections.Concurrent;
 
 namespace GvGPoc.State;
 
-// Tracks the link between users and their SignalR connections
 public interface IConnectionTracker
 {
     void Add(string username, string connectionId);
     string? Remove(string connectionId);
     IReadOnlyCollection<string> GetConnections(string username);
+    bool IsOnline(string username);
+    IReadOnlyCollection<string> GetOnlineUsernames();
 }
 
 public class InMemoryConnectionTracker : IConnectionTracker
@@ -54,6 +55,22 @@ public class InMemoryConnectionTracker : IConnectionTracker
             return _userToConnections.TryGetValue(username, out var set)
                 ? set.ToArray()
                 : Array.Empty<string>();
+        }
+    }
+
+    public bool IsOnline(string username)
+    {
+        lock (_userToConnections)
+        {
+            return _userToConnections.TryGetValue(username, out var set) && set.Count > 0;
+        }
+    }
+
+    public IReadOnlyCollection<string> GetOnlineUsernames()
+    {
+        lock (_userToConnections)
+        {
+            return _userToConnections.Keys.ToArray();
         }
     }
 }

@@ -52,6 +52,7 @@ builder.Services.AddSingleton<IPendingDiscordStore, InMemoryPendingDiscordStore>
 builder.Services.AddSingleton<IMemberPresetStore, FileMemberPresetStore>();
 builder.Services.AddSingleton<IDiscordWebhookStore, FileDiscordWebhookStore>();
 builder.Services.AddSingleton<IEmojiSettingsStore, FileEmojiSettingsStore>();
+builder.Services.AddSingleton<IOrderMacroStore, FileOrderMacroStore>();
 builder.Services.AddSingleton<IConnectionTracker, InMemoryConnectionTracker>();
 builder.Services.AddSingleton<HubActionRateLimiter>();
 builder.Services.AddSingleton<LoginAttemptRateLimiter>();
@@ -163,6 +164,7 @@ app.MapPost("/api/auth/login", (
         if (account is null || !accounts.VerifyPassword(account, req.Password))
             return Results.Json(new AuthResponseDto(false, "Invalid username or password", null, null, null, null), statusCode: 401);
 
+        accounts.RecordLogin(account.Username, ip);
         var token = sessions.CreateSession(new SessionInfo(account.Username, account.Role, account.SquadId));
         return Results.Json(new AuthResponseDto(true, "Logged in successfully", token, account.Username, account.Role, account.SquadId));
     });
@@ -175,7 +177,7 @@ app.MapPost("/api/auth/logout", (LogoutDto req, ISessionStore sessions) => {
 app.MapGet("/api/auth/discord/config", (IConfiguration config) =>
     Results.Ok(new DiscordConfigDto(config["DiscordClientId"] ?? "", config["DiscordRedirectUri"] ?? "")));
 
-// log in via Discord (no password)
+// log in via Discord 
 app.MapGet("/api/auth/discord/login-start", (ISessionStore sessions) => {
     var state = sessions.CreateSession(new SessionInfo("", UserRole.Player, null));
     return Results.Ok(new DiscordLoginStartDto(state));
@@ -185,11 +187,13 @@ app.MapGet("/api/auth/discord/callback", async (
     string? code,
     string? state,
     string? error,
+    HttpContext http,
     IConfiguration config,
     ISessionStore sessions,
     IAccountStore accounts,
     IPendingDiscordStore pending,
     IHttpClientFactory httpClientFactory) => {
+        var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         if (error is not null || string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
             return Results.Content(DiscordResultPage(false, "Discord canceled the authorization."), "text/html");
 
@@ -213,6 +217,7 @@ app.MapGet("/api/auth/discord/callback", async (
             var existing = accounts.FindByDiscordId(discordId);
             if (existing is not null)
             {
+                accounts.RecordLogin(existing.Username, ip);
                 var loginToken = sessions.CreateSession(new SessionInfo(existing.Username, existing.Role, existing.SquadId));
                 return Results.Content(DiscordLoginSuccessPage(loginToken, existing.Username, existing.Role, existing.SquadId), "text/html");
             }
@@ -236,9 +241,11 @@ app.MapGet("/api/auth/discord/callback", async (
 // registration
 app.MapPost("/api/auth/discord/register", (
     DiscordRegisterDto req,
+    HttpContext http,
     IPendingDiscordStore pending,
     IAccountStore accounts,
     ISessionStore sessions) => {
+        var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         if (string.IsNullOrWhiteSpace(req.PendingToken))
             return Results.Json(new AuthResponseDto(false, "Registration session expired, log in via Discord again.", null, null, null, null), statusCode: 400);
 
@@ -246,11 +253,12 @@ app.MapPost("/api/auth/discord/register", (
         if (pendingReg is null)
             return Results.Json(new AuthResponseDto(false, "Registration session expired, log in via Discord again.", null, null, null, null), statusCode: 400);
 
-        // An account for this Discord ID already showed up.
+        // An account for this Discord ID already showed up
         var already = accounts.FindByDiscordId(pendingReg.DiscordId);
         if (already is not null)
         {
             pending.Remove(req.PendingToken);
+            accounts.RecordLogin(already.Username, ip);
             var t = sessions.CreateSession(new SessionInfo(already.Username, already.Role, already.SquadId));
             return Results.Json(new AuthResponseDto(true, "Logged in", t, already.Username, already.Role, already.SquadId));
         }
@@ -264,11 +272,12 @@ app.MapPost("/api/auth/discord/register", (
         if (accounts.Find(nickname) is not null)
             return Results.Json(new AuthResponseDto(false, "That nickname is already taken, pick another one.", null, null, null, null), statusCode: 409);
 
-        // random password, so login via Discord without a password still works
+        // random password
         var randomPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
         accounts.Upsert(nickname, UserRole.Player, null, randomPassword);
         accounts.LinkDiscord(nickname, pendingReg.DiscordId, pendingReg.DiscordUsername);
         pending.Remove(req.PendingToken);
+        accounts.RecordLogin(nickname, ip);
 
         var token = sessions.CreateSession(new SessionInfo(nickname, UserRole.Player, null));
         return Results.Json(new AuthResponseDto(true, "Account created", token, nickname, UserRole.Player, null));

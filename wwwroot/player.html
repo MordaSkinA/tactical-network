@@ -221,7 +221,7 @@
 
     <script>
 
-        const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin']);
+        const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
         if (currentUser) {
             document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'None')}`;
         }
@@ -277,17 +277,27 @@
         connection.on("SpawnReminder", showSpawnToast);
 
         let spawnToastTimer = null;
-        const SPAWN_TOAST_TEXT = {
-            Jungle: 'ЛЕСНЫЕ КЕМПЫ СПАВНЯТСЯ',
-            Boss: 'БОСС СПАВНИТСЯ',
-            JungleAndBoss: 'ЛЕС И БОСС СПАВНЯТСЯ'
+        const JUNGLE_TAG_TEXT = {
+            JungleTopOwn: 'ВЕРХНИЙ ЛЕС (СВОЙ)',
+            JungleBotOwn: 'НИЖНИЙ ЛЕС (СВОЙ)',
+            JungleTopEnemy: 'ВЕРХНИЙ ЛЕС (ВРАГ)',
+            JungleBotEnemy: 'НИЖНИЙ ЛЕС (ВРАГ)',
+            Jungle: 'ЛЕСНЫЕ КЕМПЫ'
         };
 
         function showSpawnToast(reminder) {
             const el = document.getElementById('spawn-toast');
-            el.textContent = SPAWN_TOAST_TEXT[reminder.kind] || 'СПАВН';
+            let text;
+            if (reminder.kind === 'Boss') {
+                text = 'БОСС СПАВНИТСЯ';
+            } else {
+                const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
+                const label = tags.map(t => JUNGLE_TAG_TEXT[t] || 'ЛЕСНЫЕ КЕМПЫ').join(' И ');
+                text = `${label} СПАВНИТСЯ`;
+            }
+            el.textContent = text;
             el.classList.remove('kind-Boss');
-            if (reminder.kind === 'Boss' || reminder.kind === 'JungleAndBoss') el.classList.add('kind-Boss');
+            if (reminder.kind === 'Boss') el.classList.add('kind-Boss');
             el.classList.add('show');
             if (spawnToastTimer) clearTimeout(spawnToastTimer);
             spawnToastTimer = setTimeout(() => el.classList.remove('show'), 8000);

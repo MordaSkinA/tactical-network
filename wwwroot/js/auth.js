@@ -22,11 +22,11 @@ function requireAuth(allowedRoles) {
 
 
 const TABS = [
-    { url: '/player.html', label: 'Player', roles: ['Player', 'Leader', 'Commander', 'Admin'] },
-    { url: '/observer.html', label: 'Observer', roles: ['Leader', 'Admin'] },
-    { url: '/dashboard.html', label: 'Dashboard', roles: ['Commander', 'Admin'] },
-    { url: '/replay.html', label: 'Replay', roles: ['Commander', 'Admin'] },
-    { url: '/admin.html', label: 'Admin', roles: ['Admin'] }
+    { url: '/player.html', label: 'Player', roles: ['Player', 'Leader', 'Commander', 'Admin', 'Developer'] },
+    { url: '/observer.html', label: 'Observer', roles: ['Leader', 'Admin', 'Developer'] },
+    { url: '/dashboard.html', label: 'Dashboard', roles: ['Commander', 'Admin', 'Developer'] },
+    { url: '/replay.html', label: 'Replay', roles: ['Commander', 'Admin', 'Developer'] },
+    { url: '/admin.html', label: 'Admin', roles: ['Admin', 'Developer'] }
 ];
 
 function getAccessibleTabs(role) {

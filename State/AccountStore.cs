@@ -11,10 +11,13 @@ public interface IAccountStore
     UserAccount? Find(string username);
     IReadOnlyList<UserAccount> All();
     void Upsert(string username, UserRole role, string? squadId, string? plainPassword);
+    // Reassigns role/squad 
+    void AssignRoleAndSquad(string username, UserRole role, string? squadId);
     void Delete(string username);
     bool VerifyPassword(UserAccount account, string plainPassword);
     UserAccount? FindByDiscordId(string discordId);
     void LinkDiscord(string username, string discordId, string discordUsername);
+    void RecordLogin(string username, string ip);
 
 }
 
@@ -34,12 +37,18 @@ public class FileAccountStore : IAccountStore
         _filePath = Path.Combine(env.ContentRootPath, "accounts.json");
         _accounts = Load();
 
-        // one-time seeding, values come from appsettings.json
+
         if (_accounts.Count == 0)
         {
             var seedLogin = config["AdminSeedLogin"] ?? "admin";
             var seedPassword = config["AdminSeedPassword"] ?? "changeme";
             Upsert(seedLogin, UserRole.Admin, null, seedPassword);
+
+ 
+            var devLogin = config["DeveloperSeedLogin"];
+            var devPassword = config["DeveloperSeedPassword"];
+            if (!string.IsNullOrWhiteSpace(devLogin) && !string.IsNullOrWhiteSpace(devPassword))
+                Upsert(devLogin, UserRole.Developer, null, devPassword);
         }
     }
 
@@ -100,13 +109,50 @@ public class FileAccountStore : IAccountStore
             Role = role,
             SquadId = squadId,
             PasswordHash = passwordHash,
-            PasswordSalt = salt
+            PasswordSalt = salt,
+            DiscordId = existing?.DiscordId,
+            DiscordUsername = existing?.DiscordUsername,
+            LastLoginAt = existing?.LastLoginAt,
+            LastLoginIp = existing?.LastLoginIp
         };
 
         _accounts = _accounts
             .Where(a => !string.Equals(a.Username, username, StringComparison.OrdinalIgnoreCase))
             .Append(account)
             .ToList();
+        Save();
+    }
+
+    public void AssignRoleAndSquad(string username, UserRole role, string? squadId)
+    {
+        var existing = Find(username) ?? throw new InvalidOperationException("Account not found.");
+
+        var updated = new UserAccount {
+            Id = existing.Id,
+            Username = existing.Username,
+            Role = role,
+            SquadId = squadId,
+            PasswordHash = existing.PasswordHash,
+            PasswordSalt = existing.PasswordSalt,
+            DiscordId = existing.DiscordId,
+            DiscordUsername = existing.DiscordUsername,
+            LastLoginAt = existing.LastLoginAt,
+            LastLoginIp = existing.LastLoginIp
+        };
+        _accounts = _accounts
+            .Where(a => a.Id != existing.Id)
+            .Append(updated)
+            .ToList();
+        Save();
+    }
+
+    public void RecordLogin(string username, string ip)
+    {
+        var existing = Find(username);
+        if (existing is null) return;
+
+        existing.LastLoginAt = DateTimeOffset.UtcNow;
+        existing.LastLoginIp = ip;
         Save();
     }
 
@@ -140,7 +186,9 @@ public class FileAccountStore : IAccountStore
             PasswordHash = existing.PasswordHash,
             PasswordSalt = existing.PasswordSalt,
             DiscordId = discordId,
-            DiscordUsername = discordUsername
+            DiscordUsername = discordUsername,
+            LastLoginAt = existing.LastLoginAt,
+            LastLoginIp = existing.LastLoginIp
         };
         _accounts = _accounts
             .Where(a => a.Id != existing.Id)
