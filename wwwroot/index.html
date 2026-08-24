@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG Tactical Network - Login</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 34px 32px 30px;
+        }
+
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 22px;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: 0.06em;
+        }
+
+        .login-logo .sb-logo-dot {
+            width: 30px; height: 30px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--accent), #4d3fc7);
+        }
+
+        h2 { text-align: center; margin: 0 0 26px 0; font-size: 17px; font-weight: 700; color: var(--text-dim); }
+
+        .field { margin-bottom: 16px; }
+
+        button[type="submit"], #discord-login-btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14.5px;
+            margin-top: 6px;
+            transition: filter 0.12s ease;
+        }
+        button[type="submit"]:hover, #discord-login-btn:hover { filter: brightness(1.12); }
+
+        button[type="submit"] { background: var(--accent); }
+
+        #error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 12px;
+            text-align: center;
+            min-height: 16px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            color: var(--text-faint);
+            font-size: 12px;
+            margin: 22px 0;
+        }
+        .divider::before, .divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--border); }
+        .divider::before { margin-right: 10px; }
+        .divider::after { margin-left: 10px; }
+
+        #discord-login-btn { background: #5865F2; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-logo"><span class="sb-logo-dot"></span>TACNET</div>
+        <h2>Sign in to GvG Tactical Network</h2>
+        <form id="login-form">
+            <div class="field">
+                <label>Username</label>
+                <input id="username" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label>Password</label>
+                <input id="password" type="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit">Log in</button>
+            <div id="error"></div>
+        </form>
+
+        <div class="divider">or</div>
+        <button id="discord-login-btn" type="button" onclick="loginWithDiscord()">Login with Discord</button>
+    </div>
+
+    <script>
+  const existing = localStorage.getItem('gvg_session');
+  if (existing) {
+    try { JSON.parse(existing); location.href = '/menu.html'; } catch { localStorage.removeItem('gvg_session'); }
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorEl = document.getElementById('error');
+    errorEl.textContent = '';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.status === 429) { errorEl.textContent = 'Too many attempts. Please wait a moment.'; return; }
+
+      const data = await res.json();
+      if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Invalid username or password.'; return; }
+
+      localStorage.setItem('gvg_session', JSON.stringify({
+        token: data.token,
+        username: data.username,
+        role: data.role,
+        squadId: data.squadId
+      }));
+      location.href = '/menu.html';
+    } catch (err) {
+      errorEl.textContent = 'Connection error: ' + err;
+    }
+  });
+
+  async function loginWithDiscord() {
+    try {
+      const [startRes, cfgRes] = await Promise.all([
+        fetch('/api/auth/discord/login-start'),
+        fetch('/api/auth/discord/config')
+      ]);
+      const { state } = await startRes.json();
+      const cfg = await cfgRes.json();
+      const params = new URLSearchParams({
+        client_id: cfg.clientId,
+        redirect_uri: cfg.redirectUri,
+        response_type: 'code',
+        scope: 'identify guilds',
+        state
+      });
+      location.href = 'https://discord.com/api/oauth2/authorize?' + params.toString();
+    } catch (err) {
+      document.getElementById('error').textContent = 'Connection error: ' + err;
+    }
+  }
+    </script>
+</body>
+</html>

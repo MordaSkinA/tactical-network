@@ -3,172 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>GvG - Menu</title>
+    <title>GvG - Home</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/auth.js"></script>
+    <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/sidebar.js"></script>
     <style>
-        body {
-            background: #111;
-            color: #eee;
-            font-family: system-ui, sans-serif;
-            padding: 40px 20px;
-            max-width: 420px;
-            margin: 0 auto;
-        }
+        #app-content { display: flex; justify-content: center; }
+        #home-inner { width: 100%; max-width: 900px; }
 
-        h2 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
+        /* ---------------- Stat cards ---------------- */
 
-        h3 {
-            margin-top: 32px;
-            margin-bottom: 10px;
-            color: #aaa;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
         }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+        }
+        .stat-value { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
+        .stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-top: 6px; }
+        .stat-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+        .stat-card.active .stat-value { color: var(--success); }
+        .stat-card.inactive .stat-value { color: var(--text-dim); }
 
-        .hint {
-            color: #888;
+        @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 420px) { .stat-grid { grid-template-columns: 1fr; } }
+
+        /* ---------------- Roster ---------------- */
+
+        .empty-hint { color: var(--text-faint); font-size: 13px; padding: 4px 0; }
+
+        #roster {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 600px) { #roster { grid-template-columns: 1fr; } }
+
+        .team-card-home {
+            background: var(--surface-2);
+            border-radius: var(--radius-md);
+            border-left: 3px solid var(--border);
+            padding: 10px 12px;
+        }
+        .team-card-home.Attack  { border-left-color: #e8a33d; }
+        .team-card-home.Defense { border-left-color: #3d8ee8; }
+        .team-card-home.Flex    { border-left-color: #8a4de8; }
+
+        .team-card-home h4 {
+            margin: 0 0 8px 0;
             font-size: 13px;
-            margin-bottom: 28px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
-        .tab-list {
+        .members { display: flex; flex-direction: column; gap: 6px; }
+
+        .member-row {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--text);
         }
+
+        .role-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; }
+        .role-badge.Dps    { background: rgba(240, 160, 75, 0.15); color: #f0a04b; }
+        .role-badge.Tank   { background: rgba(91, 157, 232, 0.15); color: #5b9de8; }
+        .role-badge.Healer { background: rgba(79, 209, 139, 0.15); color: #4fd18b; }
+
+        .tag-badge {
+            font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px;
+            background: var(--surface-3); color: var(--text-faint);
+        }
+
+        .bulwark-badge { font-size: 12px; color: var(--text-dim); }
+
+        .presence-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: var(--border); }
+        .presence-dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+
+        /* ---------------- Reserves ---------------- */
+
+        #reserves { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+        #reserves .member-row { background: var(--surface-2); border-radius: var(--radius-sm); padding: 5px 10px; }
+
+        /* ---------------- Account ---------------- */
 
         .tab-btn {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #1a1a1a;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 16px 18px;
-            color: #eee;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 15px 18px;
+            color: var(--text);
             text-decoration: none;
-            font-size: 15px;
+            font-size: 14.5px;
             font-weight: 600;
-            transition: background 0.15s;
+            transition: background 0.15s ease, border-color 0.15s ease;
             cursor: pointer;
             width: 100%;
             box-sizing: border-box;
         }
+        .tab-btn:hover { background: var(--surface-3); border-color: #3a3a40; }
 
-            .tab-btn:hover {
-                background: #222;
-            }
-
-            .tab-btn .arrow {
-                color: #666;
-            }
-
-        .header-btn {
-            font-size: 12px;
-            padding: 6px 12px;
-            background: #333;
-            border: none;
-            border-radius: 4px;
-            color: #fff;
-            cursor: pointer;
-        }
-
-        #discord-status {
-            font-size: 13px;
-            color: #aaa;
-            margin-bottom: 14px;
-        }
+        #discord-status { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
 
         details {
-            margin-top: 20px;
-            border-top: 1px solid #2a2a2a;
+            margin-top: 10px;
+            border-top: 1px solid var(--border-soft);
             padding-top: 14px;
         }
 
         summary {
-            color: #888;
+            color: var(--text-dim);
             font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
         }
+        summary::-webkit-details-marker { display: none; }
+        summary::before {
+            content: '▸'; display: inline-block; margin-right: 8px; color: var(--accent-light);
+            transition: transform 0.15s ease;
+        }
+        details[open] summary::before { transform: rotate(90deg); }
 
-        label {
-            display: block;
-            margin: 10px 0 6px;
-            font-size: 13px;
-            color: #aaa;
-        }
-
-        input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 4px;
-            background: #222;
-            color: #eee;
-            border: 1px solid #444;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-
-        #password-msg {
-            font-size: 12px;
-            margin-top: 8px;
-            min-height: 14px;
-        }
+        #password-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
     </style>
 </head>
 <body>
-    <h2>Menu <button class="header-btn" onclick="logout()">Log out</button></h2>
-    <div class="hint" id="hint">Loading...</div>
-    <div class="tab-list" id="tab-list"></div>
+    <div id="app-sidebar"></div>
+    <div id="app-content">
+        <div id="home-inner">
+            <div class="page-head">
+                <div>
+                    <h1 class="page-title">Home</h1>
+                    <p class="page-subtitle" id="hint">Loading...</p>
+                </div>
+            </div>
 
-    <h3>Account</h3>
-    <div id="discord-status">Loading…</div>
-    <button class="tab-btn" id="discord-link-btn" style="justify-content:center;" onclick="linkDiscord()">Link Discord account</button>
+            <div class="stat-grid" id="stat-grid"></div>
 
-    <details>
-        <summary>Change password</summary>
-        <label>Current password
-            <input id="old-password" type="password" autocomplete="current-password">
-        </label>
-        <label>New password
-            <input id="new-password" type="password" autocomplete="new-password">
-        </label>
-        <button class="header-btn" onclick="changePassword()">Change password</button>
-        <div id="password-msg"></div>
-    </details>
+            <div class="card">
+                <div class="card-title">Active roster</div>
+                <div id="roster-empty" class="empty-hint" style="display:none;">No teams set up yet.</div>
+                <div id="roster"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Reserves</div>
+                <div id="reserves-empty" class="empty-hint" style="display:none;">Nobody in reserves.</div>
+                <div id="reserves"></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Account</div>
+                <div id="discord-status">Loading…</div>
+                <button class="tab-btn" id="discord-link-btn" style="justify-content:center;" onclick="linkDiscord()">Link Discord account</button>
+
+                <details>
+                    <summary>Change password</summary>
+                    <div class="field" style="margin-top:10px;">
+                        <label>Current password</label>
+                        <input id="old-password" type="password" autocomplete="current-password">
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                        <label>New password</label>
+                        <input id="new-password" type="password" autocomplete="new-password">
+                    </div>
+                    <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="changePassword()">Change password</button>
+                    <div id="password-msg"></div>
+                </details>
+            </div>
+        </div>
+    </div>
 
     <script>
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
+        renderSidebar('/menu.html');
 
         document.getElementById('hint').textContent =
-            `Signed in as ${currentUser.username} (${currentUser.role}). Available tabs:`;
+            `Signed in as ${currentUser.username} (${currentUser.role})`;
 
-        const labels = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel', Replay: 'Replay' };
+        const RESERVE_SQUAD_ID = 'RESERVE';
 
-        const tabs = getAccessibleTabs(currentUser.role);
-        document.getElementById('tab-list').innerHTML = tabs.map(t => `
-            <a class="tab-btn" href="${t.url}">
-                <span>${labels[t.label] || t.label}</span>
-                <span class="arrow">→</span>
-            </a>
-        `).join('');
-
-        // Discord link + change password 
+        let latestRoster = [];
+        let latestStatus = null;
+        let onlineUsernames = new Set();
 
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))
             .withAutomaticReconnect()
             .build();
 
+        connection.on("RosterUpdated", roster => { latestRoster = roster || []; renderStats(); renderRoster(); renderReserves(); });
+        connection.on("BattleStatusChanged", status => { latestStatus = status; renderStats(); });
+        connection.on("OnlineUsernames", names => { onlineUsernames = new Set(names); renderPresence(); });
+        connection.on("PresenceChanged", p => {
+            if (p.online) onlineUsernames.add(p.username); else onlineUsernames.delete(p.username);
+            renderPresence();
+        });
+
         connection.start().then(loadAccountInfo).catch(err => console.error(err));
+
+        // Stats + roster + reserves
+
+        function renderStats() {
+            const teams = latestRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
+            const reserveSquad = latestRoster.find(sq => sq.squadId === RESERVE_SQUAD_ID);
+            const totalPlayers = teams.reduce((sum, sq) => sum + (sq.members ? sq.members.length : 0), 0);
+            const reserveCount = reserveSquad ? reserveSquad.members.length : 0;
+
+            const active = !!(latestStatus && latestStatus.isActive);
+            let statusSub = 'No active battle';
+            if (active && latestStatus.startedAt) {
+                statusSub = 'Since ' + new Date(latestStatus.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else if (active) {
+                statusSub = 'In progress';
+            }
+
+            const stats = [
+                { label: 'Battle', value: active ? 'Active' : 'Inactive', sub: statusSub, cls: active ? 'active' : 'inactive' },
+                { label: 'Teams', value: teams.length },
+                { label: 'In roster', value: totalPlayers },
+                { label: 'Reserves', value: reserveCount }
+            ];
+
+            document.getElementById('stat-grid').innerHTML = stats.map(s => `
+                <div class="stat-card ${s.cls || ''}">
+                    <div class="stat-value">${s.value}</div>
+                    <div class="stat-label">${s.label}</div>
+                    ${s.sub ? `<div class="stat-sub">${escapeHtml(s.sub)}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderRoster() {
+            const teams = latestRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
+            document.getElementById('roster-empty').style.display = teams.length ? 'none' : 'block';
+            document.getElementById('roster').innerHTML = teams.map(sq => `
+                <div class="team-card-home ${sq.side || ''}">
+                    <h4>
+                        ${escapeHtml(sq.squadId)}${sq.label ? ' · ' + escapeHtml(sq.label) : ''}
+                        ${(sq.tags || []).map(t => `<span class="tag-badge">${escapeHtml(t)}</span>`).join('')}
+                    </h4>
+                    <div class="members">
+                        ${(sq.members && sq.members.length) ? sq.members.map(memberRowHtml).join('') : '<div class="empty-hint">Empty</div>'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderReserves() {
+            const reserveSquad = latestRoster.find(sq => sq.squadId === RESERVE_SQUAD_ID);
+            const members = reserveSquad ? (reserveSquad.members || []) : [];
+            document.getElementById('reserves-empty').style.display = members.length ? 'none' : 'block';
+            document.getElementById('reserves').innerHTML = members.map(memberRowHtml).join('');
+        }
+
+        function memberRowHtml(m) {
+            const online = onlineUsernames.has(m.nickname);
+            const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark];
+            return `
+                <div class="member-row" data-username="${escapeHtml(m.nickname)}">
+                    <span class="presence-dot ${online ? 'online' : ''}"></span>
+                    <span>${escapeHtml(m.nickname)}</span>
+                    ${m.role ? `<span class="role-badge ${m.role}">${m.role.toUpperCase()}</span>` : ''}
+                    ${bwSymbol ? `<span class="bulwark-badge" title="${m.bulwark} bulwark">${bwSymbol}</span>` : ''}
+                </div>
+            `;
+        }
+
+        function renderPresence() {
+            document.querySelectorAll('.member-row').forEach(row => {
+                const dot = row.querySelector('.presence-dot');
+                if (dot) dot.classList.toggle('online', onlineUsernames.has(row.dataset.username));
+            });
+        }
+
+        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+        // Discord link + change password
 
         async function loadAccountInfo() {
             try {
@@ -204,20 +333,20 @@
             const msg = document.getElementById('password-msg');
 
             if (!oldPassword || !newPassword) {
-                msg.style.color = '#e33';
+                msg.style.color = '#e05260';
                 msg.textContent = 'Fill in both fields.';
                 return;
             }
 
             connection.invoke("ChangePassword", { oldPassword, newPassword })
                 .then(() => {
-                    msg.style.color = '#4caf50';
+                    msg.style.color = '#4fd18b';
                     msg.textContent = 'Password changed.';
                     document.getElementById('old-password').value = '';
                     document.getElementById('new-password').value = '';
                 })
                 .catch(err => {
-                    msg.style.color = '#e33';
+                    msg.style.color = '#e05260';
                     msg.textContent = 'Error: ' + err;
                 });
         }

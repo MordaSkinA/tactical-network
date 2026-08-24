@@ -6,12 +6,15 @@
 <title>GvG - Replay</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
 <script src="/js/auth.js"></script>
+<link rel="stylesheet" href="/css/theme.css">
+<script src="/js/sidebar.js"></script>
 <style>
-  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 960px; margin: 0 auto; }
+  body { background:#0b0b0b; color:#eee; font-family: system-ui, sans-serif; }
+  #replay-inner { width: 100%; }
   h2 { margin-bottom: 2px; }
   .menu-nav-btn { font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer; text-decoration: none; margin-right: 8px; }
   #layout { display: flex; gap: 20px; margin-top: 18px; align-items: flex-start; }
-  #file-list { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; max-height: 80vh; overflow-y: auto; }
+  #file-list { width: 260px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 150px); overflow-y: auto; }
   .file-btn {
     text-align: left; background:#161616; border:1px solid #2a2a2a; border-radius:6px;
     padding: 10px 12px; color:#ccc; font-size: 13px; cursor: pointer;
@@ -35,7 +38,7 @@
   .cat-defend      { border-left-color:#4c7a4f; }
   .cat-hold        { border-left-color:#2e5230; }
   .cat-protect     { border-left-color:#4fae82; }
-  .cat-tactic      { border-left-color:#2f6fb2; }
+  .cat-tactic      { border-left-color:#7c6cf0; }
   .cat-fallback    { border-left-color:#4a90c4; }
   .cat-jungle      { border-left-color:#1e3a5f; }
   .cat-neutral     { border-left-color:#6b7280; }
@@ -44,13 +47,14 @@
 </style>
 </head>
 <body>
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-    <h2 style="margin: 0;">Replay</h2>
-    <a class="menu-nav-btn" href="/dashboard.html">Dashboard</a>
-    <a class="menu-nav-btn" href="/menu.html">Menu</a>
-    <button onclick="logout()" style="font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer;">Log out</button>
+  <div id="app-sidebar"></div>
+  <div id="app-content"><div id="replay-inner">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Replay</h1>
+      <p class="page-subtitle" id="status">connecting...</p>
+    </div>
   </div>
-  <div id="status" style="color:#666; font-size:12px;">connecting...</div>
 
   <div id="layout">
     <div id="file-list"><div class="hint">Loading...</div></div>
@@ -59,9 +63,11 @@
       <div id="feed"></div>
     </div>
   </div>
+  </div></div>
 
 <script>
   const currentUser = requireAuth(['Commander', 'Admin', 'Developer']);
+  renderSidebar('/replay.html');
 
   const connection = new signalR.HubConnectionBuilder()
     .withUrl("/battleHub?access_token=" + encodeURIComponent(currentUser.token))

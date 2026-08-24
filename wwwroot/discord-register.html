@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GvG Tactical Network - Discord</title>
+    <link rel="stylesheet" href="/css/theme.css">
+    <style>
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            background: var(--surface);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 34px 32px 30px;
+        }
+
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 22px;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: 0.06em;
+        }
+        .login-logo .sb-logo-dot {
+            width: 30px; height: 30px; border-radius: 9px;
+            background: linear-gradient(135deg, var(--accent), #4d3fc7);
+        }
+
+        h2 { text-align: center; margin: 0 0 10px 0; font-size: 17px; font-weight: 700; }
+
+        .hint {
+            color: var(--text-dim);
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 26px;
+            line-height: 1.5;
+        }
+
+        .field { margin-bottom: 16px; }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14.5px;
+            background: #5865F2;
+            margin-top: 6px;
+            transition: filter 0.12s ease;
+        }
+        button[type="submit"]:hover { filter: brightness(1.12); }
+
+        #error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 12px;
+            text-align: center;
+            min-height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-logo"><span class="sb-logo-dot"></span>TACNET</div>
+        <h2>Almost ready</h2>
+        <div class="hint" id="hint">Discord verified. Please specify your nickname, admins will use it to add you to a team.</div>
+        <form id="nick-form">
+            <div class="field">
+                <label>Nickname</label>
+                <input id="nickname" autocomplete="off" required maxlength="24">
+            </div>
+            <button type="submit">Continue</button>
+            <div id="error"></div>
+        </form>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(location.search);
+        const pendingToken = params.get('pendingToken');
+        const discordUsername = params.get('discordUsername');
+
+        if (!pendingToken) {
+            document.getElementById('hint').textContent = 'Session not found. Please return to the login page and try again.';
+            document.getElementById('nick-form').style.display = 'none';
+        } else if (discordUsername) {
+            document.getElementById('hint').textContent =
+                'Discord verified: ' + discordUsername + '. Please specify your nickname — admins will use it to add you to a team.';
+            document.getElementById('nickname').value = discordUsername.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
+        }
+
+        document.getElementById('nick-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nickname = document.getElementById('nickname').value.trim();
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = '';
+
+            try {
+                const res = await fetch('/api/auth/discord/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pendingToken, nickname })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Failed to create account.'; return; }
+
+                localStorage.setItem('gvg_session', JSON.stringify({
+                    token: data.token,
+                    username: data.username,
+                    role: data.role,
+                    squadId: data.squadId
+                }));
+                location.href = '/menu.html';
+            } catch (err) {
+                errorEl.textContent = 'Connection error: ' + err;
+            }
+        });
+    </script>
+</body>
+</html>
