@@ -26,12 +26,13 @@
         @keyframes dotPulse    { 0%, 100% { box-shadow: 0 0 5px var(--success); } 50% { box-shadow: 0 0 12px var(--success), 0 0 2px var(--success); } }
         @keyframes countPop    { 0% { transform: scale(.85); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
 
-
+        /* ---------------- Hero / HUD header (rotating cube) ---------------- */
 
         .hud-hero {
             position: relative;
             margin-bottom: 22px;
             height: 188px;
+
             perspective: var(--cube-perspective, 4200px);
             animation: fadeSlideUp .5s cubic-bezier(.2, .8, .2, 1) backwards;
         }
@@ -41,7 +42,8 @@
             width: 100%;
             height: 100%;
             transform-style: preserve-3d;
-            transform: rotateX(0deg) rotateY(0deg);
+
+            transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg) rotateY(0deg);
             transition: transform .6s cubic-bezier(.2, .8, .2, 1);
         }
 
@@ -51,22 +53,22 @@
 
 
         @keyframes cubeSpin {
-            0%      { transform: rotateX(0deg)  rotateY(0deg); }
-            8%      { transform: rotateX(0deg)  rotateY(0deg); }
-            16%     { transform: rotateX(0deg)  rotateY(90deg); }
-            24%     { transform: rotateX(0deg)  rotateY(90deg); }
-            32%     { transform: rotateX(0deg)  rotateY(180deg); }
-            40%     { transform: rotateX(0deg)  rotateY(180deg); }
-            48%     { transform: rotateX(0deg)  rotateY(270deg); }
-            56%     { transform: rotateX(0deg)  rotateY(270deg); }
-            64%     { transform: rotateX(0deg)  rotateY(360deg); }
-            70%     { transform: rotateX(0deg)  rotateY(360deg); }
-            78%     { transform: rotateX(90deg) rotateY(360deg); }
-            84%     { transform: rotateX(90deg) rotateY(360deg); }
-            90%     { transform: rotateX(0deg)  rotateY(360deg); }
-            94%     { transform: rotateX(-90deg) rotateY(360deg); }
-            98%     { transform: rotateX(-90deg) rotateY(360deg); }
-            100%    { transform: rotateX(0deg)  rotateY(360deg); }
+            0%      { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(0deg); }
+            8%      { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(0deg); }
+            16%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(90deg); }
+            24%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(90deg); }
+            32%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(180deg); }
+            40%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(180deg); }
+            48%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(270deg); }
+            56%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(270deg); }
+            64%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(360deg); }
+            70%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(360deg); }
+            78%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(90deg) rotateY(360deg); }
+            84%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(90deg) rotateY(360deg); }
+            90%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(360deg); }
+            94%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(-90deg) rotateY(360deg); }
+            98%     { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(-90deg) rotateY(360deg); }
+            100%    { transform: translateZ(calc(-1 * var(--cube-depth-h, 450px))) rotateX(0deg)  rotateY(360deg); }
         }
 
         .hud-face {
@@ -103,6 +105,7 @@
             text-shadow: 0 0 20px var(--accent-light);
             text-align: center;
             padding: 0 18px;
+            -webkit-font-smoothing: antialiased;
         }
 
         .hud-grid {
@@ -177,7 +180,7 @@
             color: var(--text-dim);
         }
 
-        /*  Stat cards  */
+        /* ---------------- Stat cards ---------------- */
 
         .stat-grid {
             display: grid;
@@ -230,7 +233,7 @@
         @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 420px) { .stat-grid { grid-template-columns: 1fr; } }
 
-        /*  Shared card entrance  */
+        /* ---------------- Shared card entrance ---------------- */
 
         #home-inner .card {
             animation: fadeSlideUp .5s cubic-bezier(.2, .8, .2, 1) backwards;
@@ -239,7 +242,7 @@
         #home-inner .card:nth-of-type(2) { animation-delay: .16s; }
         #home-inner .card:nth-of-type(3) { animation-delay: .22s; }
 
-        /*  Roster  */
+        /* ---------------- Roster ---------------- */
 
         .empty-hint { color: var(--text-faint); font-size: 13px; padding: 4px 0; }
 
@@ -304,7 +307,7 @@
         .presence-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: var(--border); transition: background .2s ease; }
         .presence-dot.online { background: var(--success); animation: dotPulse 2s ease-in-out infinite; }
 
-        /*  Reserves  */
+        /* ---------------- Reserves ---------------- */
 
         #reserves { display: flex; flex-wrap: wrap; gap: 8px 18px; }
         #reserves .member-row {
@@ -315,7 +318,7 @@
         }
         #reserves .member-row:hover { background: var(--surface-3); transform: translateY(-2px); }
 
-        /*  Account  */
+        /* ---------------- Account ---------------- */
 
         .tab-btn {
             display: flex;
@@ -495,7 +498,7 @@
         function sizeHudCube() {
             const hero = document.getElementById('hud-hero');
             if (!hero) return;
-
+ 
             const width = hero.offsetWidth;
             const height = hero.offsetHeight;
             if (width > 0) {
