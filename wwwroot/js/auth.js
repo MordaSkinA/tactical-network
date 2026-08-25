@@ -11,10 +11,12 @@ function requireAuth(allowedRoles) {
         return null;
     }
     if (!allowedRoles.includes(session.role)) {
+        const noAccessText = typeof t === 'function' ? t('common.noAccess', { role: session.role }) : 'Your role (' + session.role + ') does not have access to this page.';
+        const backText = typeof t === 'function' ? t('common.backToLogin') : 'Back to login';
         document.body.innerHTML =
             '<div style="padding:40px;text-align:center;font-family:sans-serif;color:#eee;background:#111;min-height:100vh;">' +
-            'Your role (' + session.role + ') does not have access to this page.<br><br>' +
-            '<a href="/index.html" style="color:#6cf;">Back to login</a></div>';
+            noAccessText + '<br><br>' +
+            '<a href="/index.html" style="color:#6cf;">' + backText + '</a></div>';
         throw new Error('access denied for role ' + session.role);
     }
     return session;

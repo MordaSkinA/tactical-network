@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Team Leader</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/i18n.js"></script>
     <script src="/js/auth.js"></script>
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/sidebar.js"></script>
@@ -268,8 +269,8 @@
     <div id="app-content"><div id="observer-inner">
     <div class="page-head">
         <div>
-            <h1 class="page-title">Team Leader</h1>
-            <p class="page-subtitle">Report enemy sightings and your team's status.</p>
+            <h1 class="page-title" data-i18n="observer.pageTitle">Team Leader</h1>
+            <p class="page-subtitle" data-i18n="observer.pageSubtitle">Report enemy sightings and your team's status.</p>
         </div>
     </div>
 
@@ -277,33 +278,33 @@
         Loading profile...
     </div>
 
-    <h3>Enemy</h3>
+    <h3 data-i18n="observer.enemyHeading">Enemy</h3>
     <div class="row">
-        <button class="action-btn enemy" onclick="reportEnemy('TwinBlades')">ENEMY TB</button>
-        <button class="action-btn enemy" onclick="reportEnemy('Healer')">ENEMY HEALER</button>
-        <button class="action-btn enemy" onclick="reportEnemy('Tank')">ENEMY TANK</button>
-        <button class="action-btn enemy" onclick="reportEnemy('Nameless')">ENEMY NAMELESS</button>
+        <button class="action-btn enemy" onclick="reportEnemy('TwinBlades')" data-i18n="observer.enemyRoles.TwinBlades">ENEMY TB</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Healer')" data-i18n="observer.enemyRoles.Healer">ENEMY HEALER</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Tank')" data-i18n="observer.enemyRoles.Tank">ENEMY TANK</button>
+        <button class="action-btn enemy" onclick="reportEnemy('Nameless')" data-i18n="observer.enemyRoles.Nameless">ENEMY NAMELESS</button>
     </div>
 
-    <h3>Team status</h3>
+    <h3 data-i18n="observer.teamStatusHeading">Team status</h3>
     <div id="status-banner">
-        <div class="label">Current status</div>
+        <div class="label" data-i18n="observer.currentStatus">Current status</div>
         <div class="value" id="status-value">-</div>
     </div>
     <div class="row">
-        <button class="action-btn critical" onclick="reportStatus('SquadWiped')">TEAM WIPED</button>
-        <button class="action-btn defend" onclick="reportStatus('Regroup')">REGROUP</button>
-        <button class="action-btn protect" onclick="reportStatus('NeedHelp')">NEED HELP</button>
-        <button class="action-btn fallback" onclick="reportStatus('Retreating')">RETREATING</button>
-        <button class="action-btn neutral" onclick="reportStatus('Autonomous')">AUTONOMOUS</button>
+        <button class="action-btn critical" onclick="reportStatus('SquadWiped')" data-i18n="statusTypes.SquadWiped">TEAM WIPED</button>
+        <button class="action-btn defend" onclick="reportStatus('Regroup')" data-i18n="statusTypes.Regroup">REGROUP</button>
+        <button class="action-btn protect" onclick="reportStatus('NeedHelp')" data-i18n="statusTypes.NeedHelp">NEED HELP</button>
+        <button class="action-btn fallback" onclick="reportStatus('Retreating')" data-i18n="statusTypes.Retreating">RETREATING</button>
+        <button class="action-btn neutral" onclick="reportStatus('Autonomous')" data-i18n="statusTypes.Autonomous">AUTONOMOUS</button>
     </div>
-    <div class="hint" style="margin-top: 8px; margin-bottom: 0;">If you don't update this, it automatically switches to Autonomous after 25 seconds.</div>
+    <div class="hint" style="margin-top: 8px; margin-bottom: 0;" data-i18n="observer.autoSwitchHint">If you don't update this, it automatically switches to Autonomous after 25 seconds.</div>
 
     <div id="spawn-toast"></div>
 
-    <h3>Incoming orders</h3>
+    <h3 data-i18n="observer.incomingOrders">Incoming orders</h3>
     <div id="order-banner">
-        <div class="label">Current order</div>
+        <div class="label" data-i18n="player.currentOrder">Current order</div>
         <div class="value" id="order-value">-</div>
     </div>
 
@@ -317,8 +318,13 @@
 
         const currentUser = requireAuth(['Leader', 'Admin', 'Developer']);
         renderSidebar('/observer.html');
+
+        function teamLabel() {
+            return currentUser.squadId === 'RESERVE' ? t('player.reserves') : (currentUser.squadId || t('observer.unassigned'));
+        }
+
         if (currentUser) {
-            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Team: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
+            document.getElementById('user-info').innerHTML = `${t('observer.signedInAs')} <strong>${currentUser.username}</strong> <br> ${t('observer.team')} <strong>${teamLabel()}</strong>`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -355,7 +361,7 @@
                 banner.classList.remove('has-order');
                 return;
             }
-            el.textContent = formatLabel(type);
+            el.textContent = t('statusTypes.' + type) || formatLabel(type);
             banner.classList.add('has-order');
             banner.classList.add(STATUS_CLASSES[type] || 'cat-tactic');
         }
@@ -383,7 +389,7 @@
                 banner.classList.remove('has-order');
                 return;
             }
-            el.textContent = type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+            el.textContent = t('orderTypes.' + type) || formatLabel(type);
             banner.classList.add('has-order');
             const category = ORDER_CATEGORIES[type] || 'tactic';
             banner.classList.add('cat-' + category);
@@ -391,6 +397,11 @@
 
         function formatLabel(type) {
             return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+        }
+
+        function enemyRoleLabel(evt) {
+            if (evt.enemyRole) return t('observer.enemyRoles.' + evt.enemyRole) || evt.enemyRole;
+            return evt.note ?? t('player.eventFallback');
         }
 
         function addAlert(cls, title, ts) {
@@ -410,13 +421,13 @@
             while (el.children.length > 8) el.removeChild(el.lastChild);
         }
 
-        connection.onreconnecting(() => setStatus("reconnecting..."));
-        connection.onreconnected(() => setStatus("connected"));
+        connection.onreconnecting(() => setStatus(t('common.reconnecting')));
+        connection.onreconnected(() => setStatus(t('common.connected')));
 
         connection.on("BattleEvent", evt => {
             log(`[${evt.severity}] ${evt.enemyRole ?? evt.note ?? ''} → ${evt.targetSquadId} (by ${evt.reporterName})`);
             if (evt.targetSquadId !== currentUser.squadId) return;
-            addAlert(alertClass(evt), evt.enemyRole ?? evt.note ?? 'EVENT', evt.timestamp);
+            addAlert(alertClass(evt), enemyRoleLabel(evt), evt.timestamp);
         });
 
         connection.on("OrderIssued", order => {
@@ -428,7 +439,7 @@
         connection.on("SquadStatusChanged", status => {
             log(`STATUS ${status.type} → ${status.targetSquadId} (by ${status.reporterName})`);
             if (status.targetSquadId !== currentUser.squadId) return;
-            addAlert(STATUS_CLASSES[status.type] || 'Warning', `STATUS: ${formatLabel(status.type)}`, status.timestamp);
+            addAlert(STATUS_CLASSES[status.type] || 'Warning', `${t('player.statusPrefix')}${t('statusTypes.' + status.type) || formatLabel(status.type)}`, status.timestamp);
             applyOwnStatus(status.type, new Date(status.timestamp).getTime());
         });
 
@@ -436,10 +447,10 @@
 
         function applySnapshotItem(i) {
             if (i.targetSquadId !== currentUser.squadId) return;
-            if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
+            if ('eventId' in i) addAlert(alertClass(i), enemyRoleLabel(i), i.timestamp);
             else if ('orderId' in i) setOrder(i.type);
             else {
-                addAlert(STATUS_CLASSES[i.type] || 'Warning', `STATUS: ${formatLabel(i.type)}`, i.timestamp);
+                addAlert(STATUS_CLASSES[i.type] || 'Warning', `${t('player.statusPrefix')}${t('statusTypes.' + i.type) || formatLabel(i.type)}`, i.timestamp);
                 applyOwnStatus(i.type, new Date(i.timestamp).getTime());
             }
         }
@@ -456,24 +467,17 @@
         connection.on("SpawnReminder", showSpawnToast);
 
         let spawnToastTimer = null;
-        const JUNGLE_TAG_TEXT = {
-            JungleTopOwn: 'ВЕРХНИЙ ЛЕС (СВОЙ)',
-            JungleBotOwn: 'НИЖНИЙ ЛЕС (СВОЙ)',
-            JungleTopEnemy: 'ВЕРХНИЙ ЛЕС (ВРАГ)',
-            JungleBotEnemy: 'НИЖНИЙ ЛЕС (ВРАГ)',
-            Jungle: 'ЛЕСНЫЕ КЕМПЫ'
-        };
 
         function showSpawnToast(reminder) {
             const el = document.getElementById('spawn-toast');
             let text;
             if (reminder.kind === 'Boss') {
-                text = 'БОСС СПАВНИТСЯ';
+                text = t('player.bossSpawning');
             } else {
                 const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
-                const label = tags.map(t => JUNGLE_TAG_TEXT[t] || 'ЛЕСНЫЕ КЕМПЫ').join(' И ');
+                const label = tags.map(tag => t('jungleTags.' + tag) || t('jungleTags.Jungle')).join(t('player.and'));
                 const prefix = reminder.targetSquadId ? `${reminder.targetSquadId}: ` : '';
-                text = `${prefix}${label} СПАВНИТСЯ`;
+                text = `${prefix}${label}${t('player.spawningSuffix')}`;
             }
             el.textContent = text;
             el.classList.remove('kind-Boss');
@@ -490,12 +494,12 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').innerHTML = `Signed in as: <strong>${currentUser.username}</strong> <br> Team: <strong>${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'Unassigned')}</strong>`;
+            document.getElementById('user-info').innerHTML = `${t('observer.signedInAs')} <strong>${currentUser.username}</strong> <br> ${t('observer.team')} <strong>${teamLabel()}</strong>`;
         }
 
         connection.start()
-            .then(() => setStatus("connected"))
-            .catch(err => setStatus("connection failed: " + err));
+            .then(() => setStatus(t('common.connected')))
+            .catch(err => setStatus(t('common.connectionFailed') + err));
 
         function reportEnemy(role) {
             connection.invoke("ReportEvent", { enemyRole: role, note: null })

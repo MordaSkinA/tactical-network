@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GvG - Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-<script src="/js/auth.js"></script>
+<script src="/js/i18n.js"></script>
+    <script src="/js/auth.js"></script>
 <link rel="stylesheet" href="/css/theme.css">
 <script src="/js/sidebar.js"></script>
 <style>
@@ -144,13 +145,13 @@
     padding: 14px; margin-top: 4px;
   }
   #feed-section .section-heading { margin-top: 0; }
-  #feed:empty::after { content: 'No events yet.'; color: #555; font-size: 13px; }
+  #feed:empty::after { content: attr(data-empty-text); color: #555; font-size: 13px; }
 
   /* Order macros */
   #macro-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
   #macro-panel h4 { margin: 0 0 10px 0; font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
   #macro-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
-  #macro-list:empty::after { content: 'No macros saved yet - build a target + order below, then "Save as macro".'; color: #555; font-size: 12px; }
+  #macro-list:empty::after { content: attr(data-empty-text); color: #555; font-size: 12px; }
   .macro-btn {
     display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
     padding: 8px 10px 8px 14px; border-radius: 999px; border: none; color: #fff;
@@ -207,21 +208,21 @@
   <div id="app-sidebar"></div>
   <div id="app-content"><div id="dash-inner">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-    <h2 style="margin: 0;">Main Commander. Live Feed</h2>
+    <h2 style="margin: 0;" data-i18n="dashboard.pageTitle">Main Commander. Live Feed</h2>
   </div>
   <div id="status">connecting...</div>
   <div id="battle-status" class="inactive">No active battle</div>
   <div id="battle-controls" style="margin-bottom: 14px;">
-    <button class="menu-nav-btn" style="background:#2e5230;" onclick="startBattleFromDashboard()">Start Battle</button>
-    <button class="menu-nav-btn" style="background:#6e1c1c;" onclick="endBattleFromDashboard()">End Battle</button>
+    <button class="menu-nav-btn" style="background:#2e5230;" onclick="startBattleFromDashboard()" data-i18n="dashboard.startBattle">Start Battle</button>
+    <button class="menu-nav-btn" style="background:#6e1c1c;" onclick="endBattleFromDashboard()" data-i18n="dashboard.endBattle">End Battle</button>
   </div>
   <div id="spawn-toast"></div>
 
   <div id="macro-panel">
-    <h4>Order macros</h4>
+    <h4 data-i18n="dashboard.orderMacros">Order macros</h4>
     <div id="macro-list"></div>
     <div id="macro-save-row">
-      <input id="macro-name-input" placeholder="Macro name, e.g. Fall back everyone">
+      <input id="macro-name-input" data-i18n-placeholder="dashboard.macroNamePlaceholder" placeholder="Macro name, e.g. Fall back everyone">
       <div class="order-type-select" id="macro-order-type-select">
         <button type="button" class="order-type-trigger" id="macro-order-type-trigger"
                 onclick="toggleMacroOrderTypeMenu()" aria-haspopup="listbox" aria-expanded="false">
@@ -232,30 +233,30 @@
         <div class="order-type-menu" id="macro-order-type-menu" role="listbox"></div>
       </div>
       <label style="display:flex; align-items:center; gap:4px; color:#999; font-size:12px; white-space:nowrap;">
-        <input type="checkbox" id="macro-all-squads" style="width:auto; flex:none;"> All teams
+        <input type="checkbox" id="macro-all-squads" style="width:auto; flex:none;"> <span data-i18n="dashboard.allTeams">All teams</span>
       </label>
-      <button id="macro-save-btn" onclick="saveCurrentAsMacro()">Save as macro</button>
+      <button id="macro-save-btn" onclick="saveCurrentAsMacro()" data-i18n="dashboard.saveAsMacro">Save as macro</button>
     </div>
-    <div style="margin-top:6px; font-size:11px; color:#666;" id="macro-save-hint">Uses the teams currently selected below, unless "All teams" is checked.</div>
+    <div style="margin-top:6px; font-size:11px; color:#666;" id="macro-save-hint" data-i18n="dashboard.macroSaveHint">Uses the teams currently selected below, unless "All teams" is checked.</div>
   </div>
 
   <div id="order-panel">
-    <h4>Issue order</h4>
-    <div id="order-target-label">Target: <strong id="order-target-value">none selected</strong></div>
+    <h4 data-i18n="dashboard.issueOrder">Issue order</h4>
+    <div id="order-target-label"><span data-i18n="dashboard.target">Target:</span> <strong id="order-target-value">none selected</strong></div>
     <div id="order-squad-chips"></div>
     <div id="order-target-actions">
-      <button type="button" class="order-target-action" onclick="selectAllSquads()">Select all</button>
-      <button type="button" class="order-target-action" onclick="clearSquadSelection()">Clear</button>
+      <button type="button" class="order-target-action" onclick="selectAllSquads()" data-i18n="dashboard.selectAll">Select all</button>
+      <button type="button" class="order-target-action" onclick="clearSquadSelection()" data-i18n="dashboard.clear">Clear</button>
     </div>
     <div id="order-buttons" class="disabled"></div>
   </div>
 
-  <div class="section-heading">Teams</div>
+  <div class="section-heading" data-i18n="menu.stats.teams">Teams</div>
   <div id="roster"></div>
   <div id="reserves-section"></div>
 
   <div id="feed-section">
-    <div class="section-heading">Event feed</div>
+    <div class="section-heading" data-i18n="dashboard.eventFeed">Event feed</div>
     <div id="feed"></div>
   </div>
   </div></div>
@@ -270,6 +271,7 @@
     .build();
 
   const feed = document.getElementById('feed');
+  feed.dataset.emptyText = t('dashboard.feedEmpty');
 
   const ORDER_CATEGORIES = {
     SquadWiped: 'critical',
@@ -293,13 +295,19 @@
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
 
-  // Colors + labels 
-  const STATUS_INFO = {
-    SquadWiped:  { color: '#e33',    label: 'TEAM WIPED' },
-    Regroup:     { color: '#4c7a4f', label: 'REGROUP' },
-    NeedHelp:    { color: '#4fae82', label: 'NEED HELP' },
-    Retreating:  { color: '#4a90c4', label: 'RETREATING' },
-    Autonomous:  { color: '#6b7280', label: 'AUTONOMOUS' }
+  // formatLabel is a fallback for any status/order type that isn't in the
+  // translation tables yet — formats the raw PascalCase value as readable text.
+  function formatLabel(type) {
+    return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+  }
+
+  // Colors (labels come from statusTypes.* via t())
+  const STATUS_COLORS = {
+    SquadWiped:  '#e33',
+    Regroup:     '#4c7a4f',
+    NeedHelp:    '#4fae82',
+    Retreating:  '#4a90c4',
+    Autonomous:  '#6b7280'
   };
 
   // Status hold time
@@ -315,12 +323,13 @@
     const dot = card.querySelector('.status-dot');
     const text = card.querySelector('.status-text');
     if (!side || !label) return;
-    const info = STATUS_INFO[type] || { color: '#888', label: type };
+    const color = STATUS_COLORS[type] || '#888';
+    const labelText = t('statusTypes.' + type) || formatLabel(type);
 
-    side.style.setProperty('--status-color', info.color);
-    label.style.setProperty('--status-color', info.color);
-    if (dot) dot.style.setProperty('--status-color', info.color);
-    if (text) text.textContent = info.label;
+    side.style.setProperty('--status-color', color);
+    label.style.setProperty('--status-color', color);
+    if (dot) dot.style.setProperty('--status-color', color);
+    if (text) text.textContent = labelText;
     side.classList.add('active');
     label.classList.add('active');
   }
@@ -355,27 +364,28 @@
   }
 
   const ORDER_TYPES = [
-    { type: 'PushBot', label: 'PUSH BOT', cls: 'attack' },
-    { type: 'PushMid', label: 'PUSH MID', cls: 'attack' },
-    { type: 'PushTop', label: 'PUSH TOP', cls: 'attack' },
-    { type: 'AttackGoose', label: 'ATTACK GOOSE', cls: 'attack' },
-    { type: 'KillBoss', label: 'KILL BOSS', cls: 'attack-key' },
-    { type: 'Bomb', label: 'BOMB', cls: 'attack-key' },
-    { type: 'DefendBot', label: 'DEFEND BOT', cls: 'defend' },
-    { type: 'DefendMid', label: 'DEFEND MID', cls: 'defend' },
-    { type: 'DefendTop', label: 'DEFEND TOP', cls: 'defend' },
-    { type: 'DefendGoose', label: 'DEFEND GOOSE', cls: 'defend' },
-    { type: 'DefendTree', label: 'DEFEND TREE', cls: 'defend' },
-    { type: 'Hold', label: 'HOLD', cls: 'hold' },
-    { type: 'ProtectHealer', label: 'PROTECT HEALER', cls: 'protect' },
-    { type: 'Rotate', label: 'ROTATE', cls: 'tactic' },
-    { type: 'FallBack', label: 'FALL BACK', cls: 'fallback' },
-    { type: 'BotJungle', label: 'BOT JUNGLE', cls: 'jungle' },
-    { type: 'TopJungle', label: 'TOP JUNGLE', cls: 'jungle' }
+    { type: 'PushBot', cls: 'attack' },
+    { type: 'PushMid', cls: 'attack' },
+    { type: 'PushTop', cls: 'attack' },
+    { type: 'AttackGoose', cls: 'attack' },
+    { type: 'KillBoss', cls: 'attack-key' },
+    { type: 'Bomb', cls: 'attack-key' },
+    { type: 'DefendBot', cls: 'defend' },
+    { type: 'DefendMid', cls: 'defend' },
+    { type: 'DefendTop', cls: 'defend' },
+    { type: 'DefendGoose', cls: 'defend' },
+    { type: 'DefendTree', cls: 'defend' },
+    { type: 'Hold', cls: 'hold' },
+    { type: 'ProtectHealer', cls: 'protect' },
+    { type: 'Rotate', cls: 'tactic' },
+    { type: 'FallBack', cls: 'fallback' },
+    { type: 'BotJungle', cls: 'jungle' },
+    { type: 'TopJungle', cls: 'jungle' }
   ];
+  function orderTypeLabel(type) { return t('orderTypes.' + type) || formatLabel(type); }
 
   document.getElementById('order-buttons').innerHTML = ORDER_TYPES.map(o =>
-    `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${o.label}</button>`
+    `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${orderTypeLabel(o.type)}</button>`
   ).join('');
 
   // Custom order-type dropdown for macros (replaces the old bare <select>)
@@ -383,7 +393,7 @@
 
   document.getElementById('macro-order-type-menu').innerHTML = ORDER_TYPES.map(o =>
     `<div class="order-type-option ${o.cls}" role="option" data-type="${o.type}" onclick="selectMacroOrderType('${o.type}')">
-       <span class="order-type-dot ${o.cls}"></span>${o.label}
+       <span class="order-type-dot ${o.cls}"></span>${orderTypeLabel(o.type)}
      </div>`
   ).join('');
 
@@ -391,7 +401,7 @@
     const o = ORDER_TYPES.find(x => x.type === type);
     if (!o) return;
     macroOrderType = type;
-    document.getElementById('macro-order-type-label').textContent = o.label;
+    document.getElementById('macro-order-type-label').textContent = orderTypeLabel(type);
     document.getElementById('macro-order-type-dot').className = 'order-type-dot ' + o.cls;
     document.querySelectorAll('#macro-order-type-menu .order-type-option').forEach(el =>
       el.classList.toggle('selected', el.dataset.type === type)
@@ -430,18 +440,19 @@
       macros = await connection.invoke("ListOrderMacros");
       renderMacros();
     } catch (err) {
-      setStatus("Failed to load macros: " + err);
+      setStatus(t('dashboard.failedLoadMacros') + err);
     }
   }
 
   function renderMacros() {
     const el = document.getElementById('macro-list');
+    el.dataset.emptyText = t('dashboard.macroListEmpty');
     el.innerHTML = macros.map(m => {
-      const targetLabel = (m.squadIds && m.squadIds.length) ? m.squadIds.join(', ') : 'all teams';
-      const orderLabel = (ORDER_TYPES.find(o => o.type === m.type) || {}).label || m.type;
+      const targetLabel = (m.squadIds && m.squadIds.length) ? m.squadIds.join(', ') : t('dashboard.allTeams');
+      const orderLabel = orderTypeLabel(m.type);
       return `<button class="macro-btn" onclick="runMacro('${m.id}')" title="${orderLabel} → ${targetLabel}">
           ${escapeHtml(m.name)}
-          <span class="macro-delete" onclick="event.stopPropagation(); deleteMacro('${m.id}')" title="Delete macro">×</span>
+          <span class="macro-delete" onclick="event.stopPropagation(); deleteMacro('${m.id}')" title="${t('dashboard.deleteMacroTitle')}">×</span>
         </button>`;
     }).join('');
   }
@@ -449,23 +460,23 @@
   function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
   function runMacro(id) {
-    connection.invoke("ExecuteOrderMacro", id).catch(err => setStatus("Error: " + err));
+    connection.invoke("ExecuteOrderMacro", id).catch(err => setStatus(t('dashboard.errorPrefix') + err));
   }
 
   function deleteMacro(id) {
     const macro = macros.find(m => m.id === id);
-    if (!confirm(`Delete macro "${macro ? macro.name : id}"?`)) return;
+    if (!confirm(t('dashboard.deleteMacroConfirm', { name: macro ? macro.name : id }))) return;
     connection.invoke("DeleteOrderMacro", id)
       .then(refreshMacros)
-      .catch(err => setStatus("Error: " + err));
+      .catch(err => setStatus(t('dashboard.errorPrefix') + err));
   }
 
   function saveCurrentAsMacro() {
     const name = document.getElementById('macro-name-input').value.trim();
-    if (!name) { setStatus("Give the macro a name first."); return; }
+    if (!name) { setStatus(t('dashboard.giveMacroName')); return; }
 
     const allSquads = document.getElementById('macro-all-squads').checked;
-    if (!allSquads && selectedSquadIds.size === 0) { setStatus("Select at least one team, or check \"All teams\"."); return; }
+    if (!allSquads && selectedSquadIds.size === 0) { setStatus(t('dashboard.selectTeamOrCheckAll')); return; }
 
     const type = macroOrderType;
     const squadIds = allSquads ? [] : [...selectedSquadIds];
@@ -476,7 +487,7 @@
         document.getElementById('macro-all-squads').checked = false;
         refreshMacros();
       })
-      .catch(err => setStatus("Error: " + err));
+      .catch(err => setStatus(t('dashboard.errorPrefix') + err));
   }
 
   let selectedSquadIds = new Set();
@@ -508,7 +519,7 @@
   function refreshTargetUI() {
     const label = selectedSquadIds.size
       ? [...selectedSquadIds].sort().join(', ')
-      : 'none selected';
+      : t('dashboard.noneSelected');
     document.getElementById('order-target-value').textContent = label;
     document.querySelectorAll('.squad-chip').forEach(chip => {
       const isSelected = selectedSquadIds.has(chip.dataset.squadId);
@@ -520,22 +531,27 @@
   }
 
   function issueOrder(type) {
-    if (selectedSquadIds.size === 0) { setStatus('Select at least one team first'); return; }
+    if (selectedSquadIds.size === 0) { setStatus(t('dashboard.selectTeamFirst')); return; }
     connection.invoke("IssueOrder", { type, targetSquadIds: [...selectedSquadIds] })
-      .catch(err => setStatus("Error: " + err));
+      .catch(err => setStatus(t('dashboard.errorPrefix') + err));
   }
 
-  connection.onreconnecting(() => setStatus("reconnecting..."));
-  connection.onreconnected(() => { setStatus("connected"); refreshMacros(); });
+  function enemyRoleLabel(evt) {
+    if (evt.enemyRole) return t('observer.enemyRoles.' + evt.enemyRole) || evt.enemyRole;
+    return evt.note ?? t('player.eventFallback');
+  }
+
+  connection.onreconnecting(() => setStatus(t('common.reconnecting')));
+  connection.onreconnected(() => { setStatus(t('common.connected')); refreshMacros(); });
 
   connection.on("BattleEvent", evt =>
-    addItem(alertClass(evt), `${evt.enemyRole ?? evt.note ?? 'EVENT'} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
+    addItem(alertClass(evt), `${enemyRoleLabel(evt)} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
 
   connection.on("OrderIssued", order =>
-    addItem(orderClass(order.type), `ORDER ${order.type} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
+    addItem(orderClass(order.type), `${t('dashboard.orderWord')} ${orderTypeLabel(order.type)} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
 
   connection.on("SquadStatusChanged", status => {
-    addItem(statusClass(status.type), `STATUS ${status.type} → ${status.targetSquadId}`, status.reporterName, status.timestamp);
+    addItem(statusClass(status.type), `${t('dashboard.statusWord')} ${t('statusTypes.' + status.type) || formatLabel(status.type)} → ${status.targetSquadId}`, status.reporterName, status.timestamp);
     recordSquadStatus(status.targetSquadId, status.type, new Date(status.timestamp).getTime());
   });
 
@@ -573,24 +589,17 @@
   }
 
   let spawnToastTimer = null;
-  const JUNGLE_TAG_TEXT = {
-    JungleTopOwn: 'ВЕРХНИЙ ЛЕС (СВОЙ)',
-    JungleBotOwn: 'НИЖНИЙ ЛЕС (СВОЙ)',
-    JungleTopEnemy: 'ВЕРХНИЙ ЛЕС (ВРАГ)',
-    JungleBotEnemy: 'НИЖНИЙ ЛЕС (ВРАГ)',
-    Jungle: 'ЛЕСНЫЕ КЕМПЫ'
-  };
 
   function showSpawnToast(reminder) {
     const el = document.getElementById('spawn-toast');
     let text;
     if (reminder.kind === 'Boss') {
-      text = 'БОСС СПАВНИТСЯ';
+      text = t('player.bossSpawning');
     } else {
       const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
-      const label = tags.map(t => JUNGLE_TAG_TEXT[t] || 'ЛЕСНЫЕ КЕМПЫ').join(' И ');
+      const label = tags.map(tag => t('jungleTags.' + tag) || t('jungleTags.Jungle')).join(t('player.and'));
       const prefix = reminder.targetSquadId ? `${reminder.targetSquadId}: ` : '';
-      text = `${prefix}${label} СПАВНИТСЯ`;
+      text = `${prefix}${label}${t('player.spawningSuffix')}`;
     }
     el.textContent = text;
     el.classList.remove('kind-Boss');
@@ -604,10 +613,10 @@
   connection.on("Snapshot", items => items.forEach(renderHistoryItem));
 
   function renderHistoryItem(i) {
-    if ('eventId' in i) addItem(alertClass(i), `${i.enemyRole ?? i.note ?? 'EVENT'} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
-    else if ('orderId' in i) addItem(orderClass(i.type), `ORDER ${i.type} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+    if ('eventId' in i) addItem(alertClass(i), `${enemyRoleLabel(i)} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+    else if ('orderId' in i) addItem(orderClass(i.type), `${t('dashboard.orderWord')} ${orderTypeLabel(i.type)} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
     else {
-      addItem(statusClass(i.type), `STATUS ${i.type} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+      addItem(statusClass(i.type), `${t('dashboard.statusWord')} ${t('statusTypes.' + i.type) || formatLabel(i.type)} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
       recordSquadStatus(i.targetSquadId, i.type, new Date(i.timestamp).getTime());
     }
   }
@@ -618,19 +627,10 @@
   }
 
   connection.start()
-    .then(() => { setStatus("connected"); refreshMacros(); })
-    .catch(err => setStatus("connection failed: " + err));
+    .then(() => { setStatus(t('common.connected')); refreshMacros(); })
+    .catch(err => setStatus(t('common.connectionFailed') + err));
 
   const RESERVE_SQUAD_ID = 'RESERVE';
-  const TAG_LABELS = {
-    Jungle: 'Jungle',
-    Boss: 'Boss',
-    Backup: 'Backup',
-    JungleTopOwn: 'Top jungle (own)',
-    JungleBotOwn: 'Bot jungle (own)',
-    JungleTopEnemy: 'Top jungle (enemy)',
-    JungleBotEnemy: 'Bot jungle (enemy)'
-  };
 
   function renderRoster(fullRoster) {
     fullRoster = fullRoster || [];
@@ -662,11 +662,12 @@
       card.onclick = () => selectSquad(sq.squadId);
 
       const h4 = document.createElement('h4');
-      h4.textContent = `${sq.squadId} · ${sq.side}${sq.label ? ' · ' + sq.label : ''}`;
+      const sideLabel = t('dashboard.sides.' + sq.side) || sq.side;
+      h4.textContent = `${sq.squadId} · ${sideLabel}${sq.label ? ' · ' + sq.label : ''}`;
       (sq.tags || []).forEach(tag => {
         const tagEl = document.createElement('span');
         tagEl.className = 'tag-badge';
-        tagEl.textContent = TAG_LABELS[tag] || tag;
+        tagEl.textContent = t('dashboard.tagLabels.' + tag) || tag;
         tagEl.style.marginLeft = '6px';
         h4.appendChild(tagEl);
       });
@@ -680,11 +681,11 @@
       const hasHealer = members.some(m => m.role === 'Healer');
       if (members.length > 0 && (!hasTank || !hasHealer)) {
         const missing = [];
-        if (!hasHealer) missing.push('healer');
-        if (!hasTank) missing.push('tank');
+        if (!hasHealer) missing.push(t('dashboard.missingHealer'));
+        if (!hasTank) missing.push(t('dashboard.missingTank'));
         warnEl = document.createElement('div');
         warnEl.className = 'comp-warning';
-        warnEl.textContent = `⚠ No ${missing.join(' / ')}`;
+        warnEl.textContent = `${t('dashboard.noRolePrefix')}${missing.join(' / ')}`;
       }
 
       if (members.length === 0) {
@@ -701,20 +702,20 @@
           const presenceDot = document.createElement('span');
           presenceDot.className = 'presence-dot' + (onlineUsernames.has(m.nickname) ? ' online' : '');
           presenceDot.dataset.username = m.nickname;
-          presenceDot.title = onlineUsernames.has(m.nickname) ? 'Online' : 'Offline';
+          presenceDot.title = onlineUsernames.has(m.nickname) ? t('dashboard.online') : t('dashboard.offline');
           row.appendChild(presenceDot);
 
           if (m.role) {
             const roleEl = document.createElement('span');
             roleEl.className = 'role-badge ' + m.role;
-            roleEl.textContent = m.role.toUpperCase();
+            roleEl.textContent = t('menu.roles.' + m.role) || m.role.toUpperCase();
             row.appendChild(roleEl);
           }
           if (m.bulwark && m.bulwark !== 'None') {
             const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark] || '♜';
             const bwEl = document.createElement('span');
             bwEl.className = 'bulwark-badge';
-            bwEl.title = m.bulwark + ' bulwark';
+            bwEl.title = t('menu.bulwark.' + m.bulwark) || (m.bulwark + ' bulwark');
             bwEl.textContent = bwSymbol;
             row.appendChild(bwEl);
           }
@@ -755,7 +756,7 @@
     card.className = 'reserve-card';
 
     const h4 = document.createElement('h4');
-    h4.textContent = `Reserves (${members.length})`;
+    h4.textContent = t('dashboard.reservesCount', { count: members.length });
     card.appendChild(h4);
 
     const membersEl = document.createElement('div');
@@ -771,20 +772,20 @@
       const presenceDot = document.createElement('span');
       presenceDot.className = 'presence-dot' + (onlineUsernames.has(m.nickname) ? ' online' : '');
       presenceDot.dataset.username = m.nickname;
-      presenceDot.title = onlineUsernames.has(m.nickname) ? 'Online' : 'Offline';
+      presenceDot.title = onlineUsernames.has(m.nickname) ? t('dashboard.online') : t('dashboard.offline');
       row.appendChild(presenceDot);
 
       if (m.role) {
         const roleEl = document.createElement('span');
         roleEl.className = 'role-badge ' + m.role;
-        roleEl.textContent = m.role.toUpperCase();
+        roleEl.textContent = t('menu.roles.' + m.role) || m.role.toUpperCase();
         row.appendChild(roleEl);
       }
       if (m.bulwark && m.bulwark !== 'None') {
         const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark] || '♜';
         const bwEl = document.createElement('span');
         bwEl.className = 'bulwark-badge';
-        bwEl.title = m.bulwark + ' bulwark';
+        bwEl.title = t('menu.bulwark.' + m.bulwark) || (m.bulwark + ' bulwark');
         bwEl.textContent = bwSymbol;
         row.appendChild(bwEl);
       }
@@ -802,15 +803,15 @@
 
   function startBattleFromDashboard() {
     connection.invoke("StartBattle")
-      .then(() => setStatus("connected · battle started"))
-      .catch(err => setStatus("connected · error: " + err));
+      .then(() => setStatus(`${t('common.connected')} · ${t('dashboard.battleStarted')}`))
+      .catch(err => setStatus(`${t('common.connected')} · ${t('dashboard.errorPrefix')}${err}`));
   }
 
   function endBattleFromDashboard() {
-    if (!confirm("History will be archived to a file on the server, then cleared for everyone. Continue?")) return;
+    if (!confirm(t('dashboard.endBattleConfirm'))) return;
     connection.invoke("EndBattle")
-      .then(() => setStatus("connected · battle ended, history archived"))
-      .catch(err => setStatus("connected · error: " + err));
+      .then(() => setStatus(`${t('common.connected')} · ${t('dashboard.battleEnded')}`))
+      .catch(err => setStatus(`${t('common.connected')} · ${t('dashboard.errorPrefix')}${err}`));
   }
 
   let battleStartedAt = null;
@@ -822,13 +823,13 @@
 
     if (status && status.isActive) {
       battleStartedAt = new Date(status.startedAt);
-      const update = () => { el.textContent = `Battle in progress since ${battleStartedAt.toLocaleTimeString()}`; };
+      const update = () => { el.textContent = t('dashboard.battleInProgressSince', { time: battleStartedAt.toLocaleTimeString() }); };
       update();
       battleClockTimer = setInterval(update, 30000);
       el.className = 'active';
     } else {
       battleStartedAt = null;
-      el.textContent = 'No active battle';
+      el.textContent = t('menu.stats.noActiveBattle');
       el.className = 'inactive';
     }
   }

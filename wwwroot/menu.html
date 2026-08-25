@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GvG - Home</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/i18n.js"></script>
     <script src="/js/auth.js"></script>
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/sidebar.js"></script>
@@ -401,8 +402,8 @@
                         <div class="hud-frame-corner br"></div>
                         <div class="page-head">
                             <div>
-                                <div class="eyebrow"><span class="eyebrow-dot"></span>Tactical Network</div>
-                                <h1 class="page-title">Home</h1>
+                                <div class="eyebrow"><span class="eyebrow-dot"></span><span data-i18n="menu.brandEyebrow">Tactical Network</span></div>
+                                <h1 class="page-title" data-i18n="menu.pageTitle">Home</h1>
                                 <p class="page-subtitle" id="hint">Loading...</p>
                             </div>
                         </div>
@@ -458,33 +459,33 @@
             <div class="stat-grid" id="stat-grid"></div>
 
             <div class="card">
-                <div class="card-title">Active roster</div>
-                <div id="roster-empty" class="empty-hint" style="display:none;">No teams set up yet.</div>
+                <div class="card-title" data-i18n="menu.activeRoster">Active roster</div>
+                <div id="roster-empty" class="empty-hint" style="display:none;" data-i18n="menu.noTeams">No teams set up yet.</div>
                 <div id="roster"></div>
             </div>
 
             <div class="card">
-                <div class="card-title">Reserves</div>
-                <div id="reserves-empty" class="empty-hint" style="display:none;">Nobody in reserves.</div>
+                <div class="card-title" data-i18n="menu.reserves">Reserves</div>
+                <div id="reserves-empty" class="empty-hint" style="display:none;" data-i18n="menu.noReserves">Nobody in reserves.</div>
                 <div id="reserves"></div>
             </div>
 
             <div class="card">
-                <div class="card-title">Account</div>
+                <div class="card-title" data-i18n="menu.account">Account</div>
                 <div id="discord-status">Loading…</div>
                 <button class="tab-btn" id="discord-link-btn" style="justify-content:center;" onclick="linkDiscord()">Link Discord account</button>
 
                 <details>
-                    <summary>Change password</summary>
+                    <summary data-i18n="menu.changePassword">Change password</summary>
                     <div class="field" style="margin-top:10px;">
-                        <label>Current password</label>
+                        <label data-i18n="menu.currentPassword">Current password</label>
                         <input id="old-password" type="password" autocomplete="current-password">
                     </div>
                     <div class="field" style="margin-top:10px;">
-                        <label>New password</label>
+                        <label data-i18n="menu.newPassword">New password</label>
                         <input id="new-password" type="password" autocomplete="new-password">
                     </div>
-                    <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="changePassword()">Change password</button>
+                    <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="changePassword()" data-i18n="menu.changePassword">Change password</button>
                     <div id="password-msg"></div>
                 </details>
             </div>
@@ -522,7 +523,10 @@
         }
 
         document.getElementById('hint').textContent =
-            `Signed in as ${currentUser.username} (${currentUser.role})`;
+            t('menu.signedInAs', { user: currentUser.username, role: currentUser.role });
+
+        document.getElementById('discord-status').textContent = t('common.loading');
+        document.getElementById('discord-link-btn').textContent = t('menu.linkDiscord');
 
         const RESERVE_SQUAD_ID = 'RESERVE';
 
@@ -554,18 +558,18 @@
             const reserveCount = reserveSquad ? reserveSquad.members.length : 0;
 
             const active = !!(latestStatus && latestStatus.isActive);
-            let statusSub = 'No active battle';
+            let statusSub = t('menu.stats.noActiveBattle');
             if (active && latestStatus.startedAt) {
-                statusSub = 'Since ' + new Date(latestStatus.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                statusSub = t('menu.stats.since', { time: new Date(latestStatus.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
             } else if (active) {
-                statusSub = 'In progress';
+                statusSub = t('menu.stats.inProgress');
             }
 
             const stats = [
-                { label: 'Battle', value: active ? 'Active' : 'Inactive', sub: statusSub, cls: active ? 'active' : 'inactive' },
-                { label: 'Teams', value: teams.length },
-                { label: 'In roster', value: totalPlayers },
-                { label: 'Reserves', value: reserveCount }
+                { label: t('menu.stats.battle'), value: active ? t('menu.stats.active') : t('menu.stats.inactive'), sub: statusSub, cls: active ? 'active' : 'inactive' },
+                { label: t('menu.stats.teams'), value: teams.length },
+                { label: t('menu.stats.inRoster'), value: totalPlayers },
+                { label: t('menu.stats.reserves'), value: reserveCount }
             ];
 
             document.getElementById('stat-grid').innerHTML = stats.map((s, i) => `
@@ -605,7 +609,7 @@
                         ${(sq.tags || []).map(t => `<span class="tag-badge">${escapeHtml(t)}</span>`).join('')}
                     </h4>
                     <div class="members">
-                        ${(sq.members && sq.members.length) ? sq.members.map(memberRowHtml).join('') : '<div class="empty-hint">Empty</div>'}
+                        ${(sq.members && sq.members.length) ? sq.members.map(memberRowHtml).join('') : `<div class="empty-hint">${t('menu.empty')}</div>`}
                     </div>
                 </div>
             `).join('');
@@ -621,12 +625,14 @@
         function memberRowHtml(m, i) {
             const online = onlineUsernames.has(m.nickname);
             const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark];
+            const roleLabel = m.role ? (t('menu.roles.' + m.role) || m.role.toUpperCase()) : null;
+            const bwTitle = m.bulwark ? (t('menu.bulwark.' + m.bulwark) || `${m.bulwark} bulwark`) : '';
             return `
                 <div class="member-row" data-username="${escapeHtml(m.nickname)}" style="--i:${i || 0}">
                     <span class="presence-dot ${online ? 'online' : ''}"></span>
                     <span>${escapeHtml(m.nickname)}</span>
-                    ${m.role ? `<span class="role-badge ${m.role}">${m.role.toUpperCase()}</span>` : ''}
-                    ${bwSymbol ? `<span class="bulwark-badge" title="${m.bulwark} bulwark">${bwSymbol}</span>` : ''}
+                    ${m.role ? `<span class="role-badge ${m.role}">${roleLabel}</span>` : ''}
+                    ${bwSymbol ? `<span class="bulwark-badge" title="${bwTitle}">${bwSymbol}</span>` : ''}
                 </div>
             `;
         }
@@ -647,10 +653,10 @@
                 const info = await connection.invoke("GetMyAccount");
                 const el = document.getElementById('discord-status');
                 if (info.discordLinked) {
-                    el.textContent = 'Discord: linked as ' + info.discordUsername;
-                    document.getElementById('discord-link-btn').textContent = 'Re-link Discord account';
+                    el.textContent = t('menu.discordLinked', { name: info.discordUsername });
+                    document.getElementById('discord-link-btn').textContent = t('menu.relinkDiscord');
                 } else {
-                    el.textContent = 'Discord: not linked';
+                    el.textContent = t('menu.discordNotLinked');
                 }
             } catch (err) {
                 console.error(err);
@@ -677,20 +683,20 @@
 
             if (!oldPassword || !newPassword) {
                 msg.style.color = '#e05260';
-                msg.textContent = 'Fill in both fields.';
+                msg.textContent = t('menu.fillBothFields');
                 return;
             }
 
             connection.invoke("ChangePassword", { oldPassword, newPassword })
                 .then(() => {
                     msg.style.color = '#4fd18b';
-                    msg.textContent = 'Password changed.';
+                    msg.textContent = t('menu.passwordChanged');
                     document.getElementById('old-password').value = '';
                     document.getElementById('new-password').value = '';
                 })
                 .catch(err => {
                     msg.style.color = '#e05260';
-                    msg.textContent = 'Error: ' + err;
+                    msg.textContent = t('menu.errorPrefix') + err;
                 });
         }
     </script>

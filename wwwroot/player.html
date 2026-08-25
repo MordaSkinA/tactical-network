@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GvG - Player</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="/js/i18n.js"></script>
     <script src="/js/auth.js"></script>
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/sidebar.js"></script>
@@ -213,21 +214,26 @@
     <div id="spawn-toast"></div>
 
     <div id="order-banner">
-        <div class="label">Current order</div>
+        <div class="label" data-i18n="player.currentOrder">Current order</div>
         <div class="value" id="order-value">-</div>
     </div>
 
     <div id="alerts"></div>
 
-    <button id="sos" onclick="sendSos()">NEED HELP</button>
+    <button id="sos" onclick="sendSos()" data-i18n="player.needHelp">NEED HELP</button>
     </div></div>
 
     <script>
 
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
         renderSidebar('/player.html');
+
+        function teamLabel() {
+            return currentUser.squadId === 'RESERVE' ? t('player.reserves') : (currentUser.squadId || t('player.none'));
+        }
+
         if (currentUser) {
-            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'None')}`;
+            document.getElementById('user-info').textContent = `${t('player.player')}: ${currentUser.username} | ${t('player.team')}: ${teamLabel()}`;
         }
 
         const connection = new signalR.HubConnectionBuilder()
@@ -235,12 +241,12 @@
             .withAutomaticReconnect()
             .build();
 
-        connection.onreconnecting(() => setStatus("reconnecting..."));
-        connection.onreconnected(() => setStatus("connected"));
+        connection.onreconnecting(() => setStatus(t('common.reconnecting')));
+        connection.onreconnected(() => setStatus(t('common.connected')));
 
         connection.on("BattleEvent", evt => {
             if (evt.targetSquadId !== currentUser.squadId) return;
-            addAlert(alertClass(evt), `${evt.enemyRole ?? evt.note ?? 'EVENT'}`, evt.timestamp);
+            addAlert(alertClass(evt), `${evt.enemyRole ?? evt.note ?? t('player.eventFallback')}`, evt.timestamp);
         });
 
         connection.on("OrderIssued", order => {
@@ -250,16 +256,16 @@
 
         connection.on("SquadStatusChanged", status => {
             if (status.targetSquadId !== currentUser.squadId) return;
-            addAlert('Warning', `STATUS: ${formatLabel(status.type)}`, status.timestamp);
+            addAlert('Warning', `${t('player.statusPrefix')}${t('statusTypes.' + status.type) || formatLabel(status.type)}`, status.timestamp);
         });
 
         connection.on("Snapshot", items => items.forEach(applySnapshotItem));
 
         function applySnapshotItem(i) {
             if (i.targetSquadId !== currentUser.squadId) return;
-            if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? 'EVENT', i.timestamp);
+            if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? t('player.eventFallback'), i.timestamp);
             else if ('orderId' in i) setOrder(i.type);
-            else addAlert('Warning', `STATUS: ${formatLabel(i.type)}`, i.timestamp);
+            else addAlert('Warning', `${t('player.statusPrefix')}${t('statusTypes.' + i.type) || formatLabel(i.type)}`, i.timestamp);
         }
 
 
@@ -267,6 +273,8 @@
             return evt.enemyRole != null ? 'Critical' : evt.severity;
         }
 
+        // formatLabel is a fallback for any status/order type that isn't in the
+        // translation tables yet — formats the raw PascalCase value as readable text.
         function formatLabel(type) {
             return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
         }
@@ -281,23 +289,16 @@
         connection.on("SpawnReminder", showSpawnToast);
 
         let spawnToastTimer = null;
-        const JUNGLE_TAG_TEXT = {
-            JungleTopOwn: 'ВЕРХНИЙ ЛЕС (СВОЙ)',
-            JungleBotOwn: 'НИЖНИЙ ЛЕС (СВОЙ)',
-            JungleTopEnemy: 'ВЕРХНИЙ ЛЕС (ВРАГ)',
-            JungleBotEnemy: 'НИЖНИЙ ЛЕС (ВРАГ)',
-            Jungle: 'ЛЕСНЫЕ КЕМПЫ'
-        };
 
         function showSpawnToast(reminder) {
             const el = document.getElementById('spawn-toast');
             let text;
             if (reminder.kind === 'Boss') {
-                text = 'БОСС СПАВНИТСЯ';
+                text = t('player.bossSpawning');
             } else {
                 const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
-                const label = tags.map(t => JUNGLE_TAG_TEXT[t] || 'ЛЕСНЫЕ КЕМПЫ').join(' И ');
-                text = `${label} СПАВНИТСЯ`;
+                const label = tags.map(tag => t('jungleTags.' + tag) || t('jungleTags.Jungle')).join(t('player.and'));
+                text = `${label}${t('player.spawningSuffix')}`;
             }
             el.textContent = text;
             el.classList.remove('kind-Boss');
@@ -314,12 +315,12 @@
             if (newSquadId === currentUser.squadId) return;
             currentUser.squadId = newSquadId;
             localStorage.setItem('gvg_session', JSON.stringify(currentUser));
-            document.getElementById('user-info').textContent = `Player: ${currentUser.username} | Team: ${currentUser.squadId === 'RESERVE' ? 'Reserves' : (currentUser.squadId || 'None')}`;
+            document.getElementById('user-info').textContent = `${t('player.player')}: ${currentUser.username} | ${t('player.team')}: ${teamLabel()}`;
         }
 
         connection.start()
-            .then(() => setStatus("connected"))
-            .catch(err => setStatus("connection failed: " + err));
+            .then(() => setStatus(t('common.connected')))
+            .catch(err => setStatus(t('common.connectionFailed') + err));
 
         function sendSos() {
             connection.invoke("Sos").catch(err => console.error(err));
@@ -346,7 +347,7 @@
                 banner.classList.remove('has-order');
                 return;
             }
-            el.textContent = type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
+            el.textContent = t('orderTypes.' + type) || formatLabel(type);
             banner.classList.add('has-order');
             const category = ORDER_CATEGORIES[type] || 'tactic';
             banner.classList.add('cat-' + category);

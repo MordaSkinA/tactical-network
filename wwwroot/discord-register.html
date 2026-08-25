@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GvG Tactical Network - Discord</title>
     <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/i18n.js"></script>
     <style>
         body {
             background: var(--bg);
@@ -80,30 +81,40 @@
 </head>
 <body>
     <div class="login-card">
-        <div class="login-logo"><span class="sb-logo-dot"></span>TACNET</div>
-        <h2>Almost ready</h2>
+        <div class="login-logo" style="justify-content: space-between;">
+            <span style="display:flex; align-items:center; gap:10px;"><span class="sb-logo-dot"></span>TACNET</span>
+            <button type="button" class="sb-info-btn sb-lang-btn" id="lang-toggle-btn" onclick="toggleLang()">
+                <span class="sb-info-ring"></span><span class="sb-info-core"></span><span class="sb-lang-code" id="lang-toggle-code"></span>
+            </button>
+        </div>
+        <h2 data-i18n="register.heading">Almost ready</h2>
         <div class="hint" id="hint">Discord verified. Please specify your nickname, admins will use it to add you to a team.</div>
         <form id="nick-form">
             <div class="field">
-                <label>Nickname</label>
+                <label data-i18n="register.nickname">Nickname</label>
                 <input id="nickname" autocomplete="off" required maxlength="24">
             </div>
-            <button type="submit">Continue</button>
+            <button type="submit" data-i18n="register.continue">Continue</button>
             <div id="error"></div>
         </form>
     </div>
 
     <script>
+        const otherLang = getLang() === 'en' ? 'zh' : 'en';
+        document.getElementById('lang-toggle-code').textContent = I18N_STRINGS[getLang()].langName;
+        document.getElementById('lang-toggle-btn').setAttribute('data-tip', I18N_STRINGS[otherLang].langName);
+
+        document.getElementById('hint').textContent = t('register.defaultHint');
+
         const params = new URLSearchParams(location.search);
         const pendingToken = params.get('pendingToken');
         const discordUsername = params.get('discordUsername');
 
         if (!pendingToken) {
-            document.getElementById('hint').textContent = 'Session not found. Please return to the login page and try again.';
+            document.getElementById('hint').textContent = t('register.sessionNotFound');
             document.getElementById('nick-form').style.display = 'none';
         } else if (discordUsername) {
-            document.getElementById('hint').textContent =
-                'Discord verified: ' + discordUsername + '. Please specify your nickname — admins will use it to add you to a team.';
+            document.getElementById('hint').textContent = t('register.verifiedHint', { name: discordUsername });
             document.getElementById('nickname').value = discordUsername.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
         }
 
@@ -120,7 +131,7 @@
                     body: JSON.stringify({ pendingToken, nickname })
                 });
                 const data = await res.json();
-                if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Failed to create account.'; return; }
+                if (!res.ok || !data.success) { errorEl.textContent = data.message || t('register.failedCreateAccount'); return; }
 
                 localStorage.setItem('gvg_session', JSON.stringify({
                     token: data.token,
@@ -130,7 +141,7 @@
                 }));
                 location.href = '/menu.html';
             } catch (err) {
-                errorEl.textContent = 'Connection error: ' + err;
+                errorEl.textContent = t('login.connectionError') + err;
             }
         });
     </script>

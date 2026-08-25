@@ -6,8 +6,6 @@ const SB_ICONS = {
   '/admin.html': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
 };
 
-const SB_LABELS = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel', Replay: 'Replay' };
-
 const SB_INFO_ICON = `
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="9"/>
@@ -36,10 +34,10 @@ async function loadDownloadButton() {
     const data = await res.json();
     const asset = (data.assets || []).find(a => a.name.toLowerCase().endsWith('.exe'));
     linkEl.href = asset ? asset.browser_download_url : SB_RELEASES_URL;
-    labelEl.textContent = `Download ${data.tag_name || ''}`.trim();
+    labelEl.textContent = t('sidebar.download', { tag: data.tag_name || '' }).trim();
   } catch {
     linkEl.href = SB_RELEASES_URL;
-    labelEl.textContent = 'Download app';
+    labelEl.textContent = t('sidebar.downloadApp');
   }
 }
 
@@ -52,32 +50,37 @@ function renderSidebar(activePath) {
   document.body.classList.add('app');
 
   const tabs = getAccessibleTabs(session.role);
-  const navHtml = tabs.map(t => `
-    <a class="sb-link ${t.url === activePath ? 'active' : ''}" href="${t.url}">
-      <span class="sb-icon">${SB_ICONS[t.url] || ''}</span>
-      <span>${SB_LABELS[t.label] || t.label}</span>
+  const navHtml = tabs.map(tab => `
+    <a class="sb-link ${tab.url === activePath ? 'active' : ''}" href="${tab.url}">
+      <span class="sb-icon">${SB_ICONS[tab.url] || ''}</span>
+      <span>${t('sidebar.labels.' + tab.label) || tab.label}</span>
     </a>
   `).join('');
+
+  const otherLang = getLang() === 'en' ? 'zh' : 'en';
 
   container.innerHTML = `
     <div class="sb-logo"><span class="sb-logo-dot"></span>TACNET</div>
     <div class="sb-nav">${navHtml}</div>
     <a id="sb-download" class="sb-download" href="${SB_RELEASES_URL}" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span id="sb-download-label">Download app</span>
+      <span id="sb-download-label">${t('sidebar.downloadApp')}</span>
     </a>
     <div class="sb-info-row">
-      <a class="sb-info-btn" href="/docs/Tacnet_User_Guide.pdf" target="_blank" rel="noopener" data-tip="Site guide">
+      <a class="sb-info-btn" href="/docs/Tacnet_User_Guide.pdf" target="_blank" rel="noopener" data-tip="${t('sidebar.siteGuide')}">
         <span class="sb-info-ring"></span><span class="sb-info-core"></span>${SB_INFO_ICON}
       </a>
-      <a class="sb-info-btn overlay" href="/docs/Tactical_Overlay_User_Guide.pdf" target="_blank" rel="noopener" data-tip="Overlay guide">
+      <a class="sb-info-btn overlay" href="/docs/Tactical_Overlay_User_Guide.pdf" target="_blank" rel="noopener" data-tip="${t('sidebar.overlayGuide')}">
         <span class="sb-info-ring"></span><span class="sb-info-core"></span>${SB_INFO_ICON}
       </a>
+      <button type="button" class="sb-info-btn sb-lang-btn" data-tip="${I18N_STRINGS[otherLang].langName}" onclick="toggleLang()">
+        <span class="sb-info-ring"></span><span class="sb-info-core"></span><span class="sb-lang-code">${I18N_STRINGS[getLang()].langName}</span>
+      </button>
     </div>
     <div class="sb-spacer"></div>
     <a class="sb-link ${activePath === '/menu.html' ? 'active' : ''}" href="/menu.html">
       <span class="sb-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1Z" stroke="currentColor" stroke-width="1.6"/></svg></span>
-      <span>Menu</span>
+      <span>${t('common.menu')}</span>
     </a>
     <div class="sb-user">
       <div class="sb-avatar">${initials(session.username)}</div>
@@ -85,7 +88,7 @@ function renderSidebar(activePath) {
         <div class="sb-user-name">${session.username}</div>
         <div class="sb-user-role">${session.role}</div>
       </div>
-      <button class="sb-logout" title="Log out" onclick="logout()">
+      <button class="sb-logout" title="${t('common.logout')}" onclick="logout()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>

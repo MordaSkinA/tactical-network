@@ -404,6 +404,21 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   outline-offset: 2px;
 }
 
+.sb-lang-btn {
+  font-family: inherit;
+  padding: 0;
+}
+.sb-lang-btn .sb-lang-code {
+  position: relative;
+  z-index: 2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.sb-lang-btn .sb-info-ring {
+  background: conic-gradient(from 0deg, var(--success), #9ff0c4, var(--success));
+}
+
 .sb-spacer { flex: 1; }
 
 .sb-section-label {

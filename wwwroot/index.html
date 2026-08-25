@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>GvG Tactical Network - Login</title>
     <link rel="stylesheet" href="/css/theme.css">
+    <script src="/js/i18n.js"></script>
     <script src="/js/easter-egg.js" defer></script>
     <style>
         body {
@@ -88,26 +89,35 @@
 </head>
 <body>
     <div class="login-card">
-        <div class="login-logo"><span class="sb-logo-dot"></span>TACNET</div>
-        <h2>Sign in to GvG Tactical Network</h2>
+        <div class="login-logo" style="justify-content: space-between;">
+            <span style="display:flex; align-items:center; gap:10px;"><span class="sb-logo-dot"></span>TACNET</span>
+            <button type="button" class="sb-info-btn sb-lang-btn" id="lang-toggle-btn" onclick="toggleLang()">
+                <span class="sb-info-ring"></span><span class="sb-info-core"></span><span class="sb-lang-code" id="lang-toggle-code"></span>
+            </button>
+        </div>
+        <h2 data-i18n="login.heading">Sign in to GvG Tactical Network</h2>
         <form id="login-form">
             <div class="field">
-                <label>Username</label>
+                <label data-i18n="login.username">Username</label>
                 <input id="username" autocomplete="username" required>
             </div>
             <div class="field">
-                <label>Password</label>
+                <label data-i18n="login.password">Password</label>
                 <input id="password" type="password" autocomplete="current-password" required>
             </div>
-            <button type="submit">Log in</button>
+            <button type="submit" data-i18n="login.logIn">Log in</button>
             <div id="error"></div>
         </form>
 
-        <div class="divider">or</div>
-        <button id="discord-login-btn" type="button" onclick="loginWithDiscord()">Login with Discord</button>
+        <div class="divider" data-i18n="login.or">or</div>
+        <button id="discord-login-btn" type="button" onclick="loginWithDiscord()" data-i18n="login.loginWithDiscord">Login with Discord</button>
     </div>
 
     <script>
+  const otherLang = getLang() === 'en' ? 'zh' : 'en';
+  document.getElementById('lang-toggle-code').textContent = I18N_STRINGS[getLang()].langName;
+  document.getElementById('lang-toggle-btn').setAttribute('data-tip', I18N_STRINGS[otherLang].langName);
+
   const existing = localStorage.getItem('gvg_session');
   if (existing) {
     try { JSON.parse(existing); location.href = '/menu.html'; } catch { localStorage.removeItem('gvg_session'); }
@@ -127,10 +137,10 @@
         body: JSON.stringify({ username, password })
       });
 
-      if (res.status === 429) { errorEl.textContent = 'Too many attempts. Please wait a moment.'; return; }
+      if (res.status === 429) { errorEl.textContent = t('login.tooManyAttempts'); return; }
 
       const data = await res.json();
-      if (!res.ok || !data.success) { errorEl.textContent = data.message || 'Invalid username or password.'; return; }
+      if (!res.ok || !data.success) { errorEl.textContent = data.message || t('login.invalidCredentials'); return; }
 
       localStorage.setItem('gvg_session', JSON.stringify({
         token: data.token,
@@ -140,7 +150,7 @@
       }));
       location.href = '/menu.html';
     } catch (err) {
-      errorEl.textContent = 'Connection error: ' + err;
+      errorEl.textContent = t('login.connectionError') + err;
     }
   });
 
@@ -161,7 +171,7 @@
       });
       location.href = 'https://discord.com/api/oauth2/authorize?' + params.toString();
     } catch (err) {
-      document.getElementById('error').textContent = 'Connection error: ' + err;
+      document.getElementById('error').textContent = t('login.connectionError') + err;
     }
   }
     </script>
