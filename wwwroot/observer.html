@@ -262,6 +262,26 @@
             text-decoration: none;
             margin-right: 8px;
         }
+
+        @media (max-width: 480px) {
+            button.action-btn {
+                flex: 1 1 calc(50% - 5px);
+                min-width: 0;
+                padding: 14px 10px;
+                font-size: 15px;
+            }
+        }
+
+        @media (max-width: 340px) {
+            button.action-btn {
+                flex: 1 1 100%;
+            }
+        }
+
+        @media (max-width: 360px) {
+            #order-banner .value, #status-banner .value { font-size: 21px; }
+            #order-banner, #status-banner { padding: 14px; }
+        }
     </style>
 </head>
 <body>

@@ -833,14 +833,102 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface);
 }
 
+/* ---------------- Mobile: sidebar becomes a fixed bottom tab bar ---------------- */
+
 @media (max-width: 900px) {
   body.app { flex-direction: column; }
+
   #app-sidebar {
-    position: static; width: 100%; flex: none; min-height: auto;
-    flex-direction: row; align-items: center; padding: 12px 16px; overflow-x: auto;
+    position: fixed;
+    left: 0; right: 0; bottom: 0; top: auto;
+    width: 100%;
+    min-height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-right: none;
+    border-top: 1px solid var(--border-soft);
+    z-index: 100;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  .sb-logo { margin-bottom: 0; }
-  .sb-nav { flex-direction: row; }
-  .sb-section-label, .sb-user { display: none; }
-  #app-content { padding: 20px; }
+
+  /* secondary sidebar content doesn't fit a bottom bar — hide it on mobile */
+  .sb-logo, .sb-download, .sb-spacer, .sb-section-label, .sb-credit {
+    display: none;
+  }
+
+  /* leave room at the bottom of the page content so the fixed bar never covers it */
+  #app-content {
+    padding: 20px 16px calc(78px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* unwrap .sb-nav so every tab (plus the standalone Menu link) is an equal
+     flex item on the bar, instead of the whole nav group competing for
+     space against Menu as if it were a single tab */
+  .sb-nav {
+    display: contents;
+  }
+
+  .sb-link {
+    flex: 1 1 0;
+    min-width: 44px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 2px;
+    font-size: 10px;
+    text-align: center;
+  }
+
+  /* keep only the language toggle from the help/lang row; the PDF-guide
+     buttons are non-essential on mobile */
+  .sb-info-row {
+    display: flex;
+    flex: 0 0 auto;
+    padding: 0;
+    margin: 0;
+    gap: 0;
+  }
+  .sb-info-btn:not(.sb-lang-btn) { display: none; }
+  .sb-lang-btn { width: 32px; height: 32px; }
+  .sb-lang-btn::after { bottom: auto; top: -34px; }
+  .sb-link span:not(.sb-icon) {
+    font-size: 9.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .sb-link:hover { transform: none; }
+
+  /* the standalone "Menu" link joins the row of tabs */
+  a.sb-link[href="/menu.html"] {
+    flex: 1 1 0;
+    min-width: 44px;
+    flex-direction: column;
+    padding: 6px 2px;
+    font-size: 10px;
+  }
+
+  /* keep the user visible but compact: avatar + logout only, no name/role text */
+  .sb-user {
+    flex: 0 0 auto;
+    border-top: none;
+    margin-top: 0;
+    padding: 4px 6px;
+  }
+  .sb-user-info { display: none; }
+  .sb-avatar { width: 30px; height: 30px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  #app-sidebar { padding: 5px 4px calc(5px + env(safe-area-inset-bottom, 0px)); }
+  .sb-link { font-size: 9.5px; padding: 5px 2px; }
+  .sb-link .sb-icon { width: 17px; height: 17px; }
+  .sb-link span:not(.sb-icon) { font-size: 9px; }
+  .sb-avatar { width: 26px; height: 26px; font-size: 11px; }
+  .sb-lang-btn { width: 28px; height: 28px; }
+  #app-content { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px)); }
 }

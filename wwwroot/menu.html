@@ -381,6 +381,18 @@
 
         #password-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
 
+        @media (max-width: 480px) {
+            .hud-hero { height: 150px; margin-bottom: 16px; }
+            .hud-face-front { padding: 22px 18px 18px; }
+            #home-inner .page-title { font-size: 26px; }
+            .hud-face-word { font-size: 16px; }
+        }
+
+        @media (max-width: 340px) {
+            .hud-hero { height: 130px; }
+            #home-inner .page-title { font-size: 22px; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
             .hud-grid, .hud-scan, #home-inner .page-title { animation: none !important; }
