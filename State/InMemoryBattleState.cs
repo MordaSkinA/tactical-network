@@ -19,6 +19,8 @@ public interface IBattleState
     void SetRoster(IReadOnlyList<SquadRosterDto> roster);
     IReadOnlyList<LogFileSummaryDto> ListLogFiles();
     string? ReadLogFile(string fileName);
+    byte[]? ReadLogFileBytes(string fileName);
+    bool DeleteLogFile(string fileName);
 
     string SaveLogSnapshot();
 
@@ -206,6 +208,42 @@ public class InMemoryBattleState : IBattleState
             items.Add(item);
         }
         return JsonSerializer.Serialize(items, WriteOptions);
+    }
+
+    public byte[]? ReadLogFileBytes(string fileName)
+    {
+        var path = ResolveSafeLogPath(fileName);
+        if (path is null || !File.Exists(path)) return null;
+        return File.ReadAllBytes(path);
+    }
+
+    public bool DeleteLogFile(string fileName)
+    {
+        var path = ResolveSafeLogPath(fileName);
+        if (path is null || !File.Exists(path)) return false;
+
+        lock (_logFileLock)
+        {
+            try
+            {
+                File.Delete(path);
+                var txtPath = Path.ChangeExtension(path, ".txt");
+                if (File.Exists(txtPath)) File.Delete(txtPath);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    private string? ResolveSafeLogPath(string fileName)
+    {
+        var safeName = Path.GetFileName(fileName);
+        if (string.IsNullOrEmpty(safeName) || !safeName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            return null;
+        return Path.Combine(_logsDirectory, safeName);
     }
 
     private static string FormatReadableLog(IReadOnlyList<object> items)

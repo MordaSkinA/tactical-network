@@ -468,6 +468,17 @@ public class BattleHub : Hub
         return Task.FromResult(content);
     }
 
+    public async Task<bool> DeleteLogFile(string fileName)
+    {
+        RequireRole(UserRole.Admin, UserRole.Developer);
+        var deleted = _state.DeleteLogFile(fileName);
+        if (deleted)
+        {
+            await Clients.All.SendAsync("LogFileDeleted", fileName);
+        }
+        return deleted;
+    }
+
     public Task<List<AccountSummaryDto>> ListAccounts()
     {
         var session = RequireRole(UserRole.Admin, UserRole.Developer);

@@ -127,9 +127,20 @@
     transition: color 0.2s ease, background 0.2s ease;
   }
   .file-btn.active .fb-icon { color: var(--accent-light); background: var(--accent-soft-bg); }
-  .file-btn .fb-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .file-btn .fb-label { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
   .file-btn .fb-date { font-weight: 700; color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .file-btn .fb-sub { font-size: 11px; color: var(--text-faint); }
+
+  .fb-actions { flex: 0 0 auto; display: flex; gap: 4px; margin-left: auto; }
+  .fb-action {
+    width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; color: var(--text-faint); cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+  .fb-action:hover { color: var(--text); background: var(--surface-2); border-color: var(--border-soft); transform: translateY(-1px); }
+  .fb-action.danger:hover { color: var(--danger); background: rgba(224, 82, 96, 0.12); border-color: rgba(224, 82, 96, 0.3); }
+  .fb-action svg { pointer-events: none; }
 
   @keyframes rpFadeInLeft {
     to { opacity: 1; transform: translateX(0); }
@@ -301,6 +312,8 @@
     document.getElementById('status-text').textContent = text;
   }
 
+  connection.on("LogFileDeleted", (fileName) => removeFileFromList(fileName));
+
   connection.start()
     .then(() => { setStatus("connected", "connected"); loadFileList(); })
     .catch(err => setStatus("connection failed: " + err, "error"));
@@ -313,9 +326,12 @@
         fileListEl.innerHTML = '<div class="hint">No saved battles yet.</div>';
         return;
       }
+      const canDelete = ['Admin', 'Developer'].includes(currentUser.role);
       files.forEach((f, idx) => {
-        const btn = document.createElement('button');
+        const btn = document.createElement('div');
         btn.className = 'file-btn';
+        btn.tabIndex = 0;
+        btn.dataset.fileName = f.fileName;
         btn.style.animationDelay = (idx * 45) + 'ms';
         btn.innerHTML = `
           <span class="fb-icon">
@@ -324,8 +340,23 @@
           <span class="fb-label">
             <span class="fb-date">${formatFileLabel(f.savedAt)}</span>
             <span class="fb-sub">${escapeHtml(f.fileName)}</span>
+          </span>
+          <span class="fb-actions">
+            <a class="fb-action" title="Download" download="${escapeHtml(f.fileName)}" href="${downloadUrl(f.fileName)}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </a>
+            ${canDelete ? `
+            <button type="button" class="fb-action danger" title="Delete">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0-1 13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L6 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>` : ''}
           </span>`;
-        btn.onclick = () => selectFile(f.fileName, btn);
+        btn.querySelector('.fb-label').onclick = () => selectFile(f.fileName, btn);
+        btn.querySelector('.fb-icon').onclick = () => selectFile(f.fileName, btn);
+        btn.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectFile(f.fileName, btn); } };
+        const downloadEl = btn.querySelector('.fb-actions a');
+        downloadEl.onclick = (e) => e.stopPropagation();
+        const deleteEl = btn.querySelector('.fb-actions button.danger');
+        if (deleteEl) deleteEl.onclick = (e) => { e.stopPropagation(); deleteFile(f.fileName, btn); };
         fileListEl.appendChild(btn);
       });
     } catch (err) {
@@ -340,6 +371,35 @@
 
   function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function downloadUrl(fileName) {
+    return `/api/replays/${encodeURIComponent(fileName)}/download?access_token=${encodeURIComponent(currentUser.token)}`;
+  }
+
+  async function deleteFile(fileName, btnEl) {
+    if (!confirm(`Delete replay "${fileName}"? This cannot be undone.`)) return;
+    try {
+      const ok = await connection.invoke("DeleteLogFile", fileName);
+      if (!ok) { alert('Could not delete replay.'); return; }
+      removeFileFromList(fileName);
+    } catch (err) {
+      alert('Error deleting replay: ' + err);
+    }
+  }
+
+  function removeFileFromList(fileName) {
+    const el = fileListEl.querySelector(`.file-btn[data-file-name="${CSS.escape(fileName)}"]`);
+    const wasActive = el?.classList.contains('active');
+    el?.remove();
+    if (!fileListEl.querySelector('.file-btn')) {
+      fileListEl.innerHTML = '<div class="hint">No saved battles yet.</div>';
+    }
+    if (wasActive) {
+      titleEl.innerHTML = '<span class="rp-blink">■</span> Select a battle on the left';
+      statsEl.innerHTML = '';
+      feedEl.innerHTML = '';
+    }
   }
 
   async function selectFile(fileName, btnEl) {

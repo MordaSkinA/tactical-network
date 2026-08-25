@@ -462,6 +462,16 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
 .sb-user-name { font-size: 13px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-user-role { font-size: 11px; color: var(--text-faint); }
 
+.sb-credit {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-faint);
+  opacity: 0.5;
+  padding: 6px 0 10px;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
 .sb-logout {
   background: none;
   border: none;

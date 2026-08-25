@@ -294,6 +294,23 @@ app.MapPost("/api/auth/discord/register", (
         return Results.Json(new AuthResponseDto(true, "Account created", token, nickname, UserRole.Player, null));
     });
 
+app.MapGet("/api/replays/{fileName}/download", (
+    string fileName,
+    string? access_token,
+    ISessionStore sessions,
+    IBattleState state) => {
+        var session = access_token is not null ? sessions.Get(access_token) : null;
+        if (session is null) return Results.Unauthorized();
+        if (session.Role is not (UserRole.Commander or UserRole.Admin or UserRole.Developer))
+            return Results.Forbid();
+
+        var safeName = Path.GetFileName(fileName);
+        var bytes = state.ReadLogFileBytes(safeName);
+        if (bytes is null) return Results.NotFound();
+
+        return Results.File(bytes, "application/json", fileDownloadName: safeName);
+    });
+
 app.MapHub<BattleHub>("/battleHub");
 
 app.Run();
