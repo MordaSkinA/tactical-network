@@ -70,7 +70,7 @@ public class BattleHub : Hub
         await Clients.Caller.SendAsync("OnlineUsernames", _connections.GetOnlineUsernames());
         await base.OnConnectedAsync();
 
-        // announce presence on the user's first connection 
+        // announce presence on the first connection 
         if (_connections.GetConnections(session.Username).Count == 1)
             await BroadcastPresence(session.Username, squadId, online: true);
     }
@@ -630,6 +630,29 @@ public class BattleHub : Hub
             throw new HubException("New password is too short.");
 
         _accounts.Upsert(account.Username, account.Role, account.SquadId, dto.NewPassword);
+        return Task.CompletedTask;
+    }
+
+    public Task RenameAccount(RenameAccountDto dto)
+    {
+        RequireRole(UserRole.Developer);
+        var oldUsername = (dto.OldUsername ?? "").Trim();
+        var newUsername = (dto.NewUsername ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(oldUsername) || string.IsNullOrWhiteSpace(newUsername))
+            throw new HubException("Username is required.");
+        if (ProtectedAccounts.Contains(oldUsername))
+            throw new HubException("This account is protected and cannot be renamed.");
+
+        try
+        {
+            _accounts.Rename(oldUsername, newUsername);
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw new HubException(ex.Message);
+        }
+
         return Task.CompletedTask;
     }
 

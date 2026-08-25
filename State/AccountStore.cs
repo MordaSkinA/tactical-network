@@ -13,6 +13,7 @@ public interface IAccountStore
     void Upsert(string username, UserRole role, string? squadId, string? plainPassword);
     // Reassigns role/squad 
     void AssignRoleAndSquad(string username, UserRole role, string? squadId);
+    void Rename(string oldUsername, string newUsername);
     void Delete(string username);
     bool VerifyPassword(UserAccount account, string plainPassword);
     UserAccount? FindByDiscordId(string discordId);
@@ -132,6 +133,35 @@ public class FileAccountStore : IAccountStore
             Username = existing.Username,
             Role = role,
             SquadId = squadId,
+            PasswordHash = existing.PasswordHash,
+            PasswordSalt = existing.PasswordSalt,
+            DiscordId = existing.DiscordId,
+            DiscordUsername = existing.DiscordUsername,
+            LastLoginAt = existing.LastLoginAt,
+            LastLoginIp = existing.LastLoginIp
+        };
+        _accounts = _accounts
+            .Where(a => a.Id != existing.Id)
+            .Append(updated)
+            .ToList();
+        Save();
+    }
+
+    public void Rename(string oldUsername, string newUsername)
+    {
+        var existing = Find(oldUsername) ?? throw new InvalidOperationException("Account not found.");
+
+        if (string.Equals(existing.Username, newUsername, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("New username must be different.");
+
+        if (Find(newUsername) is not null)
+            throw new InvalidOperationException("That username is already taken.");
+
+        var updated = new UserAccount {
+            Id = existing.Id,
+            Username = newUsername,
+            Role = existing.Role,
+            SquadId = existing.SquadId,
             PasswordHash = existing.PasswordHash,
             PasswordSalt = existing.PasswordSalt,
             DiscordId = existing.DiscordId,

@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -145,6 +146,16 @@ static async Task<(string discordId, string discordUsername, bool guildOk)?> Exc
 
     return (discordId, discordUsername, guildOk);
 }
+
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseCors();
 app.UseDefaultFiles();

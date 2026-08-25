@@ -274,11 +274,15 @@
             padding: 0;
             font-size: 12px;
             font-weight: 700;
-            margin: 0;
+            margin: 0 0 0 4px;
             flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             transition: background 0.15s ease, color 0.15s ease;
         }
         .chip-remove:hover { background: var(--danger-dim); color: #f0a0a8; }
+        .chip-action:hover { background: var(--accent-soft-bg); color: var(--accent-light); }
 
             .chip-action.leader {
                 background: rgba(232, 192, 125, 0.14);
@@ -343,6 +347,11 @@
                 background: #4fd15a;
                 box-shadow: 0 0 5px #4fd15a;
             }
+
+        .presence-label {
+            font-size: 12.5px;
+            color: var(--text-dim, #9a9aa2);
+        }
 
         .member-controls {
             display: flex;
@@ -1108,6 +1117,9 @@
                 dot.classList.toggle('online', onlineUsernames.has(dot.dataset.username));
                 dot.title = onlineUsernames.has(dot.dataset.username) ? 'Online' : 'Offline';
             });
+            document.querySelectorAll('.presence-label').forEach(lbl => {
+                lbl.textContent = onlineUsernames.has(lbl.dataset.username) ? 'Online' : 'Offline';
+            });
         });
 
         connection.on("PresenceChanged", p => {
@@ -1115,6 +1127,9 @@
             document.querySelectorAll(`.presence-dot[data-username="${CSS.escape(p.username)}"]`).forEach(dot => {
                 dot.classList.toggle('online', p.online);
                 dot.title = p.online ? 'Online' : 'Offline';
+            });
+            document.querySelectorAll(`.presence-label[data-username="${CSS.escape(p.username)}"]`).forEach(lbl => {
+                lbl.textContent = p.online ? 'Online' : 'Offline';
             });
         });
 
@@ -1653,7 +1668,7 @@
             const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
             const filtered = q ? accounts.filter(a => a.username.toLowerCase().includes(q)) : accounts;
             if (filtered.length === 0) { el.innerHTML = '<span class="empty-hint">No accounts found.</span>'; return; }
-            el.innerHTML = '<table class="tbl-modern"><tr><th></th><th>Username</th><th>Discord</th><th>Role</th><th>Team</th><th>Last login</th><th></th></tr>' +
+            el.innerHTML = '<table class="tbl-modern"><tr><th></th><th>Username</th><th>Discord</th><th>Role</th><th>Team</th><th>Status</th><th>Last login</th><th></th></tr>' +
                 filtered.map(a => `
               <tr>
                 <td><input type="checkbox" class="cb account-select" data-username="${escapeHtml(a.username)}"></td>
@@ -1666,8 +1681,17 @@
                 <td>${a.discordUsername ? escapeHtml(a.discordUsername) : '<span class="empty-hint">-</span>'}</td>
                 <td><span class="pill ${a.role === 'Developer' || a.role === 'Admin' ? 'pill-accent' : 'pill-neutral'}">${a.role}</span></td>
                 <td>${a.squadId ? `<span class="pill pill-neutral">${escapeHtml(a.squadId)}</span>` : '<span class="empty-hint">-</span>'}</td>
+                <td><span class="presence-dot ${onlineUsernames.has(a.username) ? 'online' : ''}" data-username="${escapeHtml(a.username)}"></span><span class="presence-label" data-username="${escapeHtml(a.username)}">${onlineUsernames.has(a.username) ? 'Online' : 'Offline'}</span></td>
                 <td class="row-sub">${a.lastLoginAt ? new Date(a.lastLoginAt).toLocaleString() + (a.lastLoginIp ? ' · ' + escapeHtml(a.lastLoginIp) : '') : '<span class="empty-hint">never</span>'}</td>
-                <td><button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button></td>
+                <td>
+                  <button class="chip-action" data-rename-username="${escapeHtml(a.username)}" title="Rename username">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 4.5 19.5 9 8 20.5H3.5V16L15 4.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <button class="chip-action" data-changepw-username="${escapeHtml(a.username)}" data-role="${escapeHtml(a.role)}" data-squad="${a.squadId ? escapeHtml(a.squadId) : ''}" title="Change password">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="7" cy="15" r="4" stroke="currentColor" stroke-width="2"/><path d="M10.5 11.5 20 2m0 0v4m0-4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <button class="chip-remove" data-delete-username="${escapeHtml(a.username)}" title="Delete">×</button>
+                </td>
               </tr>
             `).join('') + '</table>';
             document.getElementById('accounts-select-all').checked = false;
@@ -1695,12 +1719,45 @@
 
         document.getElementById('accounts-list').addEventListener('click', e => {
             const deleteBtn = e.target.closest('button[data-delete-username]');
-            if (!deleteBtn) return;
-            const username = deleteBtn.dataset.deleteUsername;
-            if (!confirm(`Delete account "${username}"?`)) return;
-            connection.invoke("DeleteAccount", username)
-                .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
-                .catch(err => log("Error: " + err));
+            if (deleteBtn) {
+                const username = deleteBtn.dataset.deleteUsername;
+                if (!confirm(`Delete account "${username}"?`)) return;
+                connection.invoke("DeleteAccount", username)
+                    .then(() => { log(`Deleted: ${username}`); refreshAccounts(); })
+                    .catch(err => log("Error: " + err));
+                return;
+            }
+
+            const renameBtn = e.target.closest('button[data-rename-username]');
+            if (renameBtn) {
+                const oldUsername = renameBtn.dataset.renameUsername;
+                const newUsername = prompt(`New username for "${oldUsername}":`, oldUsername);
+                if (newUsername === null) return;
+                const trimmed = newUsername.trim();
+                if (!trimmed || trimmed === oldUsername) return;
+
+                connection.invoke("RenameAccount", { oldUsername, newUsername: trimmed })
+                    .then(() => { log(`Renamed: ${oldUsername} → ${trimmed}`); refreshAccounts(); })
+                    .catch(err => log("Error: " + err));
+                return;
+            }
+
+            const pwBtn = e.target.closest('button[data-changepw-username]');
+            if (pwBtn) {
+                const username = pwBtn.dataset.changepwUsername;
+                const newPassword = prompt(`New password for "${username}" (min 4 characters):`);
+                if (newPassword === null) return;
+                if (newPassword.length < 4) { log("Password is too short (min 4 characters)."); return; }
+
+                connection.invoke("UpsertAccount", {
+                    username,
+                    role: pwBtn.dataset.role,
+                    squadId: pwBtn.dataset.squad || null,
+                    password: newPassword
+                })
+                    .then(() => log(`Password changed for: ${username}`))
+                    .catch(err => log("Error: " + err));
+            }
         });
 
         function addStandaloneAccount() {

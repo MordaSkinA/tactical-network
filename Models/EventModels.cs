@@ -219,6 +219,8 @@ public record AccountSummaryDto(string Username, UserRole Role, string? SquadId,
 
 public record UpsertAccountDto(string Username, UserRole Role, string? SquadId, string? Password);
 
+public record RenameAccountDto(string OldUsername, string NewUsername);
+
 
 public record AssignAccountRoleDto(string Username, UserRole Role, string? SquadId);
 

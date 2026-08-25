@@ -95,14 +95,13 @@
       return true;
     });
 
-    // freeze every node at its current on-screen position first,
-    // so removing one from flow doesn't shove the others around
+
     const frozen = nodes.map(el => {
       const rect = el.getBoundingClientRect();
       return { el, rect };
     }).filter(f => f.rect.width > 0 && f.rect.height > 0);
 
-    frozen.forEach(({ el, rect }) => {
+    frozen.forEach(({ el, rect }, i) => {
       el.style.position = 'fixed';
       el.style.left = rect.left + 'px';
       el.style.top = rect.top + 'px';
@@ -110,20 +109,18 @@
       el.style.height = rect.height + 'px';
       el.style.margin = '0';
       el.style.pointerEvents = 'none';
-      el.style.zIndex = String(Math.floor(Math.random() * 50) + 1);
+
+      el.style.zIndex = String(1000 + i);
       el.style.transition = 'none';
-      // A lingering transform/filter/perspective on ANY of these
-      // elements would turn it into a containing block for its own
-      // position:fixed children, throwing their left/top off relative
-      // to the viewport (looks like a sideways jump before the fall).
-      // Clear both here so every node's fixed coordinates stay
-      // anchored to the real viewport.
+
       el.style.transform = 'none';
       el.style.filter = 'none';
       el.style.animation = 'none';
+
+      document.body.appendChild(el);
     });
 
-    // next frame: send everything tumbling to the floor
+    // next frame
     requestAnimationFrame(() => {
       const vh = window.innerHeight;
       frozen.forEach(({ el, rect }, i) => {

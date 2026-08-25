@@ -9,11 +9,175 @@
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/sidebar.js"></script>
     <script src="/js/easter-egg.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         #app-content { display: flex; justify-content: center; }
-        #home-inner { width: 100%; max-width: 900px; }
+        #home-inner { width: 100%; max-width: 900px; position: relative; }
 
-        /* ---------------- Stat cards ---------------- */
+        @keyframes spin        { to { transform: rotate(360deg); } }
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes cardIn      { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes blink       { 0%, 100% { opacity: 1; } 50% { opacity: .28; } }
+        @keyframes gridDrift   { to { background-position: 36px 36px, 36px 36px; } }
+        @keyframes scanMove    { 0% { top: -140px; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+        @keyframes titleShine  { 0% { background-position: 220% 0; } 55%, 100% { background-position: -60% 0; } }
+        @keyframes dotPulse    { 0%, 100% { box-shadow: 0 0 5px var(--success); } 50% { box-shadow: 0 0 12px var(--success), 0 0 2px var(--success); } }
+        @keyframes countPop    { 0% { transform: scale(.85); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
+
+
+
+        .hud-hero {
+            position: relative;
+            margin-bottom: 22px;
+            height: 188px;
+            perspective: var(--cube-perspective, 4200px);
+            animation: fadeSlideUp .5s cubic-bezier(.2, .8, .2, 1) backwards;
+        }
+
+        .hud-cube {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform: rotateX(0deg) rotateY(0deg);
+            transition: transform .6s cubic-bezier(.2, .8, .2, 1);
+        }
+
+        .hud-hero:hover .hud-cube {
+            animation: cubeSpin 11s linear infinite;
+        }
+
+
+        @keyframes cubeSpin {
+            0%      { transform: rotateX(0deg)  rotateY(0deg); }
+            8%      { transform: rotateX(0deg)  rotateY(0deg); }
+            16%     { transform: rotateX(0deg)  rotateY(90deg); }
+            24%     { transform: rotateX(0deg)  rotateY(90deg); }
+            32%     { transform: rotateX(0deg)  rotateY(180deg); }
+            40%     { transform: rotateX(0deg)  rotateY(180deg); }
+            48%     { transform: rotateX(0deg)  rotateY(270deg); }
+            56%     { transform: rotateX(0deg)  rotateY(270deg); }
+            64%     { transform: rotateX(0deg)  rotateY(360deg); }
+            70%     { transform: rotateX(0deg)  rotateY(360deg); }
+            78%     { transform: rotateX(90deg) rotateY(360deg); }
+            84%     { transform: rotateX(90deg) rotateY(360deg); }
+            90%     { transform: rotateX(0deg)  rotateY(360deg); }
+            94%     { transform: rotateX(-90deg) rotateY(360deg); }
+            98%     { transform: rotateX(-90deg) rotateY(360deg); }
+            100%    { transform: rotateX(0deg)  rotateY(360deg); }
+        }
+
+        .hud-face {
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            background: radial-gradient(120% 160% at 12% -10%, rgba(124, 108, 240, 0.20), transparent 55%), var(--surface);
+            backface-visibility: hidden;
+            overflow: hidden;
+            isolation: isolate;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+
+        .hud-face-front  { transform: translateZ(var(--cube-depth-h, 450px)); justify-content: flex-start; padding: 32px 30px 28px; }
+        .hud-face-back   { transform: rotateY(180deg) translateZ(var(--cube-depth-h, 450px)); }
+        .hud-face-right  { transform: rotateY(90deg)  translateZ(var(--cube-depth-h, 450px)); }
+        .hud-face-left   { transform: rotateY(-90deg) translateZ(var(--cube-depth-h, 450px)); }
+        .hud-face-top    { transform: rotateX(90deg)  translateZ(var(--cube-depth-v, 94px)); }
+        .hud-face-bottom { transform: rotateX(-90deg) translateZ(var(--cube-depth-v, 94px)); }
+
+        .hud-face-word {
+            position: relative;
+            z-index: 2;
+            font-family: 'Space Mono', monospace;
+            font-weight: 800;
+            font-size: clamp(18px, 3.4vw, 30px);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--text);
+            text-shadow: 0 0 20px var(--accent-light);
+            text-align: center;
+            padding: 0 18px;
+        }
+
+        .hud-grid {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(var(--border-soft) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+            background-size: 36px 36px;
+            -webkit-mask-image: radial-gradient(ellipse 95% 110% at 18% 15%, black 15%, transparent 72%);
+            mask-image: radial-gradient(ellipse 95% 110% at 18% 15%, black 15%, transparent 72%);
+            opacity: .6;
+            animation: gridDrift 16s linear infinite;
+            z-index: 0;
+        }
+
+        .hud-scan {
+            position: absolute; left: 0; right: 0; height: 130px;
+            background: linear-gradient(180deg, transparent, rgba(155, 143, 245, 0.14), transparent);
+            animation: scanMove 5.5s ease-in-out infinite;
+            z-index: 0; pointer-events: none;
+        }
+
+        .hud-frame-corner {
+            position: absolute;
+            width: 20px; height: 20px;
+            border: 2px solid var(--accent-light);
+            opacity: .55;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .hud-frame-corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-radius: 6px 0 0 0; }
+        .hud-frame-corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-radius: 0 6px 0 0; }
+        .hud-frame-corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-radius: 0 0 0 6px; }
+        .hud-frame-corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 6px 0; }
+
+        #home-inner .page-head {
+            position: relative; z-index: 2;
+        }
+
+        .eyebrow {
+            display: flex; align-items: center; gap: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px; font-weight: 700; letter-spacing: .16em;
+            text-transform: uppercase; color: var(--accent-light);
+            margin-bottom: 10px;
+        }
+        .eyebrow-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+            animation: blink 2s ease-in-out infinite;
+            flex: 0 0 auto;
+        }
+
+        #home-inner .page-title {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0 0 6px 0;
+            background: linear-gradient(100deg, var(--text) 30%, var(--accent-light) 48%, var(--text) 66%);
+            background-size: 240% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: titleShine 7s ease-in-out infinite;
+        }
+
+        #home-inner .page-subtitle {
+            font-family: 'Space Mono', monospace;
+            font-size: 12.5px;
+            letter-spacing: .01em;
+            color: var(--text-dim);
+        }
+
+        /*  Stat cards  */
 
         .stat-grid {
             display: grid;
@@ -22,21 +186,60 @@
             margin-bottom: 20px;
         }
         .stat-card {
+            position: relative;
             background: var(--surface);
             border: 1px solid var(--border-soft);
             border-radius: var(--radius-lg);
             padding: 16px 18px;
+            overflow: hidden;
+            isolation: isolate;
+            z-index: 0;
+            transition: transform .22s cubic-bezier(.2, .8, .2, 1), border-color .22s ease;
+            animation: cardIn .5s cubic-bezier(.2, .8, .2, 1) backwards;
+            animation-delay: calc(var(--i, 0) * .07s);
         }
-        .stat-value { font-size: 24px; font-weight: 800; color: var(--text); line-height: 1.1; }
-        .stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-top: 6px; }
+        .stat-card::before {
+            content: '';
+            position: absolute; inset: -60%;
+            background: conic-gradient(from 0deg, transparent 0deg, var(--accent-light) 55deg, transparent 130deg);
+            animation: spin 3.2s linear infinite;
+            opacity: 0;
+            transition: opacity .3s ease;
+            z-index: -2;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute; inset: 1px;
+            border-radius: calc(var(--radius-lg) - 1px);
+            background: var(--surface);
+            z-index: -1;
+        }
+        .stat-card:hover { transform: translateY(-3px); border-color: transparent; }
+        .stat-card:hover::before { opacity: 1; }
+
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 25px; font-weight: 700; color: var(--text); line-height: 1.1;
+            animation: countPop .35s ease backwards;
+        }
+        .stat-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint); margin-top: 7px; }
         .stat-sub { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-        .stat-card.active .stat-value { color: var(--success); }
+        .stat-card.active .stat-value { color: var(--success); text-shadow: 0 0 14px rgba(79, 209, 139, .45); }
         .stat-card.inactive .stat-value { color: var(--text-dim); }
 
         @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 420px) { .stat-grid { grid-template-columns: 1fr; } }
 
-        /* ---------------- Roster ---------------- */
+        /*  Shared card entrance  */
+
+        #home-inner .card {
+            animation: fadeSlideUp .5s cubic-bezier(.2, .8, .2, 1) backwards;
+        }
+        #home-inner .card:nth-of-type(1) { animation-delay: .10s; }
+        #home-inner .card:nth-of-type(2) { animation-delay: .16s; }
+        #home-inner .card:nth-of-type(3) { animation-delay: .22s; }
+
+        /*  Roster  */
 
         .empty-hint { color: var(--text-faint); font-size: 13px; padding: 4px 0; }
 
@@ -48,14 +251,22 @@
         @media (max-width: 600px) { #roster { grid-template-columns: 1fr; } }
 
         .team-card-home {
+            position: relative;
             background: var(--surface-2);
             border-radius: var(--radius-md);
             border-left: 3px solid var(--border);
             padding: 10px 12px;
+            transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease, border-left-color .22s ease;
+            animation: cardIn .45s cubic-bezier(.2, .8, .2, 1) backwards;
+            animation-delay: calc(var(--i, 0) * .06s);
         }
+        .team-card-home:hover { transform: translateY(-3px) translateX(1px); }
         .team-card-home.Attack  { border-left-color: #e8a33d; }
         .team-card-home.Defense { border-left-color: #3d8ee8; }
         .team-card-home.Flex    { border-left-color: #8a4de8; }
+        .team-card-home.Attack:hover  { box-shadow: 0 10px 26px -10px rgba(232, 163, 61, .45); }
+        .team-card-home.Defense:hover { box-shadow: 0 10px 26px -10px rgba(61, 142, 232, .45); }
+        .team-card-home.Flex:hover    { box-shadow: 0 10px 26px -10px rgba(138, 77, 232, .45); }
 
         .team-card-home h4 {
             margin: 0 0 8px 0;
@@ -90,15 +301,21 @@
 
         .bulwark-badge { font-size: 12px; color: var(--text-dim); }
 
-        .presence-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: var(--border); }
-        .presence-dot.online { background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .presence-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: var(--border); transition: background .2s ease; }
+        .presence-dot.online { background: var(--success); animation: dotPulse 2s ease-in-out infinite; }
 
-        /* ---------------- Reserves ---------------- */
+        /*  Reserves  */
 
         #reserves { display: flex; flex-wrap: wrap; gap: 8px 18px; }
-        #reserves .member-row { background: var(--surface-2); border-radius: var(--radius-sm); padding: 5px 10px; }
+        #reserves .member-row {
+            background: var(--surface-2); border-radius: var(--radius-sm); padding: 5px 10px;
+            transition: background .18s ease, transform .18s ease;
+            animation: cardIn .4s cubic-bezier(.2, .8, .2, 1) backwards;
+            animation-delay: calc(var(--i, 0) * .04s);
+        }
+        #reserves .member-row:hover { background: var(--surface-3); transform: translateY(-2px); }
 
-        /* ---------------- Account ---------------- */
+        /*  Account  */
 
         .tab-btn {
             display: flex;
@@ -116,7 +333,19 @@
             cursor: pointer;
             width: 100%;
             box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
         }
+        .tab-btn::after {
+            content: '';
+            position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+            background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.10), transparent);
+            transform: skewX(-20deg);
+            transition: left 0.55s ease;
+            pointer-events: none;
+        }
+        .tab-btn:hover::after { left: 130%; }
         .tab-btn:hover { background: var(--surface-3); border-color: #3a3a40; }
 
         #discord-status { font-size: 13px; color: var(--text-dim); margin-bottom: 12px; }
@@ -135,111 +364,22 @@
             list-style: none;
             display: flex;
             align-items: center;
+            transition: color .15s ease;
         }
+        summary:hover { color: var(--text); }
         summary::-webkit-details-marker { display: none; }
         summary::before {
             content: '▸'; display: inline-block; margin-right: 8px; color: var(--accent-light);
-            transition: transform 0.15s ease;
+            transition: transform 0.2s ease;
         }
         details[open] summary::before { transform: rotate(90deg); }
+        details[open] .field { animation: fadeSlideUp .3s ease backwards; }
 
         #password-msg { font-size: 12px; margin-top: 8px; min-height: 14px; }
 
-        /* ---------------- Sidebar help buttons ---------------- */
-
-        .sb-info-row {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            padding: 6px 10px 2px;
-            margin-top: 2px;
-        }
-
-        .sb-info-btn {
-            position: relative;
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--border);
-            background: var(--surface-2);
-            color: var(--text-dim);
-            text-decoration: none;
-            cursor: pointer;
-            overflow: visible;
-            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), color 0.2s ease, border-color 0.2s ease, box-shadow 0.3s ease;
-        }
-
-        .sb-info-btn .sb-info-ring {
-            position: absolute;
-            inset: -1px;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg, var(--accent), var(--accent-light), var(--accent));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            animation: sbSpin 3s linear infinite;
-            animation-play-state: paused;
-            z-index: 0;
-        }
-        .sb-info-btn.overlay .sb-info-ring {
-            background: conic-gradient(from 0deg, #2fb2c9, #7fe6f2, #2fb2c9);
-        }
-
-        .sb-info-btn .sb-info-core {
-            position: absolute;
-            inset: 1px;
-            border-radius: 50%;
-            background: var(--surface-2);
-            z-index: 1;
-        }
-
-        .sb-info-btn svg {
-            position: relative;
-            z-index: 2;
-            width: 16px;
-            height: 16px;
-            transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
-        }
-
-        .sb-info-btn:hover {
-            color: #fff;
-            border-color: transparent;
-            transform: translateY(-4px) scale(1.06);
-            box-shadow: 0 8px 20px rgba(124, 108, 240, 0.4);
-            animation: sbGlowPulse 1.4s ease-in-out infinite;
-        }
-        .sb-info-btn.overlay:hover { box-shadow: 0 8px 20px rgba(79, 209, 232, 0.4); }
-
-        .sb-info-btn:hover .sb-info-ring { opacity: 1; animation-play-state: running; }
-        .sb-info-btn:hover svg { transform: scale(1.18) rotate(10deg); }
-        .sb-info-btn:active { transform: translateY(-1px) scale(0.96); }
-
-        .sb-info-btn::after {
-            content: attr(data-tip);
-            position: absolute;
-            bottom: 120%;
-            left: 50%;
-            transform: translateX(-50%) translateY(4px);
-            background: var(--surface-3);
-            color: var(--text);
-            font-size: 11px;
-            font-weight: 600;
-            padding: 5px 9px;
-            border-radius: 6px;
-            white-space: nowrap;
-            border: 1px solid var(--border);
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            z-index: 3;
-        }
-        .sb-info-btn:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-        .sb-info-btn:focus-visible {
-            outline: 2px solid var(--accent-light);
-            outline-offset: 2px;
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+            .hud-grid, .hud-scan, #home-inner .page-title { animation: none !important; }
         }
     </style>
 </head>
@@ -247,10 +387,68 @@
     <div id="app-sidebar"></div>
     <div id="app-content">
         <div id="home-inner">
-            <div class="page-head">
-                <div>
-                    <h1 class="page-title">Home</h1>
-                    <p class="page-subtitle" id="hint">Loading...</p>
+            <div class="hud-hero" id="hud-hero">
+                <div class="hud-cube">
+                    <div class="hud-face hud-face-front">
+                        <div class="hud-grid"></div>
+                        <div class="hud-scan"></div>
+                        <div class="hud-frame-corner tl"></div>
+                        <div class="hud-frame-corner tr"></div>
+                        <div class="hud-frame-corner bl"></div>
+                        <div class="hud-frame-corner br"></div>
+                        <div class="page-head">
+                            <div>
+                                <div class="eyebrow"><span class="eyebrow-dot"></span>Tactical Network</div>
+                                <h1 class="page-title">Home</h1>
+                                <p class="page-subtitle" id="hint">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hud-face hud-face-back">
+                        <div class="hud-grid"></div>
+                        <div class="hud-scan"></div>
+                        <div class="hud-frame-corner tl"></div>
+                        <div class="hud-frame-corner tr"></div>
+                        <div class="hud-frame-corner bl"></div>
+                        <div class="hud-frame-corner br"></div>
+                        <span class="hud-face-word">Lonely Lonely</span>
+                    </div>
+                    <div class="hud-face hud-face-right">
+                        <div class="hud-grid"></div>
+                        <div class="hud-scan"></div>
+                        <div class="hud-frame-corner tl"></div>
+                        <div class="hud-frame-corner tr"></div>
+                        <div class="hud-frame-corner bl"></div>
+                        <div class="hud-frame-corner br"></div>
+                        <span class="hud-face-word">Gugu Gaga</span>
+                    </div>
+                    <div class="hud-face hud-face-left">
+                        <div class="hud-grid"></div>
+                        <div class="hud-scan"></div>
+                        <div class="hud-frame-corner tl"></div>
+                        <div class="hud-frame-corner tr"></div>
+                        <div class="hud-frame-corner bl"></div>
+                        <div class="hud-frame-corner br"></div>
+                        <span class="hud-face-word">Phoebe Chupi</span>
+                    </div>
+                    <div class="hud-face hud-face-top">
+                        <div class="hud-grid"></div>
+                        <div class="hud-scan"></div>
+                        <div class="hud-frame-corner tl"></div>
+                        <div class="hud-frame-corner tr"></div>
+                        <div class="hud-frame-corner bl"></div>
+                        <div class="hud-frame-corner br"></div>
+                        <span class="hud-face-word">Doro Doro</span>
+                    </div>
+                    <div class="hud-face hud-face-bottom">
+                        <div class="hud-grid"></div>
+                        <div class="hud-scan"></div>
+                        <div class="hud-frame-corner tl"></div>
+                        <div class="hud-frame-corner tr"></div>
+                        <div class="hud-frame-corner bl"></div>
+                        <div class="hud-frame-corner br"></div>
+                        <span class="hud-face-word">Doro Doro</span>
+                    </div>
                 </div>
             </div>
 
@@ -293,28 +491,31 @@
     <script>
         const currentUser = requireAuth(['Player', 'Leader', 'Commander', 'Admin', 'Developer']);
         renderSidebar('/menu.html');
-        addSidebarHelpButtons();
 
-        function addSidebarHelpButtons() {
-            const sidebar = document.getElementById('app-sidebar');
-            if (!sidebar) return;
-            const infoIcon = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="9"/>
-                    <path d="M12 11v6"/>
-                    <circle cx="12" cy="7.5" r="0.1" fill="currentColor" stroke-width="2.6"/>
-                </svg>`;
-            const row = document.createElement('div');
-            row.className = 'sb-info-row';
-            row.innerHTML = `
-                <a class="sb-info-btn" href="/docs/Tacnet_User_Guide.pdf" target="_blank" rel="noopener" data-tip="Site guide">
-                    <span class="sb-info-ring"></span><span class="sb-info-core"></span>${infoIcon}
-                </a>
-                <a class="sb-info-btn overlay" href="/docs/Tactical_Overlay_User_Guide.pdf" target="_blank" rel="noopener" data-tip="Overlay guide">
-                    <span class="sb-info-ring"></span><span class="sb-info-core"></span>${infoIcon}
-                </a>
-            `;
-            sidebar.appendChild(row);
+        function sizeHudCube() {
+            const hero = document.getElementById('hud-hero');
+            if (!hero) return;
+
+            const width = hero.offsetWidth;
+            const height = hero.offsetHeight;
+            if (width > 0) {
+
+                hero.style.setProperty('--cube-depth-h', (width / 2) + 'px');
+
+                hero.style.setProperty('--cube-perspective', (width * 4.5) + 'px');
+            }
+            if (height > 0) {
+
+                hero.style.setProperty('--cube-depth-v', (height / 2) + 'px');
+            }
+        }
+        sizeHudCube();
+
+        requestAnimationFrame(sizeHudCube);
+        window.addEventListener('load', sizeHudCube);
+        window.addEventListener('resize', sizeHudCube);
+        if (window.ResizeObserver) {
+            new ResizeObserver(sizeHudCube).observe(document.getElementById('hud-hero'));
         }
 
         document.getElementById('hint').textContent =
@@ -364,20 +565,38 @@
                 { label: 'Reserves', value: reserveCount }
             ];
 
-            document.getElementById('stat-grid').innerHTML = stats.map(s => `
-                <div class="stat-card ${s.cls || ''}">
-                    <div class="stat-value">${s.value}</div>
+            document.getElementById('stat-grid').innerHTML = stats.map((s, i) => `
+                <div class="stat-card ${s.cls || ''}" style="--i:${i}">
+                    <div class="stat-value" ${typeof s.value === 'number' ? `data-target="${s.value}"` : ''}>${typeof s.value === 'number' ? 0 : s.value}</div>
                     <div class="stat-label">${s.label}</div>
                     ${s.sub ? `<div class="stat-sub">${escapeHtml(s.sub)}</div>` : ''}
                 </div>
             `).join('');
+
+            animateStatValues();
+        }
+
+        function animateStatValues() {
+            document.querySelectorAll('.stat-value[data-target]').forEach(el => {
+                const end = parseInt(el.dataset.target, 10);
+                if (isNaN(end)) return;
+                const duration = 550;
+                const startTime = performance.now();
+                function tick(now) {
+                    const p = Math.min((now - startTime) / duration, 1);
+                    const eased = 1 - Math.pow(1 - p, 3);
+                    el.textContent = Math.round(eased * end);
+                    if (p < 1) requestAnimationFrame(tick);
+                }
+                requestAnimationFrame(tick);
+            });
         }
 
         function renderRoster() {
             const teams = latestRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
             document.getElementById('roster-empty').style.display = teams.length ? 'none' : 'block';
-            document.getElementById('roster').innerHTML = teams.map(sq => `
-                <div class="team-card-home ${sq.side || ''}">
+            document.getElementById('roster').innerHTML = teams.map((sq, i) => `
+                <div class="team-card-home ${sq.side || ''}" style="--i:${i}">
                     <h4>
                         ${escapeHtml(sq.squadId)}${sq.label ? ' · ' + escapeHtml(sq.label) : ''}
                         ${(sq.tags || []).map(t => `<span class="tag-badge">${escapeHtml(t)}</span>`).join('')}
@@ -396,11 +615,11 @@
             document.getElementById('reserves').innerHTML = members.map(memberRowHtml).join('');
         }
 
-        function memberRowHtml(m) {
+        function memberRowHtml(m, i) {
             const online = onlineUsernames.has(m.nickname);
             const bwSymbol = { Top: '♜↑', Center: '♜', Bottom: '♜↓' }[m.bulwark];
             return `
-                <div class="member-row" data-username="${escapeHtml(m.nickname)}">
+                <div class="member-row" data-username="${escapeHtml(m.nickname)}" style="--i:${i || 0}">
                     <span class="presence-dot ${online ? 'online' : ''}"></span>
                     <span>${escapeHtml(m.nickname)}</span>
                     ${m.role ? `<span class="role-badge ${m.role}">${m.role.toUpperCase()}</span>` : ''}

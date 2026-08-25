@@ -1,6 +1,3 @@
-// Shared sidebar navigation, rendered into <div id="app-sidebar"></div>.
-// Requires auth.js (getSession, getAccessibleTabs, logout) to be loaded first.
-
 const SB_ICONS = {
   '/player.html': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Z" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.4-3.6 4.4-5.5 8-5.5s6.6 1.9 8 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   '/observer.html': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>',
@@ -11,11 +8,39 @@ const SB_ICONS = {
 
 const SB_LABELS = { Player: 'Player', Observer: 'Team Leader', Dashboard: 'Commander', Admin: 'Admin Panel', Replay: 'Replay' };
 
+const SB_INFO_ICON = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <path d="M12 11v6"/>
+    <circle cx="12" cy="7.5" r="0.1" fill="currentColor" stroke-width="2.6"/>
+  </svg>`;
+
 function initials(name) {
   if (!name) return '?';
   const parts = name.trim().split(/[\s._-]+/).filter(Boolean);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+const SB_RELEASES_REPO = 'MordaSkinA/Tactical-overlay';
+const SB_RELEASES_URL = `https://github.com/${SB_RELEASES_REPO}/releases/latest`;
+
+async function loadDownloadButton() {
+  const linkEl = document.getElementById('sb-download');
+  const labelEl = document.getElementById('sb-download-label');
+  if (!linkEl || !labelEl) return;
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${SB_RELEASES_REPO}/releases/latest`);
+    if (!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    const asset = (data.assets || []).find(a => a.name.toLowerCase().endsWith('.exe'));
+    linkEl.href = asset ? asset.browser_download_url : SB_RELEASES_URL;
+    labelEl.textContent = `Download ${data.tag_name || ''}`.trim();
+  } catch {
+    linkEl.href = SB_RELEASES_URL;
+    labelEl.textContent = 'Download app';
+  }
 }
 
 function renderSidebar(activePath) {
@@ -37,6 +62,18 @@ function renderSidebar(activePath) {
   container.innerHTML = `
     <div class="sb-logo"><span class="sb-logo-dot"></span>TACNET</div>
     <div class="sb-nav">${navHtml}</div>
+    <a id="sb-download" class="sb-download" href="${SB_RELEASES_URL}" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="sb-download-label">Download app</span>
+    </a>
+    <div class="sb-info-row">
+      <a class="sb-info-btn" href="/docs/Tacnet_User_Guide.pdf" target="_blank" rel="noopener" data-tip="Site guide">
+        <span class="sb-info-ring"></span><span class="sb-info-core"></span>${SB_INFO_ICON}
+      </a>
+      <a class="sb-info-btn overlay" href="/docs/Tactical_Overlay_User_Guide.pdf" target="_blank" rel="noopener" data-tip="Overlay guide">
+        <span class="sb-info-ring"></span><span class="sb-info-core"></span>${SB_INFO_ICON}
+      </a>
+    </div>
     <div class="sb-spacer"></div>
     <a class="sb-link ${activePath === '/menu.html' ? 'active' : ''}" href="/menu.html">
       <span class="sb-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.6 1Z" stroke="currentColor" stroke-width="1.6"/></svg></span>
@@ -53,4 +90,6 @@ function renderSidebar(activePath) {
       </button>
     </div>
   `;
+
+  loadDownloadButton();
 }
