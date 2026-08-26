@@ -1,155 +1,75 @@
-<div align="center">
+# Tacnet (GvG Tactical Network)
 
-# ⚔️ GvG Tactical Network (Tacnet)
-
-**A tactical coordination tool for GvG battles in MMO guilds**
+A small web app that lets guild members report enemy positions, call for help, and receive orders during a large PvP battle by clicking buttons instead of talking or typing over voice chat.
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![SignalR](https://img.shields.io/badge/SignalR-realtime-2f6fb2)](https://learn.microsoft.com/aspnet/core/signalr)
 [![Status](https://img.shields.io/badge/status-Phase%200%20POC-yellow)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/MordaSkinA/tactical-network/blob/main/LICENSE)
 
+## Quickstart / Installation
 
-</div>
-
----
-
-## 📝 Contents
-
-- [Why this exists](#-why-this-exists)
-- [How it works](#-how-it-works)
-- [Roles](#-roles)
-- [Running it](#-running-it)
-- [Architecture](#-architecture)
-- [What's done so far](#-whats-done-so-far)
-- [Roadmap](#-roadmap)
-- [FAQ](#-faq)
-
----
-
-## 💅 Why this was made
-
-In GvG matches the guild coordinates over Discord voice, but in practice only 3-4 people actually talk. The reasons vary: it's hard to speak English out loud under stress, some people are shy about it, or there's just background noise on their end.
-
-Tacnet's hypothesis is simple. If you remove the need to talk or type, and replace it with a couple of clicks, players who used to stay quiet will start sharing information and, where it makes sense, taking initiative.
-
-## ⚙️ How it works
-
-```
-Player clicks a button => SignalR Hub => broadcast to all clients => commander panel / squad leaders
-```
-
-- **Player** sees their squad's current order and clicks report buttons (enemy role, SOS, status)
-- **Observer** (squad leaders) sees the event feed for their own people
-- **Dashboard** (main commander) sees the full guild-wide feed and sends out orders
-- **Admin** manages the roster (T1-T6, Defense / Attack / Flex roles) and creates player accounts
-
-
-## 👯 Roles
-
-| Role | Sees | Can do |
-|---|---|---|
-| `Player` | Their squad's order | Send an SOS |
-| `Leader` | Observer view of their squad | Watch their squad's event feed, issue orders to their squads |
-| `Commander` | Guild-wide feed | (macro and micro management happens verbally) |
-| `Admin` | Everything | Manage the roster and accounts |
-
-Squad structure: T1-T6, 5 people each. Squads are explicitly assigned a Defense / Attack / Flex role.
-
-## 🏃 Running it 🏃
-
-<details>
-<summary><b>Locally</b></summary>
+You need the .NET 8 SDK installed. From the project folder:
 
 ```bash
 cd tactical-network
 dotnet run
 ```
 
-The app comes up on `https://localhost:5001` (check the console output for the actual port). Open:
+The console output will tell you the actual URL, something like `https://localhost:14453`. Open it in a browser and log in
 
-- `/index.html` - login
-- `/menu.html` - routes you to the right page based on your role
-- `/player.html` - player panel
-- `/observer.html` - observer panel
-- `/dashboard.html` - live feed for the commander
-- `/admin.html` - admin panel
+On the very first run, if `accounts.json` is empty, an admin account is created automatically using the `AdminSeedLogin` / `AdminSeedPassword` values in `appsettings.json`. Log in with those, then go change the password immediately, that seed password sits in a config file and isn't meant to be a real credential
 
-</details>
-
-<details>
-<summary><b>Access from outside the network</b></summary>
-
-The local server isn't reachable from outside directly, so for testing you need to forward the port through a tunnel:
+If you want other people to test it from outside your network, put it behind a tunnel:
 
 ```bash
-ngrok http https://localhost:5001
-# or
-cloudflared tunnel --url https://localhost:5001
+ngrok http https://localhost:14453
 ```
 
-</details>
+That's it. No database to set up, no migrations, nothing else to install
 
-<details>
-<summary><b>First login / seed account</b></summary>
+## Why this exists
 
-On first run, if `accounts.json` is empty, an Admin account gets created with the login and password from `appsettings.json` (`AdminSeedLogin` / `AdminSeedPassword`, `admin` / `changeme` by default). Change the password right after your first login.
+In our guild's GvG fights, coordination happens over Discord voice, but in any given fight only three or four people are actually talking. Not because they don't have information, they usually do. It's things like: not comfortable speaking English out loud under pressure, general shyness on comms, or their mic setup is bad and they don't want to add noise
 
-</details>
+The result is a commander flying half-blind while a bunch of people who saw exactly what happened stay quiet
 
+Tacnet's bet is that if reporting something takes one or two clicks instead of keying up and finding the words, more people will actually do it. It's not trying to replace voice. It's a second channel for the people voice doesn't work for
 
-## 🏩 Architecture
+## Basic Usage
 
-- ASP.NET Core 8, SignalR hub (`/battleHub`)
-- Auth: username/password, session tokens, role and `SquadId` are tied to the session on the server. There used to be a shared admin key that let a client fake their name or squad, that's no longer possible.
-- Rate limiting: up to 5 login attempts per 30 sec from one IP, and up to 5 actions (report/order/SOS) per 3 sec from one connection
-- Enums travel between C# and JS as strings (`JsonStringEnumConverter`) instead of numbers. Without that the frontend broke when comparing roles against strings.
-- Persistence: the roster lives in `roster.json`, accounts in `accounts.json`. Battle state itself is kept in memory and doesn't survive a server restart, that's a deliberate tradeoff for a POC.
-- UI is the priority here
+There are four roles, and what you see depends on which one you're logged in as:
 
-## ✅ What's done so far
+- **Player** – sees the current order for their squad, and has buttons to report things like enemy role sightings or call an SOS
+- **Leader** (team leader) – sees the observer view: a live feed of everything their own squad is reporting
+- **Commander** – sees the guild-wide feed across every squad, and pushes out orders
+- **Admin** – manages the roster (teams T1 through T6, each assigned Defense / Attack / Flex) and creates accounts
 
-- [x] Phase 0 POC: single project, SignalR broadcast to all clients
-- [x] Four roles with access separation (Player / Leader / Commander / Admin)
-- [x] Click interface for players (enemy role, SOS, severity)
-- [x] Role-based auth: login, redirect to the right panel
-- [x] Observer restricted to leaders, Dashboard restricted to the commander
-- [x] Admin panel: bulk name paste and dropdown squad assignment
-- [x] Rate limiting on login and on hub actions
-- [x] Fix: enums as strings in the SignalR protocol
+The pages line up with the roles:
 
-## 🚚 Roadmap
+- `/index.html` – login
+- `/menu.html` – sends you to the right panel based on your role
+- `/player.html`, `/observer.html`, `/dashboard.html`, `/admin.html` – the four panels above
 
-- **Phase 1**: battle history, log export, better event feed
-- **Phase 2**: player and squad stats across battles
-- **Later**: move the whole UI over to Blazor
+Everything flows over a single SignalR hub at `/battleHub`: a player clicks a button, it broadcasts, and it shows up on the relevant observer and dashboard feeds in real time.
 
-## ❓ FAQ
+A couple of things worth knowing if you're poking around the code:
 
-<details>
-<summary>Why not Redis / microservices / an event sourcing framework?</summary>
+- Battle state lives in memory only. If the server restarts mid-fight, that battle's event log is gone. This is intentional for now, it's a POC and persistence wasn't worth the complexity yet. The roster and accounts do persist, to `roster.json` and `accounts.json`.
+- Rate limiting is baked in: 5 login attempts per 30 seconds per IP, and 5 hub actions (report/order/SOS) per 3 seconds per connection.
+- Roles and squad IDs are attached to the session on the server, not sent up from the client. There used to be a shared admin key a client could use to spoof their identity, that's gone now.
 
-Because the scale of this doesn't call for it: one battle, a few dozen participants, one process. An in-memory append-only `BattleEvent` log already gives us the history and projections we need. Adding architectural complexity here would just add more points of failure.
+## Releases
 
-</details>
+Tagged versions so far, oldest to newest:
 
-<details>
-<summary>Why clicks instead of voice chat?</summary>
+- **0.0.1-beta** – first working POC. Click buttons, basic team swap.
+- **1.0.0** – first stable tag. English localization pass, UI cleanup, config/secrets cleanup.
+- **1.1.0** – SignalR connection fixes, Discord webhook integration, battle points tracking.
+- **2.0.0** – multi-squad orders, persistent status indicators on squad cards (auto-revert after 25s), sidebar menu with a home/stats page, jungle and boss spawn reminders, admin panel improvements, a developer role.
 
-The guild already has voice, the problem is that only a minority actually use it. The click interface isn't meant to replace voice, it's an alternative channel with a lower barrier to entry for people who find it hard to speak English out loud under the stress of a fight.
+Anything past `2.0.0` in the repo right now (replay download/delete, Chinese translation, minor UI fixes) hasn't been tagged yet.
 
-</details>
+## License
 
-<details>
-<summary>Does battle data survive a server restart?</summary>
-
-No, battle state is kept in memory and intentionally isn't persisted (POC). Only the roster (`roster.json`) and accounts (`accounts.json`) are persistent.
-
-</details>
-
----
-
-<div align="center">
-
-
-</div>
+MIT. See `LICENSE`.
