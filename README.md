@@ -26,11 +26,9 @@ If you want other people to test it from outside your network, put it behind a t
 ngrok http https://localhost:14453
 ```
 
-That's it. No database to set up, no migrations, nothing else to install
-
 ## Why this exists
 
-In our guild's GvG fights, coordination happens over Discord voice, but in any given fight only three or four people are actually talking. Not because they don't have information, they usually do. It's things like: not comfortable speaking English out loud under pressure, general shyness on comms, or their mic setup is bad and they don't want to add noise
+In our guild's GvG fights, coordination happens over Discord voice, but in any given fight only three or four people are actually talking. Not because they don't have information, they usually do. It's things like not comfortable speaking English out loud under pressure, general shyness on comms, or their mic setup is bad and they don't want to add noise
 
 The result is a commander flying half-blind while a bunch of people who saw exactly what happened stay quiet
 
@@ -51,13 +49,13 @@ The pages line up with the roles:
 - `/menu.html` – sends you to the right panel based on your role
 - `/player.html`, `/observer.html`, `/dashboard.html`, `/admin.html` – the four panels above
 
-Everything flows over a single SignalR hub at `/battleHub`: a player clicks a button, it broadcasts, and it shows up on the relevant observer and dashboard feeds in real time.
+Everything flows over a single SignalR hub at `/battleHub`: a player clicks a button, it broadcasts, and it shows up on the relevant observer and dashboard feeds in real time
 
 A couple of things worth knowing if you're poking around the code:
 
-- Battle state lives in memory only. If the server restarts mid-fight, that battle's event log is gone. This is intentional for now, it's a POC and persistence wasn't worth the complexity yet. The roster and accounts do persist, to `roster.json` and `accounts.json`.
-- Rate limiting is baked in: 5 login attempts per 30 seconds per IP, and 5 hub actions (report/order/SOS) per 3 seconds per connection.
-- Roles and squad IDs are attached to the session on the server, not sent up from the client. There used to be a shared admin key a client could use to spoof their identity, that's gone now.
+- Battle state lives in memory only. If the server restarts mid-fight, that battle's event log is gone. This is intentional for now, it's a POC and persistence wasn't worth the complexity yet. The roster and accounts do persist, to `roster.json` and `accounts.json`
+- Rate limiting is baked in: 5 login attempts per 30 seconds per IP, and 5 hub actions (report/order/SOS) per 3 seconds per connection
+- Roles and team IDs are attached to the session on the server, not sent up from the client. There used to be a shared admin key a client could use to spoof their identity, that's gone now
 
 ## Releases
 
