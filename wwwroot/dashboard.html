@@ -288,15 +288,7 @@
     border-radius: 50%; line-height: 1; font-size: 11px; cursor: pointer; padding: 0;
   }
 
-  /* =========================================================
-     HUD (overlay) mode — only active inside the Tacnet Overlay
-     desktop app (body.tacnet-hud). In a normal browser tab none
-     of this applies. The commander console is large, so the HUD
-     only surfaces the parts you need mid-fight — battle state,
-     issuing orders (regular and goal), and the live feed. Macro
-     authoring and the roster stay in the full browser view (Alt+O).
-     See /js/overlay-hud.js for the hover/edit-mode logic.
-     ========================================================= */
+
 
   #hud-controls { display: none; }
 
@@ -305,7 +297,6 @@
   body.tacnet-hud #status,
   body.tacnet-hud #macro-panel,
   body.tacnet-hud .section-heading,
-  body.tacnet-hud #roster,
   body.tacnet-hud #reserves-section {
     display: none !important;
   }
@@ -357,9 +348,16 @@
     body.tacnet-hud #goal-order-panel .gop-subtitle { display: none; }
     body.tacnet-hud #goal-order-panel .gop-filters { gap: 10px 14px; margin: 10px 0 2px; }
 
+
+  body.tacnet-hud #roster {
+    position: fixed; top: 14px; left: calc(50% - 150px); width: 300px; max-width: 34vw;
+    max-height: 40vh; overflow-y: auto; margin: 0; z-index: 1500;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
   body.tacnet-hud #spawn-toast { z-index: 2500; }
 
-  /* ---- Edit-layout mode (Down arrow): drag/resize widgets, show/hide each one ---- */
+ 
   body.tacnet-hud.tacnet-edit-mode .tacnet-widget {
     outline: 2px dashed rgba(155, 143, 245, 0.85);
     outline-offset: 3px;
@@ -540,13 +538,12 @@
   };
   function statusClass(type) { return STATUS_CLASSES[type] || 'order-item'; }
 
-  // formatLabel is a fallback for any status/order type that isn't in the
-  // translation tables yet — formats the raw PascalCase value as readable text.
+
   function formatLabel(type) {
     return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
   }
 
-  // Colors (labels come from statusTypes.* via t())
+  // Colors 
   const STATUS_COLORS = {
     SquadWiped:  '#e33',
     Regroup:     '#4c7a4f',
@@ -1175,18 +1172,13 @@
     feed.prepend(div);
   }
 
-  // ---- Overlay (Tacnet Overlay desktop app) hooks ----
-  // See /js/overlay-hud.js for the click-through/hover state machine and
-  // the drag/hide layout editor — shared with player.html and observer.html
-  // so all three HUDs behave identically. The commander console is large,
-  // so only the fight-critical panels become HUD widgets (see the
-  // body.tacnet-hud CSS above); macros and the roster stay in the full
-  // browser view, reachable via Alt+O.
+
   TacnetHud.init({
     hoverSelectors: [
       '#hud-controls .menu-nav-btn', '#hud-controls .logout-btn',
       '#battle-controls button', '#order-panel button', '#order-panel .squad-chip',
       '#goal-order-panel textarea', '#goal-order-panel input', '#goal-order-panel select', '#goal-order-panel button',
+      '#roster .squad-card',
     ],
     storageKey: 'tacnet_layout_dashboard_v1',
     widgets: [
@@ -1195,6 +1187,7 @@
       { key: 'orderPanel', get: () => document.getElementById('order-panel'), label: 'Issue order' },
       { key: 'goalOrderPanel', get: () => document.getElementById('goal-order-panel'), label: 'Issue goal order' },
       { key: 'feedSection', get: () => document.getElementById('feed-section'), label: 'Event feed' },
+      { key: 'roster', get: () => document.getElementById('roster'), label: 'Teams' },
       { key: 'spawnToast', get: () => document.getElementById('spawn-toast'), label: 'Spawn notice' },
       { key: 'hudControls', get: () => document.getElementById('hud-controls'), label: 'Menu buttons' },
     ],
