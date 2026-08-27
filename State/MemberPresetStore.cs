@@ -68,14 +68,14 @@ public class FileMemberPresetStore : IMemberPresetStore
 
     public void Save(SquadMemberDto member)
     {
-        _presets[member.Nickname] = new MemberPresetDto(member.Nickname, member.Role, member.Bulwark);
+        _presets[member.Nickname] = new MemberPresetDto(member.Nickname, member.Role, member.Bulwark, member.Build);
         Save();
     }
 
     public void SaveMany(IEnumerable<SquadMemberDto> members)
     {
         foreach (var m in members)
-            _presets[m.Nickname] = new MemberPresetDto(m.Nickname, m.Role, m.Bulwark);
+            _presets[m.Nickname] = new MemberPresetDto(m.Nickname, m.Role, m.Bulwark, m.Build);
         Save();
     }
 }

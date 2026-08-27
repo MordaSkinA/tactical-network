@@ -9,6 +9,7 @@
     <script src="/js/auth.js"></script>
 <link rel="stylesheet" href="/css/theme.css">
 <script src="/js/sidebar.js"></script>
+<script src="/js/overlay-hud.js"></script>
 <style>
   #app-content { display: flex; justify-content: center; }
   #dash-inner { width: 100%; max-width: 720px; }
@@ -19,15 +20,34 @@
   #battle-status.active   { background:#1a2e1a; color:#7dd87d; }
   #battle-status.inactive { background:#2a2a2a; color:#999; }
   #spawn-toast {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-18px) scale(0.94);
     opacity: 0; visibility: hidden;
-    z-index: 1000; max-width: 440px; width: calc(100% - 32px); padding: 14px 18px;
-    border-radius: 10px; border: 2px solid #7a5a1e; background: #241c0f; color: #f0d99a;
-    font-weight: 700; text-align: center; box-shadow: 0 4px 18px rgba(0,0,0,0.5);
-    transition: transform 0.25s ease-out, opacity 0.25s ease-out, visibility 0.25s;
+    z-index: 1000; display: flex; align-items: center; gap: 12px;
+    max-width: 420px; width: calc(100% - 32px); padding: 13px 20px 13px 14px;
+    border-radius: 14px; background: #1a160e; color: #f0d99a;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(240,217,154,0.16), inset 0 1px 0 rgba(255,255,255,0.04);
+    overflow: hidden;
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.25s ease, visibility 0.35s;
   }
-  #spawn-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; visibility: visible; }
-  #spawn-toast.kind-Boss { border-color:#6e1c1c; background:#241212; color:#f0a0a0; }
+  #spawn-toast.show { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; visibility: visible; }
+  #spawn-toast .st-icon {
+    flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(240,217,154,0.14); color: #f0d99a;
+    animation: stPulseGold 1.7s ease-in-out infinite;
+  }
+  #spawn-toast .st-text { flex: 1 1 auto; font-weight: 700; font-size: 13.5px; letter-spacing: 0.03em; text-align: left; line-height: 1.3; }
+  #spawn-toast .st-bar {
+    position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+    background: linear-gradient(90deg, #f0d99a, rgba(240,217,154,0));
+    transform-origin: left; animation: stCountdown 8s linear forwards;
+  }
+  #spawn-toast.kind-Boss { background:#1e1414; color:#f7b3b8; box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(224,82,96,0.22), inset 0 1px 0 rgba(255,255,255,0.04); }
+  #spawn-toast.kind-Boss .st-icon { background: rgba(224,82,96,0.16); color: #e05260; animation: stPulseRed 1.15s ease-in-out infinite; }
+  #spawn-toast.kind-Boss .st-bar { background: linear-gradient(90deg, #e05260, rgba(224,82,96,0)); }
+  @keyframes stPulseGold { 0%, 100% { box-shadow: 0 0 0 0 rgba(240,217,154,0.35); } 50% { box-shadow: 0 0 0 6px rgba(240,217,154,0); } }
+  @keyframes stPulseRed { 0%, 100% { box-shadow: 0 0 0 0 rgba(224,82,96,0.45); } 50% { box-shadow: 0 0 0 7px rgba(224,82,96,0); } }
+  @keyframes stCountdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
   .feed-item {
     padding: 12px 14px; margin-bottom: 8px; border-radius: 8px;
     border-left: 4px solid #555; background:#1a1a1a;
@@ -73,6 +93,7 @@
   .squad-card.Attack  { border-left: 3px solid #e8a33d; }
   .squad-card.Flex    { border-left: 3px solid #8a4de8; }
   .menu-nav-btn { font-size: 12px; padding: 6px 12px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer; text-decoration: none; margin-right: 8px; }
+  .logout-btn { font-size: 11px; padding: 4px 8px; background: #333; border: none; border-radius: 4px; color: #fff; cursor: pointer; text-decoration: none; margin-right: 6px; }
   #order-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
   #order-panel h4 { margin: 0 0 10px 0; font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
   #order-target-label { font-size: 12px; color: #888; margin-bottom: 8px; }
@@ -202,10 +223,185 @@
   }
   .order-type-option:hover, .order-type-option.highlighted { background: #2a2a2a; }
   .order-type-option.selected { color: #fff; background: #262626; }
+
+  /* Goal order — issue panel */
+  #goal-order-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
+  #goal-order-panel h4 {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px 0;
+    font-size: 13px; color: #9b8ff5; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  #goal-order-panel h4 svg { flex: 0 0 auto; }
+  .gop-subtitle { text-transform: none; letter-spacing: 0; font-size: 11.5px; color: #777; font-weight: 400; }
+  #goal-order-panel textarea,
+  #goal-order-panel input[type="text"],
+  #goal-order-panel input[type="number"],
+  #goal-order-panel select {
+    background: #1e1e1e; border: 1px solid #3a3a3a; border-radius: 6px;
+    padding: 9px 11px; color: #eee; font-size: 13px; font-family: inherit; box-sizing: border-box;
+  }
+  #goal-order-panel textarea:focus, #goal-order-panel input:focus, #goal-order-panel select:focus {
+    outline: none; border-color: #7c6cf0;
+  }
+  #goal-order-panel input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  #goal-order-panel input[type="number"]::-webkit-outer-spin-button,
+  #goal-order-panel input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  #goal-order-panel textarea { width: 100%; resize: vertical; }
+  .gop-filters { display: flex; flex-wrap: wrap; gap: 14px 20px; margin: 12px 0 4px; }
+  .gop-field { flex: 1 1 170px; }
+  .gop-field-narrow { flex: 0 1 110px; }
+  .gop-field label {
+    display: block; font-size: 11px; color: #888; margin-bottom: 6px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .gop-field label .gop-hint { text-transform: none; font-weight: 400; color: #666; }
+  .gop-field input, .gop-field select { width: 100%; }
+  .gop-cb-row { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 2px; }
+  .gop-cb { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #ccc; cursor: pointer; }
+  .gop-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+  .gop-send-btn {
+    font-size: 13px; font-weight: 700; padding: 9px 18px; border: none;
+    border-radius: 999px; background: #7c6cf0; color: #fff; cursor: pointer;
+  }
+  .gop-send-btn:active { transform: scale(0.97); }
+  .gop-macro-save { display: flex; gap: 8px; flex: 1 1 240px; }
+  .gop-macro-save input { flex: 1 1 auto; }
+  .gop-save-btn {
+    font-size: 12px; padding: 9px 14px; border: 1px solid #3a3a3a; border-radius: 6px;
+    background: transparent; color: #bbb; cursor: pointer; white-space: nowrap;
+  }
+  .gop-save-btn:hover { color: #eee; border-color: #666; }
+  #goal-macro-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  #goal-macro-list:empty { display: none; }
+  .gop-macro-btn {
+    display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+    padding: 8px 10px 8px 14px; border-radius: 999px; border: none; color: #fff;
+    background: #3a2f6e; cursor: pointer;
+  }
+  .gop-macro-btn:active { transform: scale(0.97); }
+  .gop-macro-delete {
+    background: rgba(0,0,0,0.25); border: none; color: #ddd; width: 18px; height: 18px;
+    border-radius: 50%; line-height: 1; font-size: 11px; cursor: pointer; padding: 0;
+  }
+
+  /* =========================================================
+     HUD (overlay) mode — only active inside the Tacnet Overlay
+     desktop app (body.tacnet-hud). In a normal browser tab none
+     of this applies. The commander console is large, so the HUD
+     only surfaces the parts you need mid-fight — battle state,
+     issuing orders (regular and goal), and the live feed. Macro
+     authoring and the roster stay in the full browser view (Alt+O).
+     See /js/overlay-hud.js for the hover/edit-mode logic.
+     ========================================================= */
+
+  #hud-controls { display: none; }
+
+  body.tacnet-hud #app-sidebar,
+  body.tacnet-hud h2,
+  body.tacnet-hud #status,
+  body.tacnet-hud #macro-panel,
+  body.tacnet-hud .section-heading,
+  body.tacnet-hud #roster,
+  body.tacnet-hud #reserves-section {
+    display: none !important;
+  }
+
+  body.tacnet-hud #app-content { display: block !important; }
+  body.tacnet-hud #dash-inner { width: auto !important; max-width: none !important; }
+
+  body.tacnet-hud #hud-controls {
+    display: flex;
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+  }
+
+    body.tacnet-hud #hud-controls #hud-status {
+      font-size: 11px;
+      color: #999;
+      white-space: nowrap;
+      margin-right: 2px;
+    }
+
+  body.tacnet-hud #battle-status  { position: fixed; top: 18px; left: 18px; width: 260px; max-width: 34vw; margin: 0; z-index: 1500; }
+  body.tacnet-hud #battle-controls {
+    position: fixed; top: 68px; left: 18px; width: 260px; max-width: 34vw; margin: 0 !important; z-index: 1500;
+    display: flex; gap: 8px; padding: 8px; border-radius: 10px;
+    background: rgba(20, 20, 20, 0.75); backdrop-filter: blur(3px);
+  }
+  body.tacnet-hud #feed-section {
+    position: fixed; top: 130px; left: 18px; width: 300px; max-width: 34vw;
+    max-height: calc(100vh - 150px); overflow-y: auto; margin: 0; z-index: 1500;
+  }
+  body.tacnet-hud #order-panel {
+    position: fixed; top: 54px; right: 14px; width: 300px; max-width: 34vw;
+    max-height: calc(50vh - 60px); overflow-y: auto; margin: 0; z-index: 1500;
+  }
+  body.tacnet-hud #goal-order-panel {
+    position: fixed; top: calc(50vh - 6px); right: 14px; width: 300px; max-width: 34vw;
+    max-height: calc(50vh - 20px); overflow-y: auto; margin: 0; z-index: 1500;
+    background: rgba(20, 20, 20, 0.75); backdrop-filter: blur(3px); border-radius: 10px;
+  }
+    body.tacnet-hud #goal-order-panel h4 { font-size: 11px; margin: 0 0 8px; }
+    body.tacnet-hud #goal-order-panel .gop-subtitle { display: none; }
+    body.tacnet-hud #goal-order-panel .gop-filters { gap: 10px 14px; margin: 10px 0 2px; }
+
+  body.tacnet-hud #spawn-toast { z-index: 2500; }
+
+  /* ---- Edit-layout mode (Down arrow): drag/resize widgets, show/hide each one ---- */
+  body.tacnet-hud.tacnet-edit-mode .tacnet-widget {
+    outline: 2px dashed rgba(155, 143, 245, 0.85);
+    outline-offset: 3px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+  body.tacnet-hud.tacnet-edit-mode .tacnet-widget:active { cursor: grabbing; }
+  body.tacnet-hud .tacnet-widget.tacnet-user-hidden { display: none !important; }
+  body.tacnet-hud.tacnet-edit-mode .tacnet-widget.tacnet-user-hidden {
+    display: block !important;
+    opacity: 0.35;
+  }
+  body.tacnet-hud.tacnet-edit-mode #battle-controls.tacnet-user-hidden {
+    display: flex !important;
+    opacity: 0.35;
+  }
+
+  #tacnet-edit-palette {
+    position: fixed; bottom: 44px; left: 18px; z-index: 3000;
+    background: rgba(12, 12, 14, 0.92); border: 1px solid rgba(155, 143, 245, 0.4);
+    border-radius: 10px; padding: 10px 12px; font-size: 12px; color: #ddd;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+  }
+  #tacnet-edit-palette .tep-title { font-weight: 700; margin-bottom: 6px; color: #b8aef7; }
+  #tacnet-edit-palette .tep-hint { font-size: 11px; color: #999; margin-bottom: 8px; max-width: 220px; }
+  #tacnet-edit-palette .tep-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; cursor: pointer; }
+  #tacnet-edit-palette button {
+    margin-top: 8px; width: 100%; padding: 5px 0; font-size: 11px;
+    background: #333; border: none; border-radius: 5px; color: #fff; cursor: pointer;
+  }
 </style>
 </head>
 <body>
   <div id="app-sidebar"></div>
+
+  <div id="hud-controls">
+    <span id="hud-status"></span>
+    <a class="menu-nav-btn" style="background:#333;" href="/menu.html" data-i18n="common.menu">Menu</a>
+    <button class="logout-btn" type="button" onclick="logout()" data-i18n="common.logout">Log out</button>
+  </div>
+
   <div id="app-content"><div id="dash-inner">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
     <h2 style="margin: 0;" data-i18n="dashboard.pageTitle">Main Commander. Live Feed</h2>
@@ -251,6 +447,58 @@
     <div id="order-buttons" class="disabled"></div>
   </div>
 
+  <div id="goal-order-panel">
+    <h4>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+      <span>Goal order</span>
+      <span class="gop-subtitle">micro reminder / target / goal</span>
+    </h4>
+    <textarea id="goal-order-text" rows="2" placeholder="e.g. Focus on enemy healer"></textarea>
+    <div class="gop-filters">
+      <div class="gop-field">
+        <label>Builds <span class="gop-hint">(blank = any)</span></label>
+        <input type="text" id="goal-order-builds" placeholder="e.g. Twinblades, Soulshade">
+      </div>
+      <div class="gop-field">
+        <label>Roles</label>
+        <div class="gop-cb-row">
+          <label class="gop-cb"><input type="checkbox" class="cb goal-role-cb" value="Dps"> DPS</label>
+          <label class="gop-cb"><input type="checkbox" class="cb goal-role-cb" value="Tank"> Tank</label>
+          <label class="gop-cb"><input type="checkbox" class="cb goal-role-cb" value="Healer"> Healer</label>
+        </div>
+      </div>
+      <div class="gop-field">
+        <label>Squad side</label>
+        <div class="gop-cb-row">
+          <label class="gop-cb"><input type="checkbox" class="cb goal-side-cb" value="Attack"> Attack</label>
+          <label class="gop-cb"><input type="checkbox" class="cb goal-side-cb" value="Defense"> Defense</label>
+          <label class="gop-cb"><input type="checkbox" class="cb goal-side-cb" value="Flex"> Flex</label>
+        </div>
+      </div>
+      <div class="gop-field gop-field-narrow">
+        <label>Phase</label>
+        <select id="goal-order-phase">
+          <option value="">Any</option>
+          <option value="Phase1">Phase 1</option>
+          <option value="Phase2">Phase 2</option>
+          <option value="Phase3">Phase 3</option>
+        </select>
+      </div>
+      <div class="gop-field gop-field-narrow">
+        <label>Timer, sec</label>
+        <input type="number" id="goal-order-timer" min="1" placeholder="—">
+      </div>
+    </div>
+    <div class="gop-actions">
+      <button class="gop-send-btn" onclick="issueGoalOrder()">Send goal order</button>
+      <div class="gop-macro-save">
+        <input type="text" id="goal-macro-name" placeholder="Macro name to save this as">
+        <button class="gop-save-btn" onclick="saveCurrentGoalAsMacro()">Save as macro</button>
+      </div>
+    </div>
+    <div id="goal-macro-list"></div>
+  </div>
+
   <div class="section-heading" data-i18n="menu.stats.teams">Teams</div>
   <div id="roster"></div>
   <div id="reserves-section"></div>
@@ -279,9 +527,6 @@
     KillBoss: 'attack-key', Bomb: 'attack-key',
     DefendBot: 'defend', DefendMid: 'defend', DefendTop: 'defend', DefendGoose: 'defend', DefendTree: 'defend',
     Hold: 'hold',
-    ProtectHealer: 'protect',
-    Rotate: 'tactic',
-    FallBack: 'fallback',
     BotJungle: 'jungle', TopJungle: 'jungle'
   };
   function orderClass(type) {
@@ -376,9 +621,6 @@
     { type: 'DefendGoose', cls: 'defend' },
     { type: 'DefendTree', cls: 'defend' },
     { type: 'Hold', cls: 'hold' },
-    { type: 'ProtectHealer', cls: 'protect' },
-    { type: 'Rotate', cls: 'tactic' },
-    { type: 'FallBack', cls: 'fallback' },
     { type: 'BotJungle', cls: 'jungle' },
     { type: 'TopJungle', cls: 'jungle' }
   ];
@@ -536,19 +778,91 @@
       .catch(err => setStatus(t('dashboard.errorPrefix') + err));
   }
 
+  // Goal orders — free-text callouts targeted by build/role/side/phase instead of squad.
+  function readGoalOrderTarget() {
+    const buildsRaw = document.getElementById('goal-order-builds').value.trim();
+    const builds = buildsRaw ? buildsRaw.split(',').map(b => b.trim()).filter(Boolean) : null;
+    const roles = [...document.querySelectorAll('.goal-role-cb:checked')].map(cb => cb.value);
+    const sides = [...document.querySelectorAll('.goal-side-cb:checked')].map(cb => cb.value);
+    return {
+      builds: builds && builds.length ? builds : null,
+      roles: roles.length ? roles : null,
+      sides: sides.length ? sides : null,
+      squadIds: null
+    };
+  }
+
+  function readGoalOrderPhase() {
+    const v = document.getElementById('goal-order-phase').value;
+    return v || null;
+  }
+
+  function readGoalOrderTimer() {
+    const v = document.getElementById('goal-order-timer').value;
+    return v ? Number(v) : null;
+  }
+
+  function issueGoalOrder() {
+    const text = document.getElementById('goal-order-text').value.trim();
+    if (!text) { setStatus('Write the goal order text first.'); return; }
+    connection.invoke("IssueGoalOrder", { text, target: readGoalOrderTarget(), timerSeconds: readGoalOrderTimer(), phase: readGoalOrderPhase() })
+      .catch(err => setStatus(t('dashboard.errorPrefix') + err));
+  }
+
+  let goalMacros = [];
+
+  function refreshGoalMacros() {
+    connection.invoke("ListGoalOrderMacros").then(list => { goalMacros = list; renderGoalMacros(); }).catch(() => {});
+  }
+
+  function renderGoalMacros() {
+    const el = document.getElementById('goal-macro-list');
+    el.innerHTML = goalMacros.map(m => `
+      <span class="gop-macro-btn">
+        <button onclick="executeGoalMacro('${m.id}')" title="${escapeHtmlAttr(m.text)}" style="all:unset; cursor:pointer;">${escapeHtmlAttr(m.name)}</button>
+        <button class="gop-macro-delete" onclick="deleteGoalMacro('${m.id}')" title="Delete macro">×</button>
+      </span>
+    `).join('');
+  }
+
+  function escapeHtmlAttr(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  function saveCurrentGoalAsMacro() {
+    const name = document.getElementById('goal-macro-name').value.trim();
+    const text = document.getElementById('goal-order-text').value.trim();
+    if (!name || !text) { setStatus('Need both a macro name and goal order text to save.'); return; }
+    connection.invoke("UpsertGoalOrderMacro", {
+      id: null, name, text, target: readGoalOrderTarget(), timerSeconds: readGoalOrderTimer(), phase: readGoalOrderPhase()
+    }).then(() => { document.getElementById('goal-macro-name').value = ''; refreshGoalMacros(); })
+      .catch(err => setStatus(t('dashboard.errorPrefix') + err));
+  }
+
+  function executeGoalMacro(id) {
+    connection.invoke("ExecuteGoalOrderMacro", id).catch(err => setStatus(t('dashboard.errorPrefix') + err));
+  }
+
+  function deleteGoalMacro(id) {
+    connection.invoke("DeleteGoalOrderMacro", id).then(refreshGoalMacros).catch(err => setStatus(t('dashboard.errorPrefix') + err));
+  }
+
   function enemyRoleLabel(evt) {
     if (evt.enemyRole) return t('observer.enemyRoles.' + evt.enemyRole) || evt.enemyRole;
     return evt.note ?? t('player.eventFallback');
   }
 
   connection.onreconnecting(() => setStatus(t('common.reconnecting')));
-  connection.onreconnected(() => { setStatus(t('common.connected')); refreshMacros(); });
+  connection.onreconnected(() => { setStatus(t('common.connected')); refreshMacros(); refreshGoalMacros(); });
 
   connection.on("BattleEvent", evt =>
     addItem(alertClass(evt), `${enemyRoleLabel(evt)} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
 
   connection.on("OrderIssued", order =>
     addItem(orderClass(order.type), `${t('dashboard.orderWord')} ${orderTypeLabel(order.type)} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
+
+  connection.on("GoalOrderIssued", order =>
+    addItem('order-item', `GOAL: "${order.text}"`, order.issuerName, order.issuedAt));
 
   connection.on("SquadStatusChanged", status => {
     addItem(statusClass(status.type), `${t('dashboard.statusWord')} ${t('statusTypes.' + status.type) || formatLabel(status.type)} → ${status.targetSquadId}`, status.reporterName, status.timestamp);
@@ -590,10 +904,14 @@
 
   let spawnToastTimer = null;
 
+  const ST_ICON_BOSS = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M12 3.2c-4.4 0-7.8 3.3-7.8 7.7 0 2.6 1.2 4.8 3 6.2v2.1c0 .55.45 1 1 1H9v-1.8h1.1v1.8h1.8v-1.8H13v1.8h0.8c.55 0 1-.45 1-1v-2.1c1.8-1.4 3-3.6 3-6.2 0-4.4-3.4-7.7-7.8-7.7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="11" r="1.3" fill="currentColor"/><circle cx="15" cy="11" r="1.3" fill="currentColor"/></svg>';
+  const ST_ICON_JUNGLE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M12 21s-6.5-4.3-6.5-9.8a6.5 6.5 0 0 1 13 0c0 5.5-6.5 9.8-6.5 9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.3" stroke="currentColor" stroke-width="1.5"/></svg>';
+
   function showSpawnToast(reminder) {
     const el = document.getElementById('spawn-toast');
+    const isBoss = reminder.kind === 'Boss';
     let text;
-    if (reminder.kind === 'Boss') {
+    if (isBoss) {
       text = t('player.bossSpawning');
     } else {
       const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
@@ -601,9 +919,11 @@
       const prefix = reminder.targetSquadId ? `${reminder.targetSquadId}: ` : '';
       text = `${prefix}${label}${t('player.spawningSuffix')}`;
     }
-    el.textContent = text;
-    el.classList.remove('kind-Boss');
-    if (reminder.kind === 'Boss') el.classList.add('kind-Boss');
+    el.innerHTML = `<span class="st-icon">${isBoss ? ST_ICON_BOSS : ST_ICON_JUNGLE}</span><span class="st-text"></span><span class="st-bar"></span>`;
+    el.querySelector('.st-text').textContent = text;
+    el.classList.toggle('kind-Boss', isBoss);
+    el.classList.remove('show');
+    void el.offsetWidth;
     el.classList.add('show');
     if (spawnToastTimer) clearTimeout(spawnToastTimer);
     spawnToastTimer = setTimeout(() => el.classList.remove('show'), 8000);
@@ -614,6 +934,7 @@
 
   function renderHistoryItem(i) {
     if ('eventId' in i) addItem(alertClass(i), `${enemyRoleLabel(i)} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
+    else if ('goalOrderId' in i) addItem('order-item', `GOAL: "${i.text}"`, i.issuerName, i.issuedAt);
     else if ('orderId' in i) addItem(orderClass(i.type), `${t('dashboard.orderWord')} ${orderTypeLabel(i.type)} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
     else {
       addItem(statusClass(i.type), `${t('dashboard.statusWord')} ${t('statusTypes.' + i.type) || formatLabel(i.type)} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
@@ -627,7 +948,7 @@
   }
 
   connection.start()
-    .then(() => { setStatus(t('common.connected')); refreshMacros(); })
+    .then(() => { setStatus(t('common.connected')); refreshMacros(); refreshGoalMacros(); })
     .catch(err => setStatus(t('common.connectionFailed') + err));
 
   const RESERVE_SQUAD_ID = 'RESERVE';
@@ -799,6 +1120,8 @@
 
   function setStatus(text) {
     document.getElementById('status').textContent = text;
+    const hudStatus = document.getElementById('hud-status');
+    if (hudStatus) hudStatus.textContent = text;
   }
 
   function startBattleFromDashboard() {
@@ -826,11 +1149,13 @@
       const update = () => { el.textContent = t('dashboard.battleInProgressSince', { time: battleStartedAt.toLocaleTimeString() }); };
       update();
       battleClockTimer = setInterval(update, 30000);
-      el.className = 'active';
+      el.classList.add('active');
+      el.classList.remove('inactive');
     } else {
       battleStartedAt = null;
       el.textContent = t('menu.stats.noActiveBattle');
-      el.className = 'inactive';
+      el.classList.add('inactive');
+      el.classList.remove('active');
     }
   }
 
@@ -849,6 +1174,31 @@
     div.append(titleEl, metaEl);
     feed.prepend(div);
   }
+
+  // ---- Overlay (Tacnet Overlay desktop app) hooks ----
+  // See /js/overlay-hud.js for the click-through/hover state machine and
+  // the drag/hide layout editor — shared with player.html and observer.html
+  // so all three HUDs behave identically. The commander console is large,
+  // so only the fight-critical panels become HUD widgets (see the
+  // body.tacnet-hud CSS above); macros and the roster stay in the full
+  // browser view, reachable via Alt+O.
+  TacnetHud.init({
+    hoverSelectors: [
+      '#hud-controls .menu-nav-btn', '#hud-controls .logout-btn',
+      '#battle-controls button', '#order-panel button', '#order-panel .squad-chip',
+      '#goal-order-panel textarea', '#goal-order-panel input', '#goal-order-panel select', '#goal-order-panel button',
+    ],
+    storageKey: 'tacnet_layout_dashboard_v1',
+    widgets: [
+      { key: 'battleStatus', get: () => document.getElementById('battle-status'), label: 'Battle status' },
+      { key: 'battleControls', get: () => document.getElementById('battle-controls'), label: 'Start/End battle' },
+      { key: 'orderPanel', get: () => document.getElementById('order-panel'), label: 'Issue order' },
+      { key: 'goalOrderPanel', get: () => document.getElementById('goal-order-panel'), label: 'Issue goal order' },
+      { key: 'feedSection', get: () => document.getElementById('feed-section'), label: 'Event feed' },
+      { key: 'spawnToast', get: () => document.getElementById('spawn-toast'), label: 'Spawn notice' },
+      { key: 'hudControls', get: () => document.getElementById('hud-controls'), label: 'Menu buttons' },
+    ],
+  });
 </script>
 </body>
 </html>

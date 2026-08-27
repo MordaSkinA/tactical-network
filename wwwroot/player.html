@@ -9,6 +9,7 @@
     <script src="/js/auth.js"></script>
     <link rel="stylesheet" href="/css/theme.css">
     <script src="/js/sidebar.js"></script>
+    <script src="/js/overlay-hud.js"></script>
     <style>
         body {
             background: #0b0b0b;
@@ -121,37 +122,181 @@
                 background: #0c1622;
             }
 
+        #goal-order-banner {
+            display: none;
+            margin: 12px 0 20px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: linear-gradient(160deg, rgba(124,108,240,0.16), rgba(124,108,240,0.05));
+            border: 1px solid rgba(124,108,240,0.4);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+            #goal-order-banner.go-pulse {
+                animation: goalIn 0.4s cubic-bezier(.34,1.56,.64,1);
+            }
+
+            #goal-order-banner .go-head {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 6px;
+            }
+
+            #goal-order-banner .go-icon {
+                flex: 0 0 auto;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(124,108,240,0.22);
+                color: #9b8ff5;
+            }
+
+            #goal-order-banner .label {
+                font-size: 11px;
+                font-weight: 800;
+                color: #9b8ff5;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+
+            #goal-order-banner .value {
+                font-size: 17px;
+                font-weight: 700;
+                color: #f0f0f2;
+                line-height: 1.35;
+            }
+
+            #goal-order-banner .go-timer {
+                display: none;
+                align-items: center;
+                gap: 6px;
+                margin-top: 10px;
+                font-size: 12px;
+                font-weight: 700;
+                color: #e0a030;
+            }
+
+            #goal-order-banner .go-timer.show {
+                display: inline-flex;
+            }
+
+            #goal-order-banner .go-timer.urgent {
+                color: #f0a0a8;
+                animation: goalUrgent 0.9s ease-in-out infinite;
+            }
+
+            #goal-order-banner .go-timer svg {
+                width: 13px;
+                height: 13px;
+                flex: 0 0 auto;
+            }
+
+            @keyframes goalIn {
+                from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+                to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+
+            @keyframes goalUrgent {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+
         #spawn-toast {
             position: fixed;
-            top: 16px;
+            top: 20px;
             left: 50%;
-            transform: translateX(-50%) translateY(-20px);
+            transform: translateX(-50%) translateY(-18px) scale(0.94);
             opacity: 0;
             visibility: hidden;
             z-index: 1000;
-            max-width: 440px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 420px;
             width: calc(100% - 32px);
-            padding: 14px 18px;
-            border-radius: 10px;
-            border: 2px solid #7a5a1e;
-            background: #241c0f;
+            padding: 13px 20px 13px 14px;
+            border-radius: 14px;
+            background: #1a160e;
             color: #f0d99a;
-            font-weight: 700;
-            text-align: center;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
-            transition: transform 0.25s ease-out, opacity 0.25s ease-out, visibility 0.25s;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(240,217,154,0.16), inset 0 1px 0 rgba(255,255,255,0.04);
+            overflow: hidden;
+            transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.25s ease, visibility 0.35s;
         }
 
             #spawn-toast.show {
-                transform: translateX(-50%) translateY(0);
+                transform: translateX(-50%) translateY(0) scale(1);
                 opacity: 1;
                 visibility: visible;
             }
 
+            #spawn-toast .st-icon {
+                flex: 0 0 auto;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(240,217,154,0.14);
+                color: #f0d99a;
+                animation: stPulseGold 1.7s ease-in-out infinite;
+            }
+
+            #spawn-toast .st-text {
+                flex: 1 1 auto;
+                font-weight: 700;
+                font-size: 13.5px;
+                letter-spacing: 0.03em;
+                text-align: left;
+                line-height: 1.3;
+            }
+
+            #spawn-toast .st-bar {
+                position: absolute;
+                left: 0;
+                bottom: 0;
+                height: 3px;
+                width: 100%;
+                background: linear-gradient(90deg, #f0d99a, rgba(240,217,154,0));
+                transform-origin: left;
+                animation: stCountdown 8s linear forwards;
+            }
+
             #spawn-toast.kind-Boss {
-                border-color: #6e1c1c;
-                background: #241212;
-                color: #f0a0a0;
+                background: #1e1414;
+                color: #f7b3b8;
+                box-shadow: 0 12px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(224,82,96,0.22), inset 0 1px 0 rgba(255,255,255,0.04);
+            }
+
+            #spawn-toast.kind-Boss .st-icon {
+                background: rgba(224,82,96,0.16);
+                color: #e05260;
+                animation: stPulseRed 1.15s ease-in-out infinite;
+            }
+
+            #spawn-toast.kind-Boss .st-bar {
+                background: linear-gradient(90deg, #e05260, rgba(224,82,96,0));
+            }
+
+            @keyframes stPulseGold {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(240,217,154,0.35); }
+                50% { box-shadow: 0 0 0 6px rgba(240,217,154,0); }
+            }
+
+            @keyframes stPulseRed {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(224,82,96,0.45); }
+                50% { box-shadow: 0 0 0 7px rgba(224,82,96,0); }
+            }
+
+            @keyframes stCountdown {
+                from { transform: scaleX(1); }
+                to   { transform: scaleX(0); }
             }
 
         #alerts {
@@ -206,10 +351,164 @@
             #order-banner { padding: 16px; }
             #sos { padding: 16px; font-size: 17px; }
         }
+
+
+
+        #hud-controls { display: none; }
+
+        body.tacnet-hud #app-sidebar,
+        body.tacnet-hud .header,
+        body.tacnet-hud .user-info {
+            display: none !important;
+        }
+
+        body.tacnet-hud #app-content { display: block !important; }
+        body.tacnet-hud #player-inner { width: auto !important; max-width: none !important; }
+
+        body.tacnet-hud #hud-controls {
+            display: flex;
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 10px;
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+        }
+
+            body.tacnet-hud #hud-controls #hud-status {
+                font-size: 11px;
+                color: #999;
+                white-space: nowrap;
+                margin-right: 2px;
+            }
+
+            body.tacnet-hud #hud-controls .logout-btn,
+            body.tacnet-hud #hud-controls .menu-nav-btn {
+                margin-right: 0;
+            }
+
+        body.tacnet-hud #sos {
+            position: fixed;
+            top: 54px;
+            right: 14px;
+            width: auto;
+            min-width: 130px;
+            padding: 10px 18px;
+            font-size: 14px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+        }
+
+
+        body.tacnet-hud #order-banner {
+            position: fixed;
+            top: 18px;
+            left: 18px;
+            width: 300px;
+            max-width: 34vw;
+            margin: 0;
+            z-index: 1500;
+        }
+
+        body.tacnet-hud #goal-order-banner {
+            position: fixed;
+            top: 170px;
+            left: 18px;
+            width: 300px;
+            max-width: 34vw;
+            margin: 0;
+            z-index: 1500;
+        }
+
+        body.tacnet-hud #alerts {
+            position: fixed;
+            top: 330px;
+            left: 18px;
+            width: 300px;
+            max-width: 34vw;
+            max-height: calc(100vh - 350px);
+            margin: 0;
+            overflow-y: auto;
+            padding-right: 2px;
+            z-index: 1500;
+        }
+
+
+        body.tacnet-hud #spawn-toast { z-index: 2500; }
+
+
+        body.tacnet-hud.tacnet-edit-mode .tacnet-widget {
+            outline: 2px dashed rgba(155, 143, 245, 0.85);
+            outline-offset: 3px;
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+        }
+        body.tacnet-hud.tacnet-edit-mode .tacnet-widget:active { cursor: grabbing; }
+        body.tacnet-hud .tacnet-widget.tacnet-user-hidden { display: none !important; }
+        body.tacnet-hud.tacnet-edit-mode .tacnet-widget.tacnet-user-hidden {
+            display: block !important;
+            opacity: 0.35;
+        }
+
+        #tacnet-edit-palette {
+            position: fixed;
+            bottom: 44px;
+            left: 18px;
+            z-index: 3000;
+            background: rgba(12, 12, 14, 0.92);
+            border: 1px solid rgba(155, 143, 245, 0.4);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 12px;
+            color: #ddd;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+        }
+        #tacnet-edit-palette .tep-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #b8aef7;
+        }
+        #tacnet-edit-palette .tep-hint {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 8px;
+            max-width: 220px;
+        }
+        #tacnet-edit-palette .tep-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 0;
+            cursor: pointer;
+        }
+        #tacnet-edit-palette button {
+            margin-top: 8px;
+            width: 100%;
+            padding: 5px 0;
+            font-size: 11px;
+            background: #333;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="app-sidebar"></div>
+
+    <div id="hud-controls">
+        <span id="hud-status"></span>
+        <a class="menu-nav-btn" href="/menu.html" data-i18n="common.menu">Menu</a>
+        <button class="logout-btn" type="button" onclick="logout()" data-i18n="common.logout">Log out</button>
+    </div>
+
     <div id="app-content"><div id="player-inner">
     <div class="header">
         <div id="status">connecting...</div>
@@ -222,6 +521,20 @@
     <div id="order-banner">
         <div class="label" data-i18n="player.currentOrder">Current order</div>
         <div class="value" id="order-value">-</div>
+    </div>
+
+    <div id="goal-order-banner">
+        <div class="go-head">
+            <span class="go-icon">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
+            </span>
+            <span class="label">Goal</span>
+        </div>
+        <div class="value" id="goal-order-value">-</div>
+        <div class="go-timer" id="goal-order-timer">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3.2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span id="goal-order-timer-text"></span>
+        </div>
     </div>
 
     <div id="alerts"></div>
@@ -260,6 +573,9 @@
             setOrder(order.type);
         });
 
+
+        connection.on("GoalOrderIssued", order => setGoalOrder(order));
+
         connection.on("SquadStatusChanged", status => {
             if (status.targetSquadId !== currentUser.squadId) return;
             addAlert('Warning', `${t('player.statusPrefix')}${t('statusTypes.' + status.type) || formatLabel(status.type)}`, status.timestamp);
@@ -268,10 +584,50 @@
         connection.on("Snapshot", items => items.forEach(applySnapshotItem));
 
         function applySnapshotItem(i) {
+
+            if ('goalOrderId' in i) { setGoalOrder(i); return; }
             if (i.targetSquadId !== currentUser.squadId) return;
             if ('eventId' in i) addAlert(alertClass(i), i.enemyRole ?? i.note ?? t('player.eventFallback'), i.timestamp);
             else if ('orderId' in i) setOrder(i.type);
             else addAlert('Warning', `${t('player.statusPrefix')}${t('statusTypes.' + i.type) || formatLabel(i.type)}`, i.timestamp);
+        }
+
+        let goalOrderCountdownTimer = null;
+
+        function setGoalOrder(order) {
+            const banner = document.getElementById('goal-order-banner');
+            const valueEl = document.getElementById('goal-order-value');
+            const timerEl = document.getElementById('goal-order-timer');
+            const timerTextEl = document.getElementById('goal-order-timer-text');
+            valueEl.textContent = order.text;
+
+            banner.style.display = 'block';
+            banner.classList.remove('go-pulse');
+            void banner.offsetWidth;
+            banner.classList.add('go-pulse');
+
+            if (goalOrderCountdownTimer) { clearInterval(goalOrderCountdownTimer); goalOrderCountdownTimer = null; }
+            if (order.timerSeconds) {
+                const deadline = new Date(order.issuedAt).getTime() + order.timerSeconds * 1000;
+                const tick = () => {
+                    const remaining = Math.round((deadline - Date.now()) / 1000);
+                    if (remaining <= 0) {
+                        timerTextEl.textContent = 'now';
+                        timerEl.classList.remove('urgent');
+                        clearInterval(goalOrderCountdownTimer);
+                        goalOrderCountdownTimer = null;
+                        return;
+                    }
+                    timerTextEl.textContent = `in ${remaining}s`;
+                    timerEl.classList.toggle('urgent', remaining <= 5);
+                };
+                timerEl.classList.add('show');
+                tick();
+                goalOrderCountdownTimer = setInterval(tick, 1000);
+            } else {
+                timerEl.classList.remove('show', 'urgent');
+                timerTextEl.textContent = '';
+            }
         }
 
 
@@ -279,8 +635,7 @@
             return evt.enemyRole != null ? 'Critical' : evt.severity;
         }
 
-        // formatLabel is a fallback for any status/order type that isn't in the
-        // translation tables yet — formats the raw PascalCase value as readable text.
+
         function formatLabel(type) {
             return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
         }
@@ -288,6 +643,8 @@
         connection.on("HistoryReset", () => {
             document.getElementById('alerts').innerHTML = '';
             setOrder(null);
+            document.getElementById('goal-order-banner').style.display = 'none';
+            if (goalOrderCountdownTimer) { clearInterval(goalOrderCountdownTimer); goalOrderCountdownTimer = null; }
         });
 
         connection.on("RosterUpdated", roster => updateSquadFromRoster(roster));
@@ -296,19 +653,25 @@
 
         let spawnToastTimer = null;
 
+        const ST_ICON_BOSS = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M12 3.2c-4.4 0-7.8 3.3-7.8 7.7 0 2.6 1.2 4.8 3 6.2v2.1c0 .55.45 1 1 1H9v-1.8h1.1v1.8h1.8v-1.8H13v1.8h0.8c.55 0 1-.45 1-1v-2.1c1.8-1.4 3-3.6 3-6.2 0-4.4-3.4-7.7-7.8-7.7Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="9" cy="11" r="1.3" fill="currentColor"/><circle cx="15" cy="11" r="1.3" fill="currentColor"/></svg>';
+        const ST_ICON_JUNGLE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M12 21s-6.5-4.3-6.5-9.8a6.5 6.5 0 0 1 13 0c0 5.5-6.5 9.8-6.5 9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.3" stroke="currentColor" stroke-width="1.5"/></svg>';
+
         function showSpawnToast(reminder) {
             const el = document.getElementById('spawn-toast');
+            const isBoss = reminder.kind === 'Boss';
             let text;
-            if (reminder.kind === 'Boss') {
+            if (isBoss) {
                 text = t('player.bossSpawning');
             } else {
                 const tags = (reminder.tags && reminder.tags.length) ? reminder.tags : ['Jungle'];
                 const label = tags.map(tag => t('jungleTags.' + tag) || t('jungleTags.Jungle')).join(t('player.and'));
                 text = `${label}${t('player.spawningSuffix')}`;
             }
-            el.textContent = text;
-            el.classList.remove('kind-Boss');
-            if (reminder.kind === 'Boss') el.classList.add('kind-Boss');
+            el.innerHTML = `<span class="st-icon">${isBoss ? ST_ICON_BOSS : ST_ICON_JUNGLE}</span><span class="st-text"></span><span class="st-bar"></span>`;
+            el.querySelector('.st-text').textContent = text;
+            el.classList.toggle('kind-Boss', isBoss);
+            el.classList.remove('show');
+            void el.offsetWidth;
             el.classList.add('show');
             if (spawnToastTimer) clearTimeout(spawnToastTimer);
             spawnToastTimer = setTimeout(() => el.classList.remove('show'), 8000);
@@ -337,9 +700,6 @@
             KillBoss: 'attack-key', Bomb: 'attack-key',
             DefendBot: 'defend', DefendMid: 'defend', DefendTop: 'defend', DefendGoose: 'defend', DefendTree: 'defend',
             Hold: 'hold',
-            ProtectHealer: 'protect',
-            Rotate: 'tactic',
-            FallBack: 'fallback',
             BotJungle: 'jungle', TopJungle: 'jungle'
         };
         const ALL_CATEGORY_CLASSES = ['cat-critical', 'cat-attack', 'cat-attack-key', 'cat-defend', 'cat-hold', 'cat-protect', 'cat-tactic', 'cat-fallback', 'cat-jungle'];
@@ -376,7 +736,25 @@
             while (el.children.length > 8) el.removeChild(el.lastChild);
         }
 
-        function setStatus(text) { document.getElementById('status').textContent = text; }
+        function setStatus(text) {
+            document.getElementById('status').textContent = text;
+            const hudStatus = document.getElementById('hud-status');
+            if (hudStatus) hudStatus.textContent = text;
+        }
+
+        // Overlay 
+        TacnetHud.init({
+            hoverSelectors: ['#sos', '#hud-controls .menu-nav-btn', '#hud-controls .logout-btn'],
+            storageKey: 'tacnet_layout_v1',
+            widgets: [
+                { key: 'orderBanner', get: () => document.getElementById('order-banner'), label: 'Order' },
+                { key: 'goalOrderBanner', get: () => document.getElementById('goal-order-banner'), label: 'Goal order' },
+                { key: 'alerts', get: () => document.getElementById('alerts'), label: 'Alerts' },
+                { key: 'spawnToast', get: () => document.getElementById('spawn-toast'), label: 'Spawn notice' },
+                { key: 'hudControls', get: () => document.getElementById('hud-controls'), label: 'Buttons' },
+                { key: 'sos', get: () => document.getElementById('sos'), label: 'SOS' },
+            ],
+        });
     </script>
 </body>
 </html>

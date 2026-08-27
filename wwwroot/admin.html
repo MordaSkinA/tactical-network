@@ -1217,7 +1217,8 @@
                 target.members.push({
                     nickname: name,
                     role: preset ? preset.role : 'Dps',
-                    bulwark: preset ? preset.bulwark : 'None'
+                    bulwark: preset ? preset.bulwark : 'None',
+                    build: preset ? (preset.build || null) : null
                 });
             }
             renderPool(); renderSquads(); renderReserves();
@@ -1256,6 +1257,7 @@
 
         function setReserveMemberRole(mi, role) { reserves.members[mi].role = role; }
         function setReserveMemberBulwark(mi, bulwark) { reserves.members[mi].bulwark = bulwark; }
+        function setReserveMemberBuild(mi, build) { reserves.members[mi].build = build.trim() || null; }
 
         function setSquadSide(squadIndex, value) { squads[squadIndex].side = value; }
         function setSquadLabel(squadIndex, value) { squads[squadIndex].label = value; renderDiscordSquadToggles(); }
@@ -1321,6 +1323,10 @@
 
         function setMemberBulwark(si, mi, bulwark) {
             squads[si].members[mi].bulwark = bulwark;
+        }
+
+        function setMemberBuild(si, mi, build) {
+            squads[si].members[mi].build = build.trim() || null;
         }
 
         function tagsSummaryText(tags) {
@@ -1398,6 +1404,8 @@
                           <option value="Center" ${m.bulwark === 'Center' ? 'selected' : ''}>♜ Center bulwark</option>
                           <option value="Bottom" ${m.bulwark === 'Bottom' ? 'selected' : ''}>♜↓ Bottom bulwark</option>
                         </select>
+                        <input type="text" class="build-input" placeholder="Build (e.g. Twinblades)" value="${escapeHtml(m.build || '')}"
+                               onchange="setMemberBuild(${si}, ${mi}, this.value)" title="Class/build, used to target goal orders" style="width:110px;">
                         <button class="chip-action leader" data-action="make-leader" data-squad-index="${si}" data-member-index="${mi}" title="Make leader">L</button>
                         <button class="chip-action player" data-action="make-player" data-squad-index="${si}" data-member-index="${mi}" title="Create player account">P</button>
                         <button class="chip-action" data-action="to-reserve" data-squad-index="${si}" data-member-index="${mi}" title="Move to Reserves">${tagEmoji.Backup || '↩'}</button>
@@ -1436,6 +1444,8 @@
                 <option value="Center" ${m.bulwark === 'Center' ? 'selected' : ''}>♜ Center bulwark</option>
                 <option value="Bottom" ${m.bulwark === 'Bottom' ? 'selected' : ''}>♜↓ Bottom bulwark</option>
               </select>
+              <input type="text" class="build-input" placeholder="Build (e.g. Twinblades)" value="${escapeHtml(m.build || '')}"
+                     onchange="setReserveMemberBuild(${mi}, this.value)" title="Class/build, used to target goal orders" style="width:110px;">
               <select onchange="moveReserveMemberToSquad(${mi}, this.value); this.value=''" title="Move to team">
                 <option value="">to team...</option>
                 ${squads.map(s => `<option value="${s.squadId}">${s.squadId}</option>`).join('')}
@@ -1458,7 +1468,8 @@
                     members: (bySquadId[s.squadId].members || []).map(m => ({
                         nickname: m.nickname,
                         role: m.role || 'Dps',
-                        bulwark: m.bulwark || 'None'
+                        bulwark: m.bulwark || 'None',
+                        build: m.build || null
                     }))
                 }
                 : s);
@@ -1472,7 +1483,8 @@
                 members: (reserveEntry?.members || []).map(m => ({
                     nickname: m.nickname,
                     role: m.role || 'Dps',
-                    bulwark: m.bulwark || 'None'
+                    bulwark: m.bulwark || 'None',
+                    build: m.build || null
                 }))
             };
             renderPool(); renderSquads(); renderReserves();

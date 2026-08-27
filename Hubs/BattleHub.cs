@@ -18,11 +18,12 @@ public class BattleHub : Hub
     private readonly IDiscordWebhookStore _discordChannels;
     private readonly IEmojiSettingsStore _emojiSettings;
     private readonly IOrderMacroStore _macros;
+    private readonly IGoalOrderMacroStore _goalMacros;
     private readonly IHttpClientFactory _httpClientFactory;
 
     public BattleHub(IBattleState state, ISessionStore sessions, IAccountStore accounts, HubActionRateLimiter rateLimiter,
         IConnectionTracker connections, IMemberPresetStore presets, IDiscordWebhookStore discordChannels, IEmojiSettingsStore emojiSettings,
-        IOrderMacroStore macros, IHttpClientFactory httpClientFactory)
+        IOrderMacroStore macros, IGoalOrderMacroStore goalMacros, IHttpClientFactory httpClientFactory)
     {
         _state = state;
         _sessions = sessions;
@@ -33,6 +34,7 @@ public class BattleHub : Hub
         _discordChannels = discordChannels;
         _emojiSettings = emojiSettings;
         _macros = macros;
+        _goalMacros = goalMacros;
         _httpClientFactory = httpClientFactory;
     }
 
@@ -115,11 +117,19 @@ public class BattleHub : Hub
 
     public async Task IssueOrder(IssueOrderDto dto)
     {
-        var session = RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        var session = RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer, UserRole.Leader);
 
         var targetSquadIds = (dto.TargetSquadIds ?? new()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (targetSquadIds.Count == 0)
             throw new HubException("Select at least one squad.");
+
+
+        if (session.Role == UserRole.Leader)
+        {
+            var ownSquadId = RequireSquad(session);
+            if (targetSquadIds.Count != 1 || !string.Equals(targetSquadIds[0], ownSquadId, StringComparison.OrdinalIgnoreCase))
+                throw new HubException("Team leaders can only issue orders to their own squad.");
+        }
 
         var roster = _state.GetRoster();
         foreach (var squadId in targetSquadIds)
@@ -191,6 +201,127 @@ public class BattleHub : Hub
             var order = _state.AddOrder(orderDto, session.Username, squadId);
             await Clients.Groups(SquadGroup(squadId), CommanderGroup, AdminGroup).SendAsync("OrderIssued", order);
         }
+    }
+
+
+
+    public async Task IssueGoalOrder(IssueGoalOrderDto dto)
+    {
+        var session = RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer, UserRole.Leader);
+
+        if (string.IsNullOrWhiteSpace(dto.Text))
+            throw new HubException("Give the goal order some text.");
+        RequireNotRateLimited();
+
+ 
+        var restrictToSquadId = session.Role == UserRole.Leader ? RequireSquad(session) : null;
+
+        var roster = _state.GetRoster();
+        var recipients = ResolveGoalOrderRecipients(roster, dto.Target, restrictToSquadId);
+        if (recipients.Count == 0)
+            throw new HubException("No roster members match that target.");
+
+        var order = _state.AddGoalOrder(dto, session.Username);
+
+        var connectionIds = recipients
+            .SelectMany(username => _connections.GetConnections(username))
+            .Distinct()
+            .ToList();
+
+        if (connectionIds.Count > 0)
+            await Clients.Clients(connectionIds).SendAsync("GoalOrderIssued", order);
+        await Clients.Groups(CommanderGroup, AdminGroup).SendAsync("GoalOrderIssued", order);
+    }
+
+
+    private static List<string> ResolveGoalOrderRecipients(IReadOnlyList<SquadRosterDto> roster, GoalOrderTargetDto? target, string? restrictToSquadId)
+    {
+        var squadIdFilter = target?.SquadIds is { Count: > 0 } sids
+            ? new HashSet<string>(sids, StringComparer.OrdinalIgnoreCase)
+            : null;
+        var buildFilter = target?.Builds is { Count: > 0 } builds
+            ? new HashSet<string>(builds, StringComparer.OrdinalIgnoreCase)
+            : null;
+        var roleFilter = target?.Roles is { Count: > 0 } roles ? new HashSet<MemberRole>(roles) : null;
+        var sideFilter = target?.Sides is { Count: > 0 } sides
+            ? new HashSet<string>(sides, StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        var result = new List<string>();
+        foreach (var squad in roster)
+        {
+            if (restrictToSquadId != null && !string.Equals(squad.SquadId, restrictToSquadId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (restrictToSquadId == null && squadIdFilter == null &&
+                string.Equals(squad.SquadId, RosterConstants.ReserveSquadId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (squadIdFilter != null && !squadIdFilter.Contains(squad.SquadId))
+                continue;
+            if (sideFilter != null && !sideFilter.Contains(squad.Side))
+                continue;
+
+            foreach (var member in squad.Members)
+            {
+                if (roleFilter != null && !roleFilter.Contains(member.Role))
+                    continue;
+                if (buildFilter != null && (member.Build is null || !buildFilter.Contains(member.Build)))
+                    continue;
+                result.Add(member.Nickname);
+            }
+        }
+        return result.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+
+
+    public Task<List<GoalOrderMacroDto>> ListGoalOrderMacros()
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer, UserRole.Leader);
+        return Task.FromResult(_goalMacros.All().OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
+    }
+
+    public Task<GoalOrderMacroDto> UpsertGoalOrderMacro(UpsertGoalOrderMacroDto dto)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            throw new HubException("Give the macro a name.");
+        if (string.IsNullOrWhiteSpace(dto.Text))
+            throw new HubException("Give the macro some order text.");
+
+        var macro = _goalMacros.Upsert(dto.Id, dto.Name.Trim(), dto.Text.Trim(), dto.Target, dto.TimerSeconds, dto.Phase);
+        return Task.FromResult(macro);
+    }
+
+    public Task DeleteGoalOrderMacro(string id)
+    {
+        RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
+        _goalMacros.Delete(id);
+        return Task.CompletedTask;
+    }
+
+    public async Task ExecuteGoalOrderMacro(string id)
+    {
+        var session = RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer, UserRole.Leader);
+        var macro = _goalMacros.Find(id) ?? throw new HubException("That macro doesn't exist anymore.");
+        RequireNotRateLimited();
+
+        var restrictToSquadId = session.Role == UserRole.Leader ? RequireSquad(session) : null;
+        var roster = _state.GetRoster();
+        var recipients = ResolveGoalOrderRecipients(roster, macro.Target, restrictToSquadId);
+        if (recipients.Count == 0)
+            throw new HubException("No roster members match this macro's target.");
+
+        var orderDto = new IssueGoalOrderDto(macro.Text, macro.Target, macro.TimerSeconds, macro.Phase);
+        var order = _state.AddGoalOrder(orderDto, session.Username);
+
+        var connectionIds = recipients
+            .SelectMany(username => _connections.GetConnections(username))
+            .Distinct()
+            .ToList();
+
+        if (connectionIds.Count > 0)
+            await Clients.Clients(connectionIds).SendAsync("GoalOrderIssued", order);
+        await Clients.Groups(CommanderGroup, AdminGroup).SendAsync("GoalOrderIssued", order);
     }
 
     public async Task ReportSquadStatus(ReportSquadStatusDto dto)

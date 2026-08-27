@@ -1,0 +1,21 @@
+[
+  {
+    "Id": "96931915-136b-4cef-a0d8-5e4c784b18b8",
+    "Name": "TANK BOMB",
+    "Text": "Find clump of enemies to pull, bombing in 10 seconds",
+    "Target": {
+      "Builds": null,
+      "Roles": [
+        "Tank"
+      ],
+      "Sides": [
+        "Attack",
+        "Defense",
+        "Flex"
+      ],
+      "SquadIds": null
+    },
+    "TimerSeconds": 10,
+    "Phase": null
+  }
+]

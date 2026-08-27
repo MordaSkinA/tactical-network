@@ -36,9 +36,6 @@ const I18N_STRINGS = {
             KillBoss: 'KILL BOSS', Bomb: 'BOMB',
             DefendBot: 'DEFEND BOT', DefendMid: 'DEFEND MID', DefendTop: 'DEFEND TOP', DefendGoose: 'DEFEND GOOSE', DefendTree: 'DEFEND TREE',
             Hold: 'HOLD',
-            ProtectHealer: 'PROTECT HEALER',
-            Rotate: 'ROTATE',
-            FallBack: 'FALL BACK',
             BotJungle: 'BOT JUNGLE', TopJungle: 'TOP JUNGLE'
         },
         jungleTags: {
@@ -58,7 +55,7 @@ const I18N_STRINGS = {
         },
         observer: {
             pageTitle: 'Team Leader',
-            pageSubtitle: "Report enemy sightings and your team's status.",
+            pageSubtitle: "Issue orders to your team and report its status.",
             loadingProfile: 'Loading profile...',
             signedInAs: 'Signed in as:',
             team: 'Team:',
@@ -194,9 +191,6 @@ const I18N_STRINGS = {
             KillBoss: '击杀BOSS', Bomb: '安放炸弹',
             DefendBot: '防守下路', DefendMid: '防守中路', DefendTop: '防守上路', DefendGoose: '防守鹅', DefendTree: '防守圣树',
             Hold: '原地待命',
-            ProtectHealer: '保护治疗',
-            Rotate: '换位',
-            FallBack: '撤退',
             BotJungle: '下路野区', TopJungle: '上路野区'
         },
         jungleTags: {
@@ -216,7 +210,7 @@ const I18N_STRINGS = {
         },
         observer: {
             pageTitle: '队长',
-            pageSubtitle: '上报敌情和本队状态。',
+            pageSubtitle: '向本队下达指令并上报本队状态。',
             loadingProfile: '正在加载资料...',
             signedInAs: '登录身份：',
             team: '小队：',

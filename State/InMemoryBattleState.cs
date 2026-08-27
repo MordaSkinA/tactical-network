@@ -11,6 +11,7 @@ public interface IBattleState
 {
     BattleEventPushDto AddEvent(ReportEventDto dto, string reporterName, string targetSquadId);
     OrderPushDto AddOrder(IssueOrderDto dto, string issuerName, string targetSquadId);
+    GoalOrderPushDto AddGoalOrder(IssueGoalOrderDto dto, string issuerName);
     BattleEventPushDto AddSos(string reporterName, string squadId);
 
     IReadOnlyList<object> GetRecentHistory();
@@ -100,6 +101,21 @@ public class InMemoryBattleState : IBattleState
             IssuerName: issuerName,
             Type: dto.Type,
             TargetSquadId: targetSquadId,
+            IssuedAt: DateTimeOffset.UtcNow
+        );
+        Track(order);
+        return order;
+    }
+
+    public GoalOrderPushDto AddGoalOrder(IssueGoalOrderDto dto, string issuerName)
+    {
+        var order = new GoalOrderPushDto(
+            GoalOrderId: Guid.NewGuid(),
+            IssuerName: issuerName,
+            Text: dto.Text,
+            Target: dto.Target,
+            TimerSeconds: dto.TimerSeconds,
+            Phase: dto.Phase,
             IssuedAt: DateTimeOffset.UtcNow
         );
         Track(order);
@@ -201,6 +217,8 @@ public class InMemoryBattleState : IBattleState
             object item;
             if (el.TryGetProperty("EventId", out _) || el.TryGetProperty("eventId", out _))
                 item = el.Deserialize<BattleEventPushDto>(ReadOptions)!;
+            else if (el.TryGetProperty("GoalOrderId", out _) || el.TryGetProperty("goalOrderId", out _))
+                item = el.Deserialize<GoalOrderPushDto>(ReadOptions)!;
             else if (el.TryGetProperty("OrderId", out _) || el.TryGetProperty("orderId", out _))
                 item = el.Deserialize<OrderPushDto>(ReadOptions)!;
             else
@@ -262,6 +280,11 @@ public class InMemoryBattleState : IBattleState
             {
                 sb.AppendLine(
                     $"{order.IssuedAt:yyyy-MM-dd HH:mm:ss} UTC | ORDER | squad {order.TargetSquadId,-4} | {"",-8} | {order.Type} — issued by {order.IssuerName}");
+            }
+            else if (item is GoalOrderPushDto goalOrder)
+            {
+                sb.AppendLine(
+                    $"{goalOrder.IssuedAt:yyyy-MM-dd HH:mm:ss} UTC | GOAL  | {"",-9} | {"",-8} | \"{goalOrder.Text}\" — issued by {goalOrder.IssuerName}");
             }
             else if (item is SquadStatusPushDto status)
             {

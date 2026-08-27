@@ -31,14 +31,11 @@ public enum OrderType
     PushTop,
     AttackGoose,
     Hold,
-    FallBack,
-    Rotate,
     DefendBot,
     DefendMid,
     DefendTop,
     DefendGoose,
     DefendTree,
-    ProtectHealer,
     TargetHealer,
     TargetTb,
     KillBoss,
@@ -167,7 +164,8 @@ public static class RosterConstants
 public record SquadMemberDto(
     string Nickname,
     MemberRole Role,
-    BulwarkPosition Bulwark
+    BulwarkPosition Bulwark,
+    string? Build = null
 );
 
 public record SquadRosterDto(
@@ -183,13 +181,22 @@ public record UpdateRosterDto(
     List<SquadRosterDto> Squads
 );
 
-// Remembering role assignments across roster builds
+
 
 public record MemberPresetDto(
     string Nickname,
     MemberRole Role,
-    BulwarkPosition Bulwark
+    BulwarkPosition Bulwark,
+    string? Build = null
 );
+
+
+public enum BattlePhase
+{
+    Phase1,
+    Phase2,
+    Phase3
+}
 
 // Discord webhooks
 
@@ -205,6 +212,29 @@ public record SendRosterMessageDto(string ChannelId, List<string>? SquadIds);
 
 public record OrderMacroDto(string Id, string Name, OrderType Type, List<string> SquadIds);
 public record UpsertOrderMacroDto(string? Id, string Name, OrderType Type, List<string>? SquadIds);
+
+
+public record GoalOrderTargetDto(
+    List<string>? Builds,
+    List<MemberRole>? Roles,
+    List<string>? Sides,
+    List<string>? SquadIds
+);
+
+public record IssueGoalOrderDto(string Text, GoalOrderTargetDto? Target, int? TimerSeconds, BattlePhase? Phase);
+
+public record GoalOrderPushDto(
+    Guid GoalOrderId,
+    string IssuerName,
+    string Text,
+    GoalOrderTargetDto? Target,
+    int? TimerSeconds,
+    BattlePhase? Phase,
+    DateTimeOffset IssuedAt
+);
+
+public record GoalOrderMacroDto(string Id, string Name, string Text, GoalOrderTargetDto? Target, int? TimerSeconds, BattlePhase? Phase);
+public record UpsertGoalOrderMacroDto(string? Id, string Name, string Text, GoalOrderTargetDto? Target, int? TimerSeconds, BattlePhase? Phase);
 
 // Custom emoji
 // ♜↑  ♜  ♜↓

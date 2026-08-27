@@ -54,6 +54,7 @@ builder.Services.AddSingleton<IMemberPresetStore, FileMemberPresetStore>();
 builder.Services.AddSingleton<IDiscordWebhookStore, FileDiscordWebhookStore>();
 builder.Services.AddSingleton<IEmojiSettingsStore, FileEmojiSettingsStore>();
 builder.Services.AddSingleton<IOrderMacroStore, FileOrderMacroStore>();
+builder.Services.AddSingleton<IGoalOrderMacroStore, FileGoalOrderMacroStore>();
 builder.Services.AddSingleton<IConnectionTracker, InMemoryConnectionTracker>();
 builder.Services.AddSingleton<HubActionRateLimiter>();
 builder.Services.AddSingleton<LoginAttemptRateLimiter>();
