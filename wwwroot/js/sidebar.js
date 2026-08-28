@@ -57,7 +57,7 @@ function renderSidebar(activePath) {
     </a>
   `).join('');
 
-  const otherLang = getLang() === 'en' ? 'zh' : 'en';
+  const otherLang = getLang() === 'en' ? 'vi' : 'en';
 
   container.innerHTML = `
     <div class="sb-logo"><span class="sb-logo-dot"></span>TACNET</div>

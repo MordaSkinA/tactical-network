@@ -153,6 +153,25 @@
     background: var(--status-color, #aaa); box-shadow: 0 0 6px var(--status-color, transparent);
   }
 
+  /* Current order badge on squad tiles */
+  .order-current {
+    display: none; align-items: center; gap: 6px; width: fit-content;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: #fff; margin-top: 8px; padding: 3px 8px; border-radius: 4px;
+  }
+  .order-current.show { display: inline-flex; }
+  .order-current.attack     { background: #c1622b; }
+  .order-current.attack-key { background: #e8790f; }
+  .order-current.defend     { background: #4c7a4f; }
+  .order-current.hold       { background: #2e5230; }
+  .order-current.jungle     { background: #1e3a5f; }
+
+  /* Attack/Defense quick-select buttons */
+  .order-target-action.side-attack  { border-color: #c1622b; color: #e29a6b; }
+  .order-target-action.side-attack:hover  { color: #fff; background: #c1622b; }
+  .order-target-action.side-defense { border-color: #4c7a4f; color: #8ec092; }
+  .order-target-action.side-defense:hover { color: #fff; background: #4c7a4f; }
+
   /* Section separation */
   .section-heading {
     display: flex; align-items: center; gap: 10px;
@@ -441,6 +460,8 @@
     <div id="order-target-actions">
       <button type="button" class="order-target-action" onclick="selectAllSquads()" data-i18n="dashboard.selectAll">Select all</button>
       <button type="button" class="order-target-action" onclick="clearSquadSelection()" data-i18n="dashboard.clear">Clear</button>
+      <button type="button" class="order-target-action side-attack" onclick="selectSideSquads('Attack')" data-i18n="dashboard.selectAttack">Attack teams</button>
+      <button type="button" class="order-target-action side-defense" onclick="selectSideSquads('Defense')" data-i18n="dashboard.selectDefense">Defense teams</button>
     </div>
     <div id="order-buttons" class="disabled"></div>
   </div>
@@ -605,6 +626,29 @@
     document.querySelectorAll('.status-label.active').forEach(el => el.classList.remove('active'));
   }
 
+  // Current order shown on each squad tile
+  const squadCurrentOrder = new Map();
+
+  function paintSquadOrder(squadId, type) {
+    const card = document.querySelector(`.squad-card[data-squad-id="${CSS.escape(squadId)}"]`);
+    if (!card) return;
+    const el = card.querySelector('.order-current');
+    if (!el) return;
+    const cls = (ORDER_TYPE_CLASS[type] || '');
+    el.className = 'order-current show' + (cls ? ' ' + cls : '');
+    el.textContent = t('dashboard.currentOrderPrefix') + orderTypeLabel(type);
+  }
+
+  function recordSquadOrder(squadId, type) {
+    squadCurrentOrder.set(squadId, type);
+    paintSquadOrder(squadId, type);
+  }
+
+  function resetSquadOrders() {
+    squadCurrentOrder.clear();
+    document.querySelectorAll('.order-current.show').forEach(el => { el.className = 'order-current'; el.textContent = ''; });
+  }
+
   const ORDER_TYPES = [
     { type: 'PushBot', cls: 'attack' },
     { type: 'PushMid', cls: 'attack' },
@@ -622,6 +666,9 @@
     { type: 'TopJungle', cls: 'jungle' }
   ];
   function orderTypeLabel(type) { return t('orderTypes.' + type) || formatLabel(type); }
+
+  // Maps an order type to its color class, reused for the current-order badge on squad tiles.
+  const ORDER_TYPE_CLASS = Object.fromEntries(ORDER_TYPES.map(o => [o.type, o.cls]));
 
   document.getElementById('order-buttons').innerHTML = ORDER_TYPES.map(o =>
     `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${orderTypeLabel(o.type)}</button>`
@@ -755,6 +802,21 @@
     refreshTargetUI();
   }
 
+  // Flex teams count as Defense for this filter.
+  function squadSideMatches(side, filterSide) {
+    const effective = side === 'Flex' ? 'Defense' : side;
+    return effective === filterSide;
+  }
+
+  function selectSideSquads(filterSide) {
+    selectedSquadIds.clear();
+    document.querySelectorAll('.squad-chip').forEach(chip => {
+      if (squadSideMatches(chip.dataset.side, filterSide)) selectedSquadIds.add(chip.dataset.squadId);
+    });
+    persistSelection();
+    refreshTargetUI();
+  }
+
   function refreshTargetUI() {
     const label = selectedSquadIds.size
       ? [...selectedSquadIds].sort().join(', ')
@@ -855,8 +917,10 @@
   connection.on("BattleEvent", evt =>
     addItem(alertClass(evt), `${enemyRoleLabel(evt)} → ${evt.targetSquadId}`, evt.reporterName, evt.timestamp));
 
-  connection.on("OrderIssued", order =>
-    addItem(orderClass(order.type), `${t('dashboard.orderWord')} ${orderTypeLabel(order.type)} → ${order.targetSquadId}`, order.issuerName, order.issuedAt));
+  connection.on("OrderIssued", order => {
+    addItem(orderClass(order.type), `${t('dashboard.orderWord')} ${orderTypeLabel(order.type)} → ${order.targetSquadId}`, order.issuerName, order.issuedAt);
+    recordSquadOrder(order.targetSquadId, order.type);
+  });
 
   connection.on("GoalOrderIssued", order =>
     addItem('order-item', `GOAL: "${order.text}"`, order.issuerName, order.issuedAt));
@@ -868,7 +932,7 @@
 
   connection.on("RosterUpdated", roster => renderRoster(roster));
 
-  connection.on("HistoryReset", () => { feed.innerHTML = ''; resetSquadStatuses(); });
+  connection.on("HistoryReset", () => { feed.innerHTML = ''; resetSquadStatuses(); resetSquadOrders(); });
 
   connection.on("BattleStatusChanged", status => renderBattleStatus(status));
 
@@ -932,7 +996,10 @@
   function renderHistoryItem(i) {
     if ('eventId' in i) addItem(alertClass(i), `${enemyRoleLabel(i)} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
     else if ('goalOrderId' in i) addItem('order-item', `GOAL: "${i.text}"`, i.issuerName, i.issuedAt);
-    else if ('orderId' in i) addItem(orderClass(i.type), `${t('dashboard.orderWord')} ${orderTypeLabel(i.type)} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+    else if ('orderId' in i) {
+      addItem(orderClass(i.type), `${t('dashboard.orderWord')} ${orderTypeLabel(i.type)} → ${i.targetSquadId}`, i.issuerName, i.issuedAt);
+      recordSquadOrder(i.targetSquadId, i.type);
+    }
     else {
       addItem(statusClass(i.type), `${t('dashboard.statusWord')} ${t('statusTypes.' + i.type) || formatLabel(i.type)} → ${i.targetSquadId}`, i.reporterName, i.timestamp);
       recordSquadStatus(i.targetSquadId, i.type, new Date(i.timestamp).getTime());
@@ -968,7 +1035,7 @@
 
     const chips = document.getElementById('order-squad-chips');
     chips.innerHTML = roster.map(sq =>
-      `<button class="squad-chip" data-squad-id="${sq.squadId}" onclick="selectSquad('${sq.squadId}')"><span class="chip-check">✓</span>${sq.squadId}</button>`
+      `<button class="squad-chip" data-squad-id="${sq.squadId}" data-side="${sq.side}" onclick="selectSquad('${sq.squadId}')"><span class="chip-check">✓</span>${sq.squadId}</button>`
     ).join('');
 
     const el = document.getElementById('roster');
@@ -1041,6 +1108,9 @@
         });
       }
 
+      const orderCurrent = document.createElement('div');
+      orderCurrent.className = 'order-current';
+
       const statusSide = document.createElement('div');
       statusSide.className = 'status-side';
 
@@ -1054,7 +1124,7 @@
 
       card.append(h4);
       if (warnEl) card.append(warnEl);
-      card.append(membersEl, statusLabel, statusSide);
+      card.append(membersEl, orderCurrent, statusLabel, statusSide);
       el.appendChild(card);
     });
 
@@ -1063,6 +1133,7 @@
 
 
     squadStatusState.forEach((state, squadId) => paintSquadStatus(squadId, state.type));
+    squadCurrentOrder.forEach((type, squadId) => paintSquadOrder(squadId, type));
   }
 
   function renderReserves(reserveSquad) {

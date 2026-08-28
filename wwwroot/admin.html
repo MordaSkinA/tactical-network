@@ -1562,8 +1562,10 @@
             const el = document.getElementById('unassigned-registered');
             if (!el) return;
             const inPoolOrSquad = name => pool.includes(name) || squads.some(s => s.members.some(m => m.nickname === name));
+            // Admin/Developer accounts can be placed in the roster like any player -
+            // their account role itself still can't be changed from this screen (see renderAdminRolesTable).
             const candidates = knownAccounts.filter(a =>
-                (a.role === 'Player' || a.role === 'Leader') && !inPoolOrSquad(a.username));
+                (a.role === 'Player' || a.role === 'Leader' || a.role === 'Admin' || a.role === 'Developer') && !inPoolOrSquad(a.username));
             if (candidates.length === 0) { el.innerHTML = '<span class="empty-hint">None</span>'; return; }
             el.innerHTML = candidates.map(a => `
           <div class="chip">

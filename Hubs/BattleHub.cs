@@ -370,8 +370,10 @@ public class BattleHub : Hub
 
         foreach (var account in _accounts.All().ToList())
         {
-            if (account.Role != UserRole.Leader && account.Role != UserRole.Player)
-                continue; // Commander/Admin aren't tied to the roster
+
+            if (account.Role != UserRole.Leader && account.Role != UserRole.Player
+                && account.Role != UserRole.Admin && account.Role != UserRole.Developer)
+                continue;
 
             var oldSquadId = account.SquadId;
             var newSquadId = memberSquad.TryGetValue(account.Username, out var sid) ? sid : null;
