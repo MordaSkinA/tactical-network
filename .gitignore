@@ -44,3 +44,4 @@ appsettings.Development.json
 git rebase -1 da1aa36
 git rebase -i --root
 git rebase -i da1aa366172ad329f81528f86d0cad51fc77ba33
+Tacnet.csproj
