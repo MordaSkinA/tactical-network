@@ -120,7 +120,9 @@
       document.body.appendChild(el);
     });
 
-    // next frame
+
+
+
     requestAnimationFrame(() => {
       const vh = window.innerHeight;
       frozen.forEach(({ el, rect }, i) => {

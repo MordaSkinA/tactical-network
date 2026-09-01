@@ -30,13 +30,17 @@ public class SimpleRateLimiter
     public void Reset(string key) => _hits.TryRemove(key, out _);
 }
 
-// Max 5 actions per 3 seconds from a single connection
+
+
+
 public class HubActionRateLimiter : SimpleRateLimiter
 {
     public HubActionRateLimiter() : base(maxHits: 5, window: TimeSpan.FromSeconds(3)) { }
 }
 
-// Max 5 login attempts per 30 seconds from a single IP
+
+
+
 public class LoginAttemptRateLimiter : SimpleRateLimiter
 {
     public LoginAttemptRateLimiter() : base(maxHits: 5, window: TimeSpan.FromSeconds(30)) { }

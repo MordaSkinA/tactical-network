@@ -13,7 +13,9 @@ public interface IEmojiSettingsStore
     string TagEmoji(MemberTag tag);
 }
 
-// Custom server emoji 
+
+
+
 public class FileEmojiSettingsStore : IEmojiSettingsStore
 {
     private readonly string _filePath;

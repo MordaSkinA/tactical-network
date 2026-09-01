@@ -20,8 +20,9 @@
             --field-bg: var(--surface-2);
             --field-border: var(--border);
 
-            /* Role identity colors — used throughout as the at-a-glance
-               composition language (chip borders, badges, mini-bars) */
+
+
+
             --role-tank: #5b9de8;
             --role-tank-bg: rgba(91, 157, 232, 0.13);
             --role-healer: #4fd18b;
@@ -38,7 +39,9 @@
 
         body.app { background: radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(124,108,240,0.07), transparent 60%), var(--bg); }
 
-        /* ---------------- Section headings ---------------- */
+
+
+
 
         h3 {
             display: flex;
@@ -69,7 +72,9 @@
             margin-top: 0;
         }
 
-        /* Numbered step headings for the two real sequential steps */
+
+
+
         h3.step::before { display: none; }
         h3.step {
             padding-left: 0;
@@ -128,7 +133,9 @@
             resize: vertical;
         }
 
-        /* ---------------- Buttons ---------------- */
+
+
+
 
         button {
             padding: 10px 18px;
@@ -172,7 +179,9 @@
             background: var(--surface-3);
         }
 
-        /* ---------------- Battle status ---------------- */
+
+
+
 
         .section-tab-bar-row {
             display: flex;
@@ -225,7 +234,9 @@
             50% { box-shadow: 0 0 0 7px rgba(79, 209, 139, 0.06); }
         }
 
-        /* ---------------- Chips (pool / free players) ---------------- */
+
+
+
 
         .chip-list {
             display: flex;
@@ -307,7 +318,9 @@
                 color: #ffd76b;
             }
 
-        /* ---------------- Member chip (squad / reserve roster entry) ---------------- */
+
+
+
 
         .member-chip {
             display: flex;
@@ -453,7 +466,9 @@
             font-style: italic;
         }
 
-        /* ---------------- Squad cards ---------------- */
+
+
+
 
         .squad-grid {
             display: grid;
@@ -536,7 +551,9 @@
             margin-bottom: 10px;
         }
 
-        /* ---------------- Log console ---------------- */
+
+
+
 
         #log {
             font-size: 11.5px;
@@ -553,7 +570,9 @@
             line-height: 1.55;
         }
 
-        /* ---------------- Tables ---------------- */
+
+
+
 
         table {
             width: 100%;
@@ -585,7 +604,9 @@
                 background: var(--surface-2);
             }
 
-        /* ---------------- Collapsibles ---------------- */
+
+
+
 
         details {
             margin-top: 16px;
@@ -647,7 +668,9 @@
             margin-right: 8px;
         }
 
-        /* ---------------- Section tab bar (Admin / Developer) ---------------- */
+
+
+
 
         .section-tab-bar {
             display: inline-flex;
@@ -691,7 +714,9 @@
                 display: block;
             }
 
-        /* ---------------- Configuration trigger (opens a modal) ---------------- */
+
+
+
 
         .config-trigger {
             display: flex;
@@ -734,7 +759,9 @@
         }
         .config-topbar .config-trigger { margin-bottom: 0; }
 
-        /* ---------------- Modal ---------------- */
+
+
+
 
         .modal-backdrop {
             display: none;
@@ -806,7 +833,7 @@
         .modal-body .hint { margin-bottom: 16px; }
         .modal-body > h3:first-child { margin-top: 0; }
 
-        /* Wider/taller variant for modals carrying multiple stacked sections */
+
         .modal.modal-lg {
             width: min(640px, calc(100vw - 32px));
             max-height: min(760px, calc(100vh - 64px));
@@ -816,7 +843,9 @@
             .modal { width: calc(100vw - 24px); }
         }
 
-        /* ---------------- Full-width two column layout ---------------- */
+
+
+
 
         .layout-grid {
             display: grid;
@@ -840,7 +869,9 @@
             overflow-x: hidden;
         }
 
-        /* Emoji config: compact grid instead of a stacked column of labels */
+
+
+
         #emoji-role-inputs, #emoji-tag-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -889,7 +920,9 @@
         <div id="battle-status" class="inactive">No active battle</div>
     </div>
 
-    <!-- ADMIN TAB-->
+
+
+
     <div id="tab-admin" class="tab-panel active">
         <div class="config-topbar">
             <button type="button" class="config-trigger" onclick="openModal('discord-config-modal')">
@@ -961,7 +994,9 @@
                 </div>
         </div>
 
-        <!-- Configuration modal: Discord webhooks, emoji, and message sending -->
+
+
+
         <div class="modal-backdrop" id="discord-config-modal-backdrop" onclick="closeModal('discord-config-modal')"></div>
         <div class="modal modal-lg" id="discord-config-modal" role="dialog" aria-modal="true" aria-labelledby="discord-config-modal-title">
             <div class="modal-header">
@@ -1004,7 +1039,9 @@
         <div id="log"></div>
     </div>
 
-    <!-- DEVELOPER TAB -->
+
+
+
     <div id="tab-developer" class="tab-panel">
         <div class="layout-grid">
             <div class="layout-main">
@@ -1138,14 +1175,18 @@
             .then(() => { log("Connected."); refreshAccounts(); refreshMemberPresets(); refreshDiscordChannels(); refreshEmojiSettings(); })
             .catch(err => log("Connection failed: " + err));
 
-        // remembered role/bulwark for a player
+
+
+
 
         async function refreshMemberPresets() {
             try { memberPresets = await connection.invoke("GetMemberPresets"); }
             catch (err) { log("Failed to load remembered roles/bulwark: " + err); }
         }
 
-        // custom emoji for roles/tags
+
+
+
 
         async function refreshEmojiSettings() {
             try {
@@ -1190,7 +1231,9 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // pool
+
+
+
 
         function addToPool() {
             const raw = document.getElementById('pool-input').value;
@@ -1231,7 +1274,9 @@
             renderPool(); renderSquads();
         }
 
-        // Reserves
+
+
+
 
         function moveMemberToReserve(squadIndex, memberIndex) {
             const squad = squads[squadIndex];
@@ -1270,7 +1315,9 @@
             if (summaryEl) summaryEl.textContent = tagsSummaryText(squad.tags);
         }
 
-        // leads, players, accounts
+
+
+
 
         function makeAccount(name, squadId, role) {
             const existing = knownAccounts.find(a => a.username.toLowerCase() === name.toLowerCase());
@@ -1490,7 +1537,9 @@
             renderPool(); renderSquads(); renderReserves();
         }
 
-        // logs, clearing
+
+
+
 
         function saveRoster() {
             const payload = [...squads, reserves].map(s => ({ squadId: s.squadId, side: s.side, leaderName: s.leaderName, members: s.members, label: s.label || null, tags: s.tags }));
@@ -1541,7 +1590,9 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // accounts (Developer tab: full account management)
+
+
+
 
         let knownAccounts = [];
 
@@ -1562,8 +1613,9 @@
             const el = document.getElementById('unassigned-registered');
             if (!el) return;
             const inPoolOrSquad = name => pool.includes(name) || squads.some(s => s.members.some(m => m.nickname === name));
-            // Admin/Developer accounts can be placed in the roster like any player -
-            // their account role itself still can't be changed from this screen (see renderAdminRolesTable).
+
+
+
             const candidates = knownAccounts.filter(a =>
                 (a.role === 'Player' || a.role === 'Leader' || a.role === 'Admin' || a.role === 'Developer') && !inPoolOrSquad(a.username));
             if (candidates.length === 0) { el.innerHTML = '<span class="empty-hint">None</span>'; return; }
@@ -1663,7 +1715,9 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // Deterministic avatar color + initials, purely cosmetic (no real avatar images available)
+
+
+
         const AVATAR_PALETTE = ['#7c6cf0', '#4fae82', '#e8a33d', '#4a90c4', '#c1622b', '#8a4de8', '#e05260'];
         function avatarColor(name) {
             let hash = 0;
@@ -1849,7 +1903,9 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // Discord
+
+
+
 
         async function refreshDiscordChannels() {
             try {
@@ -1954,7 +2010,9 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // Team composition post 
+
+
+
         function sendRosterMessage() {
             const channelId = document.getElementById('dc-send-channel').value;
             if (!channelId) { log("Pick a Discord channel first."); return; }
@@ -1972,7 +2030,10 @@
                 .catch(err => log("Error: " + err));
         }
 
-        // Preview of the same text 
+
+
+
+
         function previewRosterMessage() {
             const active = (dcSelectedSquads.size > 0 ? squads.filter(s => dcSelectedSquads.has(s.squadId)) : squads).filter(s => s.members.length > 0);
             const lines = ['**Team composition:**', ''];
@@ -1989,7 +2050,10 @@
             log('Preview filled into the message box below, this is just a preview, use "Send team composition" to actually send it with real pings.');
         }
 
-        // Modals
+
+
+
+
 
         function openModal(id) {
             const modal = document.getElementById(id);

@@ -120,7 +120,10 @@
   .squad-card { cursor: pointer; border: 2px solid transparent; position: relative; overflow: hidden; }
   .squad-card.targeted { border-color: #eee; box-shadow: 0 0 0 1px #eee inset; }
 
-  /* Multi-select */
+
+
+
+
   #order-target-actions { display: flex; gap: 8px; margin: -4px 0 12px 0; }
   .order-target-action {
     font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #3a3a3a;
@@ -153,7 +156,10 @@
     background: var(--status-color, #aaa); box-shadow: 0 0 6px var(--status-color, transparent);
   }
 
-  /* Current order badge on squad tiles */
+
+
+
+
   .order-current {
     display: none; align-items: center; gap: 6px; width: fit-content;
     font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
@@ -166,13 +172,18 @@
   .order-current.hold       { background: #2e5230; }
   .order-current.jungle     { background: #1e3a5f; }
 
-  /* Attack/Defense quick-select buttons */
+
+
+
   .order-target-action.side-attack  { border-color: #c1622b; color: #e29a6b; }
   .order-target-action.side-attack:hover  { color: #fff; background: #c1622b; }
   .order-target-action.side-defense { border-color: #4c7a4f; color: #8ec092; }
   .order-target-action.side-defense:hover { color: #fff; background: #4c7a4f; }
 
-  /* Section separation */
+
+
+
+
   .section-heading {
     display: flex; align-items: center; gap: 10px;
     margin: 22px 0 10px 0; font-size: 12px; font-weight: 700; color: #888;
@@ -187,7 +198,9 @@
   #feed-section .section-heading { margin-top: 0; }
   #feed:empty::after { content: attr(data-empty-text); color: #555; font-size: 13px; }
 
-  /* Order macros */
+
+
+
   #macro-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
   #macro-panel h4 { margin: 0 0 10px 0; font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
   #macro-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
@@ -209,7 +222,10 @@
   }
   #macro-save-btn { font-size: 12px; padding: 8px 12px; border: none; border-radius: 6px; background: #333; color: #fff; cursor: pointer; }
 
-  /* Order type dropdown (custom, replaces bare <select>) */
+
+
+
+
   .order-type-select { position: relative; flex: 1 1 170px; }
   .order-type-trigger {
     width: 100%; display: flex; align-items: center; gap: 8px;
@@ -243,7 +259,9 @@
   .order-type-option:hover, .order-type-option.highlighted { background: #2a2a2a; }
   .order-type-option.selected { color: #fff; background: #262626; }
 
-  /* Goal order — issue panel */
+
+
+
   #goal-order-panel { margin-bottom: 20px; background: #161616; border-radius: 8px; padding: 14px; }
   #goal-order-panel h4 {
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px 0;
@@ -564,7 +582,10 @@
     return type.replace(/([A-Z])/g, ' $1').trim().toUpperCase();
   }
 
-  // Colors 
+
+
+
+
   const STATUS_COLORS = {
     SquadWiped:  '#e33',
     Regroup:     '#4c7a4f',
@@ -573,7 +594,10 @@
     Autonomous:  '#6b7280'
   };
 
-  // Status hold time
+
+
+
+
   const STATUS_HOLD_MS = 25000;
   const squadStatusState = new Map(); 
   const squadStatusTimers = new Map(); 
@@ -626,7 +650,10 @@
     document.querySelectorAll('.status-label.active').forEach(el => el.classList.remove('active'));
   }
 
-  // Current order shown on each squad tile
+
+
+
+
   const squadCurrentOrder = new Map();
 
   function paintSquadOrder(squadId, type) {
@@ -667,14 +694,19 @@
   ];
   function orderTypeLabel(type) { return t('orderTypes.' + type) || formatLabel(type); }
 
-  // Maps an order type to its color class, reused for the current-order badge on squad tiles.
+
+
+
   const ORDER_TYPE_CLASS = Object.fromEntries(ORDER_TYPES.map(o => [o.type, o.cls]));
 
   document.getElementById('order-buttons').innerHTML = ORDER_TYPES.map(o =>
     `<button class="order-btn ${o.cls}" onclick="issueOrder('${o.type}')">${orderTypeLabel(o.type)}</button>`
   ).join('');
 
-  // Custom order-type dropdown for macros (replaces the old bare <select>)
+
+
+
+
   let macroOrderType = ORDER_TYPES[0].type;
 
   document.getElementById('macro-order-type-menu').innerHTML = ORDER_TYPES.map(o =>
@@ -717,7 +749,10 @@
 
   selectMacroOrderType(ORDER_TYPES[0].type);
 
-  // Order macros
+
+
+
+
 
   let macros = [];
 
@@ -802,7 +837,10 @@
     refreshTargetUI();
   }
 
-  // Flex teams count as Defense for this filter.
+
+
+
+
   function squadSideMatches(side, filterSide) {
     const effective = side === 'Flex' ? 'Defense' : side;
     return effective === filterSide;
@@ -837,7 +875,10 @@
       .catch(err => setStatus(t('dashboard.errorPrefix') + err));
   }
 
-  // Goal orders — free-text callouts targeted by build/role/side/phase instead of squad.
+
+
+
+
   function readGoalOrderTarget() {
     const buildsRaw = document.getElementById('goal-order-builds').value.trim();
     const builds = buildsRaw ? buildsRaw.split(',').map(b => b.trim()).filter(Boolean) : null;
@@ -938,7 +979,10 @@
 
   connection.on("SpawnReminder", showSpawnToast);
 
-  // Online/offline presence
+
+
+
+
   let onlineUsernames = new Set();
 
   connection.on("OnlineUsernames", names => {
@@ -1006,7 +1050,10 @@
     }
   }
 
-  // Enemy reports
+
+
+
+
   function alertClass(evt) {
     return evt.enemyRole != null ? 'Critical' : evt.severity;
   }
@@ -1022,7 +1069,10 @@
     const roster = fullRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
     const reserveSquad = fullRoster.find(sq => sq.squadId === RESERVE_SQUAD_ID);
 
-    // Drop any previously-selected squads that no longer exist in the roster
+
+
+
+
     selectedSquadIds = new Set([...selectedSquadIds].filter(id => roster.some(sq => sq.squadId === id)));
 
     if (selectedSquadIds.size === 0) {

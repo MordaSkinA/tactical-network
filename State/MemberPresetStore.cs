@@ -13,7 +13,9 @@ public interface IMemberPresetStore
     void SaveMany(IEnumerable<SquadMemberDto> members);
 }
 
-// Remember role by nickname
+
+
+
 public class FileMemberPresetStore : IMemberPresetStore
 {
     private readonly string _filePath;

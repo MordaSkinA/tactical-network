@@ -1,6 +1,3 @@
-// Shared i18n: language switching between English and Chinese.
-
-
 const I18N_LANG_KEY = 'gvg_lang';
 const I18N_DEFAULT_LANG = 'en';
 
@@ -338,8 +335,9 @@ function toggleLang() {
     setLang(getLang() === 'en' ? 'vi' : 'en');
 }
 
-// t('player.needHelp') -> looks up I18N_STRINGS[currentLang].player.needHelp
-// Optional vars: t('common.noAccess', { role: 'Admin' }) replaces {role} placeholders.
+
+
+
 function t(key, vars) {
     const dict = I18N_STRINGS[getLang()] || I18N_STRINGS[I18N_DEFAULT_LANG];
     let val = key.split('.').reduce((o, k) => (o && o[k] !== undefined) ? o[k] : undefined, dict);

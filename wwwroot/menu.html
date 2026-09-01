@@ -27,7 +27,10 @@
         @keyframes dotPulse    { 0%, 100% { box-shadow: 0 0 5px var(--success); } 50% { box-shadow: 0 0 12px var(--success), 0 0 2px var(--success); } }
         @keyframes countPop    { 0% { transform: scale(.85); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* ---------------- Hero / HUD header (rotating cube) ---------------- */
+
+
+
+
 
         .hud-hero {
             position: relative;
@@ -181,7 +184,10 @@
             color: var(--text-dim);
         }
 
-        /* ---------------- Stat cards ---------------- */
+
+
+
+
 
         .stat-grid {
             display: grid;
@@ -234,7 +240,10 @@
         @media (max-width: 700px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 420px) { .stat-grid { grid-template-columns: 1fr; } }
 
-        /* ---------------- Shared card entrance ---------------- */
+
+
+
+
 
         #home-inner .card {
             animation: fadeSlideUp .5s cubic-bezier(.2, .8, .2, 1) backwards;
@@ -243,7 +252,10 @@
         #home-inner .card:nth-of-type(2) { animation-delay: .16s; }
         #home-inner .card:nth-of-type(3) { animation-delay: .22s; }
 
-        /* ---------------- Roster ---------------- */
+
+
+
+
 
         .empty-hint { color: var(--text-faint); font-size: 13px; padding: 4px 0; }
 
@@ -308,7 +320,10 @@
         .presence-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: var(--border); transition: background .2s ease; }
         .presence-dot.online { background: var(--success); animation: dotPulse 2s ease-in-out infinite; }
 
-        /* ---------------- Reserves ---------------- */
+
+
+
+
 
         #reserves { display: flex; flex-wrap: wrap; gap: 8px 18px; }
         #reserves .member-row {
@@ -319,7 +334,10 @@
         }
         #reserves .member-row:hover { background: var(--surface-3); transform: translateY(-2px); }
 
-        /* ---------------- Account ---------------- */
+
+
+
+
 
         .tab-btn {
             display: flex;
@@ -561,7 +579,10 @@
 
         connection.start().then(loadAccountInfo).catch(err => console.error(err));
 
-        // Stats + roster + reserves
+
+
+
+
 
         function renderStats() {
             const teams = latestRoster.filter(sq => sq.squadId !== RESERVE_SQUAD_ID);
@@ -658,7 +679,10 @@
 
         function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-        // Discord link + change password
+
+
+
+
 
         async function loadAccountInfo() {
             try {

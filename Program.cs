@@ -44,7 +44,8 @@ static byte[] GetOrCreateSessionSigningKey(IConfiguration config, string content
 }
 
 var sessionSigningKey = GetOrCreateSessionSigningKey(builder.Configuration, builder.Environment.ContentRootPath);
-// Token lasts 30 days
+
+
 var sessionTtlDays = builder.Configuration.GetValue<int?>("SessionTtlDays") ?? 30;
 builder.Services.AddSingleton(new SessionTokenOptions(sessionSigningKey, TimeSpan.FromDays(sessionTtlDays)));
 builder.Services.AddSingleton<ISessionStore, SignedSessionStore>();
@@ -83,7 +84,10 @@ static string DiscordResultPage(bool success, string message)
            "<script>setTimeout(() => location.href = '/menu.html', 2000);</script></body></html>";
 }
 
-// Log in via Discord
+
+
+
+
 static string DiscordLoginSuccessPage(string token, string username, UserRole role, string? squadId)
 {
     var payload = JsonSerializer.Serialize(new { token, username, role = role.ToString(), squadId });
@@ -95,7 +99,9 @@ static string DiscordLoginSuccessPage(string token, string username, UserRole ro
            "</body></html>";
 }
 
-// discordId, discordUsername
+
+
+
 static async Task<(string discordId, string discordUsername, bool guildOk)?> ExchangeDiscordCode(
     string code, IConfiguration config, IHttpClientFactory httpClientFactory)
 {
@@ -199,7 +205,10 @@ app.MapPost("/api/auth/logout", (LogoutDto req, ISessionStore sessions) => {
 app.MapGet("/api/auth/discord/config", (IConfiguration config) =>
     Results.Ok(new DiscordConfigDto(config["DiscordClientId"] ?? "", config["DiscordRedirectUri"] ?? "")));
 
-// log in via Discord 
+
+
+
+
 app.MapGet("/api/auth/discord/login-start", (ISessionStore sessions) => {
     var state = sessions.CreateSession(new SessionInfo("", UserRole.Player, null));
     return Results.Ok(new DiscordLoginStartDto(state));
@@ -235,7 +244,8 @@ app.MapGet("/api/auth/discord/callback", async (
 
         if (isLoginIntent)
         {
-            // Log in via Discord
+
+
             var existing = accounts.FindByDiscordId(discordId);
             if (existing is not null)
             {
@@ -244,14 +254,17 @@ app.MapGet("/api/auth/discord/callback", async (
                 return Results.Content(DiscordLoginSuccessPage(loginToken, existing.Username, existing.Role, existing.SquadId), "text/html");
             }
 
-            // First visit via Discord
+
+
             var pendingToken = pending.Create(discordId, discordUsername);
             return Results.Redirect(
                 "/discord-register.html?pendingToken=" + Uri.EscapeDataString(pendingToken) +
                 "&discordUsername=" + Uri.EscapeDataString(discordUsername));
         }
 
-        // Link Discord to an already existing account
+
+
+
         var existingLink = accounts.FindByDiscordId(discordId);
         if (existingLink is not null && !string.Equals(existingLink.Username, session.Username, StringComparison.OrdinalIgnoreCase))
             return Results.Content(DiscordResultPage(false, "This Discord account is already linked to another Tacnet user."), "text/html");
@@ -260,7 +273,10 @@ app.MapGet("/api/auth/discord/callback", async (
         return Results.Content(DiscordResultPage(true, $"Discord linked: {discordUsername}"), "text/html");
     });
 
-// registration
+
+
+
+
 app.MapPost("/api/auth/discord/register", (
     DiscordRegisterDto req,
     HttpContext http,
@@ -275,7 +291,9 @@ app.MapPost("/api/auth/discord/register", (
         if (pendingReg is null)
             return Results.Json(new AuthResponseDto(false, "Registration session expired, log in via Discord again.", null, null, null, null), statusCode: 400);
 
-        // An account for this Discord ID already showed up
+
+
+
         var already = accounts.FindByDiscordId(pendingReg.DiscordId);
         if (already is not null)
         {
@@ -294,7 +312,9 @@ app.MapPost("/api/auth/discord/register", (
         if (accounts.Find(nickname) is not null)
             return Results.Json(new AuthResponseDto(false, "That nickname is already taken, pick another one.", null, null, null, null), statusCode: 409);
 
-        // random password
+
+
+
         var randomPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(24));
         accounts.Upsert(nickname, UserRole.Player, null, randomPassword);
         accounts.LinkDiscord(nickname, pendingReg.DiscordId, pendingReg.DiscordUsername);

@@ -125,7 +125,7 @@ public class SignedSessionStore : ISessionStore
         }
         catch
         {
-            // invalid token 
+
         }
 
         CleanupRevoked();

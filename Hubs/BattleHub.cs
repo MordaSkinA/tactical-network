@@ -38,7 +38,10 @@ public class BattleHub : Hub
         _httpClientFactory = httpClientFactory;
     }
 
-    // SignalR groups
+
+
+
+
     private const string CommanderGroup = "role-commander";
     private const string AdminGroup = "role-admin";
     private static string SquadGroup(string squadId) => "squad-" + squadId;
@@ -72,7 +75,9 @@ public class BattleHub : Hub
         await Clients.Caller.SendAsync("OnlineUsernames", _connections.GetOnlineUsernames());
         await base.OnConnectedAsync();
 
-        // announce presence on the first connection 
+
+
+
         if (_connections.GetConnections(session.Username).Count == 1)
             await BroadcastPresence(session.Username, squadId, online: true);
     }
@@ -141,7 +146,10 @@ public class BattleHub : Hub
         }
         RequireNotRateLimited();
 
-        // One order record per target squad 
+
+
+
+
         foreach (var squadId in targetSquadIds)
         {
             var order = _state.AddOrder(dto, session.Username, squadId);
@@ -149,7 +157,10 @@ public class BattleHub : Hub
         }
     }
 
-    // Order macros
+
+
+
+
 
     public Task<List<OrderMacroDto>> ListOrderMacros()
     {
@@ -353,7 +364,10 @@ public class BattleHub : Hub
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
     }
 
-    // Remembered role by nickname
+
+
+
+
     public Task<Dictionary<string, MemberPresetDto>> GetMemberPresets()
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
@@ -382,7 +396,9 @@ public class BattleHub : Hub
 
             _accounts.Upsert(account.Username, account.Role, newSquadId, null);
 
-            // SignalR groups for all connections of this account
+
+
+
             foreach (var connectionId in _connections.GetConnections(account.Username))
             {
                 if (!string.IsNullOrEmpty(oldSquadId))
@@ -393,7 +409,10 @@ public class BattleHub : Hub
         }
     }
 
-    // Discord channels
+
+
+
+
 
     public Task<List<DiscordChannelDto>> ListDiscordChannels()
     {
@@ -427,7 +446,10 @@ public class BattleHub : Hub
         return Task.CompletedTask;
     }
 
-    // Sends a message to Discord 
+
+
+
+
     public async Task<SendDiscordMessageResultDto> SendDiscordMessage(SendDiscordMessageDto dto)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
@@ -474,7 +496,10 @@ public class BattleHub : Hub
         return new SendDiscordMessageResultDto(true, null, mentionIds.Count, fallbackNames.Count);
     }
 
-    // Team composition message from the current roster 
+
+
+
+
     public async Task<SendDiscordMessageResultDto> SendRosterMessage(SendRosterMessageDto dto)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
@@ -542,7 +567,10 @@ public class BattleHub : Hub
         return new SendDiscordMessageResultDto(true, null, mentionIds.Count, fallbackNames.Count);
     }
 
-    // ♜↑  ♜  ♜↓ 
+
+
+
+
     private static string BulwarkSymbol(BulwarkPosition pos) => pos switch {
         BulwarkPosition.Top => " ♜↑",
         BulwarkPosition.Center => " ♜",
@@ -550,7 +578,10 @@ public class BattleHub : Hub
         _ => ""
     };
 
-    // Custom server emoji 
+
+
+
+
 
     public Task<EmojiSettingsDto> GetEmojiSettings()
     {
@@ -572,7 +603,10 @@ public class BattleHub : Hub
     }
 
     
-    // log and clearing
+
+
+
+
     public async Task EndBattle()
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
@@ -615,7 +649,8 @@ public class BattleHub : Hub
     public Task<List<AccountSummaryDto>> ListAccounts()
     {
         var session = RequireRole(UserRole.Admin, UserRole.Developer);
-        // Security info 
+
+
         var isDeveloper = session.Role == UserRole.Developer;
         var summaries = _accounts.All()
             .Select(a => new AccountSummaryDto(
@@ -800,7 +835,10 @@ public class BattleHub : Hub
         return Task.CompletedTask;
     }
 
-    // Accounts that can't be deleted
+
+
+
+
     private static readonly HashSet<string> ProtectedAccounts = new(StringComparer.OrdinalIgnoreCase) { "morda", "admin" };
 
     public Task DeleteAccount(string username)

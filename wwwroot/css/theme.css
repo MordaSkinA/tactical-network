@@ -1,8 +1,3 @@
-/* ============================================================
-   Shared design system — dark dashboard, violet accent.
-   Used across all authenticated pages alongside sidebar.js.
-   ============================================================ */
-
 :root {
   --bg: #0a0a0b;
   --surface: #141416;
@@ -43,7 +38,7 @@ body.app {
   display: flex;
 }
 
-/* ---------------- Sidebar ---------------- */
+
 
 #app-sidebar {
   flex: 0 0 var(--sidebar-w);
@@ -151,7 +146,7 @@ body.app {
 .sb-nav .sb-link:nth-child(5) { animation-delay: 0.24s; }
 .sb-nav .sb-link:nth-child(6) { animation-delay: 0.29s; }
 
-/* left accent bar that grows out of the edge */
+
 .sb-link::before {
   content: '';
   position: absolute;
@@ -166,7 +161,7 @@ body.app {
   z-index: 2;
 }
 
-/* diagonal light sweep across the link on hover */
+
 .sb-link::after {
   content: '';
   position: absolute;
@@ -204,8 +199,9 @@ body.app {
   transition: opacity 0.15s ease, transform 0.2s ease, filter 0.2s ease;
 }
 
-/* Corner-bracket hover effect — corners grow along each edge and
-   meet in the middle, "pouring" into a full frame. */
+
+
+
 .sb-link .sb-icon::before {
   content: '';
   position: absolute;
@@ -234,7 +230,7 @@ body.app {
     top right, top right,
     bottom right, bottom right,
     bottom left, bottom left;
-  /* rest state: short stub marks in each corner */
+ 
   background-size:
     0% 0%,
     7px 2px, 2px 7px,
@@ -252,8 +248,7 @@ body.app {
 .sb-link:hover .sb-icon::before {
   opacity: 1;
   color: var(--accent-light);
-  /* hover state: each stub grows to 50% and meets its opposite
-     number at the midpoint of every edge, closing the frame */
+
   background-size:
     100% 100%,
     50% 2px, 2px 50%,
@@ -277,7 +272,7 @@ body.app {
 .sb-link.active .sb-icon { opacity: 1; }
 .sb-link.active .sb-icon::before { opacity: 0; }
 
-/* the gear-style Menu link gets its own little spin on hover */
+
 a.sb-link[href="/menu.html"] .sb-icon svg {
   transition: transform 0.6s cubic-bezier(.2, .8, .2, 1);
 }
@@ -307,7 +302,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   color: var(--accent-light);
 }
 
-/* ---------------- Sidebar help buttons ---------------- */
+
+
 
 .sb-info-row {
   display: flex;
@@ -461,7 +457,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   z-index: 0;
 }
 
-/* slow-spinning conic-gradient ring around the avatar */
+
+
 .sb-avatar::before {
   content: '';
   position: absolute;
@@ -508,7 +505,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   outline-offset: 2px;
 }
 
-/* ---------------- Page shell ---------------- */
+
+
+
 
 #app-content {
   flex: 1;
@@ -565,7 +564,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   background: var(--accent-light);
 }
 
-/* ---------------- Cards / panels ---------------- */
+
+
+
 
 .card {
   background: var(--surface);
@@ -587,7 +588,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   border-left: 3px solid var(--accent);
 }
 
-/* ---------------- Toolbar (search + entries) ---------------- */
+
+
+
 
 .toolbar {
   display: flex;
@@ -633,7 +636,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   width: auto;
 }
 
-/* ---------------- Modern table ---------------- */
+
+
+
 
 .tbl-modern {
   width: 100%;
@@ -683,7 +688,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
 .row-name { font-weight: 600; color: var(--text); line-height: 1.3; }
 .row-sub { font-size: 11.5px; color: var(--text-faint); }
 
-/* Custom checkbox */
+
+
 .cb {
   appearance: none; -webkit-appearance: none;
   width: 17px; height: 17px;
@@ -708,7 +714,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   transform: rotate(45deg);
 }
 
-/* Pill badge, e.g. "Can edit ⌄" */
+
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -741,7 +748,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
 .pill-danger { background: var(--danger-dim); color: #f0a0a8; border-color: transparent; }
 .pill-neutral { background: var(--surface-3); color: var(--text-dim); }
 
-/* ---------------- Buttons ---------------- */
+
+
+
 
 .btn {
   display: inline-flex;
@@ -767,7 +776,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
 .btn-sm { padding: 7px 14px; font-size: 12px; }
 
-/* ---------------- Bottom confirm / bulk-action bar ---------------- */
+
+
+
 
 .confirm-bar {
   display: flex;
@@ -797,7 +808,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
 
 .confirm-bar.confirm-bar-empty { opacity: 0.55; }
 
-/* ---------------- Inputs (generic, non-table) ---------------- */
+
+
+
 
 .field label {
   display: block;
@@ -833,7 +846,9 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface);
 }
 
-/* ---------------- Mobile: sidebar becomes a fixed bottom tab bar ---------------- */
+
+
+
 
 @media (max-width: 900px) {
   body.app { flex-direction: column; }
@@ -854,19 +869,20 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
     -webkit-overflow-scrolling: touch;
   }
 
-  /* secondary sidebar content doesn't fit a bottom bar — hide it on mobile */
+  
+
   .sb-logo, .sb-download, .sb-spacer, .sb-section-label, .sb-credit {
     display: none;
   }
 
-  /* leave room at the bottom of the page content so the fixed bar never covers it */
+ 
+
   #app-content {
     padding: 20px 16px calc(78px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* unwrap .sb-nav so every tab (plus the standalone Menu link) is an equal
-     flex item on the bar, instead of the whole nav group competing for
-     space against Menu as if it were a single tab */
+
+
   .sb-nav {
     display: contents;
   }
@@ -882,8 +898,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
     text-align: center;
   }
 
-  /* keep only the language toggle from the help/lang row; the PDF-guide
-     buttons are non-essential on mobile */
+
+
   .sb-info-row {
     display: flex;
     flex: 0 0 auto;
@@ -903,7 +919,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
   }
   .sb-link:hover { transform: none; }
 
-  /* the standalone "Menu" link joins the row of tabs */
+
+
   a.sb-link[href="/menu.html"] {
     flex: 1 1 0;
     min-width: 44px;
@@ -912,7 +929,8 @@ a.sb-link[href="/menu.html"]:hover .sb-icon svg {
     font-size: 10px;
   }
 
-  /* keep the user visible but compact: avatar + logout only, no name/role text */
+ 
+
   .sb-user {
     flex: 0 0 auto;
     border-top: none;

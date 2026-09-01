@@ -91,12 +91,16 @@ public class UserAccount
     public string? DiscordId { get; set; }
     public string? DiscordUsername { get; set; }
 
-    // Security info
+
+
     public DateTimeOffset? LastLoginAt { get; set; }
     public string? LastLoginIp { get; set; }
 }
 
-// Auth
+
+
+
+
 
 public record LoginDto(string Username, string Password);
 
@@ -104,14 +108,18 @@ public record AuthResponseDto(bool Success, string? Message, string? Token, stri
 
 public record LogoutDto(string Token);
 
-// Client  Server 
+
+
+
 
 public record ReportEventDto(EnemyRole? EnemyRole, string? Note);
 
 public record IssueOrderDto(OrderType Type, List<string> TargetSquadIds);
 public record ReportSquadStatusDto(SquadStatusType Type);
 
-// Server  Client 
+
+
+
 
 public record BattleEventPushDto(
     Guid EventId,
@@ -139,7 +147,9 @@ public record SquadStatusPushDto(
     DateTimeOffset Timestamp
 );
 
-// Battle
+
+
+
 
 public record BattleStatusDto(bool IsActive, DateTimeOffset? StartedAt);
 
@@ -152,15 +162,19 @@ public static class MemberTagHelpers
     };
 }
 
-// Roster 
 
-// Reserves
+
+
+
+
 public static class RosterConstants
 {
     public const string ReserveSquadId = "RESERVE";
 }
 
-// Player role
+
+
+
 public record SquadMemberDto(
     string Nickname,
     MemberRole Role,
@@ -198,7 +212,9 @@ public enum BattlePhase
     Phase3
 }
 
-// Discord webhooks
+
+
+
 
 public record DiscordChannelDto(string Id, string Name, string WebhookUrl);
 public record DiscordChannelSummaryDto(string Id, string Name);
@@ -206,7 +222,9 @@ public record UpsertDiscordChannelDto(string? Id, string Name, string WebhookUrl
 public record SendDiscordMessageDto(string ChannelId, string Message, List<string> PingNicknames);
 public record SendDiscordMessageResultDto(bool Success, string? Message, int RealPings, int FallbackPings);
 
-// Auto-generated message from the current roster
+
+
+
 public record SendRosterMessageDto(string ChannelId, List<string>? SquadIds);
 
 
@@ -236,15 +254,17 @@ public record GoalOrderPushDto(
 public record GoalOrderMacroDto(string Id, string Name, string Text, GoalOrderTargetDto? Target, int? TimerSeconds, BattlePhase? Phase);
 public record UpsertGoalOrderMacroDto(string? Id, string Name, string Text, GoalOrderTargetDto? Target, int? TimerSeconds, BattlePhase? Phase);
 
-// Custom emoji
-// ♜↑  ♜  ♜↓
+
+
+
 public record RoleEmojiEntryDto(MemberRole Role, string? Emoji);
 public record TagEmojiEntryDto(MemberTag Tag, string? Emoji);
 public record EmojiSettingsDto(List<RoleEmojiEntryDto> Roles, List<TagEmojiEntryDto> Tags);
 
-// Accounts 
 
-// LastLoginAt/LastLoginIp 
+
+
+
 public record AccountSummaryDto(string Username, UserRole Role, string? SquadId, string? DiscordUsername, DateTimeOffset? LastLoginAt = null, string? LastLoginIp = null);
 
 public record UpsertAccountDto(string Username, UserRole Role, string? SquadId, string? Password);
@@ -265,10 +285,14 @@ public record ChangePasswordDto(string OldPassword, string NewPassword);
 public record DiscordConfigDto(string ClientId, string RedirectUri);
 public record MyAccountDto(string Username, UserRole Role, string? SquadId, bool DiscordLinked, string? DiscordUsername);
 
-// Discord self-service login/registration 
+
+
+
 
 public record DiscordLoginStartDto(string State);
 public record DiscordRegisterDto(string PendingToken, string Nickname);
 
-// logs
+
+
+
 public record LogFileSummaryDto(string FileName, DateTimeOffset SavedAt);

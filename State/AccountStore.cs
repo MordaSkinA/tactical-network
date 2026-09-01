@@ -11,7 +11,9 @@ public interface IAccountStore
     UserAccount? Find(string username);
     IReadOnlyList<UserAccount> All();
     void Upsert(string username, UserRole role, string? squadId, string? plainPassword);
-    // Reassigns role/squad 
+
+
+
     void AssignRoleAndSquad(string username, UserRole role, string? squadId);
     void Rename(string oldUsername, string newUsername);
     void Delete(string username);

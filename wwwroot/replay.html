@@ -12,7 +12,10 @@
 <style>
   body { background: var(--bg, #0a0a0b); color: var(--text, #eee); font-family: 'Inter', system-ui, sans-serif; }
 
-  /* ---------------- Ambient backdrop ---------------- */
+
+
+
+
 
   #rp-backdrop {
     position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
@@ -46,7 +49,10 @@
 
   #app-content, #app-sidebar { position: relative; z-index: 1; }
 
-  /* ---------------- Header ---------------- */
+
+
+
+
 
   .rp-title-wrap { position: relative; display: inline-block; }
   .page-title.rp-title {
@@ -86,7 +92,10 @@
   .rp-stat-pill .rp-stat-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
   .rp-stat-pill b { color: var(--text); font-weight: 800; }
 
-  /* ---------------- Layout ---------------- */
+
+
+
+
 
   #layout { display: flex; gap: 22px; margin-top: 22px; align-items: flex-start; }
 
@@ -149,7 +158,10 @@
 
   .hint { color: var(--text-faint); font-size: 13px; padding: 10px 2px; }
 
-  /* ---------------- Skeleton loaders ---------------- */
+
+
+
+
 
   .rp-skel {
     border-radius: var(--radius-md); background: linear-gradient(100deg, var(--surface) 30%, var(--surface-2) 50%, var(--surface) 70%);
@@ -160,7 +172,10 @@
   .rp-skel-item { height: 64px; margin-bottom: 10px; }
   @keyframes rpShimmer { to { background-position: -220% 0; } }
 
-  /* ---------------- Panel ---------------- */
+
+
+
+
 
   #replay-panel { flex: 1; min-width: 0; }
 
@@ -223,7 +238,10 @@
   }
   .meta::before { content: '›'; color: var(--accent-dim); font-weight: 900; }
 
-  /* ---------------- Empty / feed fade transition ---------------- */
+
+
+
+
 
   #feed.rp-fading { animation: rpFeedOut 0.15s ease forwards; }
   @keyframes rpFeedOut { to { opacity: 0; transform: translateY(4px); } }

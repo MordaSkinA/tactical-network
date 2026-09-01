@@ -94,42 +94,44 @@
                 transform: scale(0.97);
             }
 
-        /* Danger / enemies - red */
+
+
+
         .enemy {
             background: #b23b3b;
         }
 
-        /* Critical event (squad wiped) - dark maroon */
+
         .critical {
             background: #6e1c1c;
         }
 
-        /* Attack / push - orange and terracotta */
+
         .attack {
             background: #c1622b;
         }
 
-        /* Key aggressive actions (bomb, boss) - bright orange */
+
         .attack-key {
             background: #e8790f;
         }
 
-        /* Defending positions - muted green */
+
         .defend {
             background: #4c7a4f;
         }
 
-        /* Holding a position - dark green */
+
         .hold {
             background: #2e5230;
         }
 
-        /* Protecting a target - light mint */
+
         .protect {
             background: #4fae82;
         }
 
-        /* Maneuvers / tactics - blue and cyan */
+
         .tactic {
             background: #7c6cf0;
         }
@@ -138,12 +140,12 @@
             background: #4a90c4;
         }
 
-        /* Neutral map zones - dark blue */
+
         .jungle {
             background: #1e3a5f;
         }
 
-        /* Autonomous / no active status - neutral grey */
+
         .neutral {
             background: #565f6b;
         }
@@ -440,7 +442,10 @@
             #order-banner, #status-banner { padding: 14px; }
         }
 
-        /* Goal order — issue panel (leader) */
+
+
+
+
         #leader-goal-panel {
             margin: 16px 0 20px;
             background: #161616;
@@ -587,7 +592,10 @@
                 padding: 0;
             }
 
-        /* HUD  mode  /js/overlay-hud.js  hover/edit-mode logic */
+
+
+
+
 
         #hud-controls { display: none; }
 
@@ -693,7 +701,10 @@
             body.tacnet-hud #leader-goal-panel .gop-subtitle { display: none; }
             body.tacnet-hud #leader-goal-panel .gop-filters { gap: 10px 14px; margin: 10px 0 2px; }
 
-        /* Edit-layout mode */
+
+
+
+
         body.tacnet-hud.tacnet-edit-mode .tacnet-widget {
             outline: 2px dashed rgba(155, 143, 245, 0.85);
             outline-offset: 3px;
@@ -959,7 +970,10 @@
             }
         }
 
-        // Status revert
+
+
+
+
         const STATUS_HOLD_MS = 25000;
         let squadStatusTimer = null;
 
@@ -1142,7 +1156,10 @@
             el.textContent = new Date().toLocaleTimeString() + "  " + msg + "\n" + el.textContent;
         }
 
-        //Overlay  hooks 
+
+
+
+
 
         TacnetHud.init({
             hoverSelectors: [
