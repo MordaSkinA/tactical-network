@@ -73,6 +73,15 @@ builder.Services.AddCors(options => {
 
 var app = builder.Build();
 
+
+app.Run(async context =>
+{
+    context.Response.StatusCode = 200;
+    context.Response.ContentType = "text/html; charset=utf-8";
+    await context.Response.WriteAsync(SunsetNoticePage.GetHtml(builder.Environment.ContentRootPath));
+});
+
+
 static string DiscordResultPage(bool success, string message)
 {
     var color = success ? "#4caf50" : "#e33";
