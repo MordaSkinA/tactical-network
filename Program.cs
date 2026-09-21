@@ -25,7 +25,8 @@ builder.Services.ConfigureHttpJsonOptions(options => {
 });
 
 builder.Services.AddSingleton<IBattleState, InMemoryBattleState>();
-builder.Services.AddSingleton<IAccountStore, FileAccountStore>();
+builder.Services.AddSingleton<GvGPoc.Data.IDbConnectionFactory, GvGPoc.Data.NpgsqlConnectionFactory>();
+builder.Services.AddSingleton<IAccountStore, PostgresAccountStore>();
 
 
 static byte[] GetOrCreateSessionSigningKey(IConfiguration config, string contentRootPath)
@@ -72,6 +73,8 @@ builder.Services.AddCors(options => {
 });
 
 var app = builder.Build();
+
+app.Services.GetRequiredService<IAccountStore>();
 
 static string DiscordResultPage(bool success, string message)
 {
