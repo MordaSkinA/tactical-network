@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+    <PackageReference Include="Dapper" Version="2.1.35" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Tacnet.Tests/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- tools/MigrateAccountsToPostgres — отдельный консольный проект со своим Program.cs
+         (top-level statements). Без этого исключения основной Tacnet.csproj тоже подхватывает
+         его файлы при сборке (SDK-проекты по умолчанию берут все *.cs рекурсивно из подпапок),
+         и получаем CS8802 — два файла с top-level statements в одной сборке. -->
+    <Compile Remove="tools/**/*.cs" />
+  </ItemGroup>
+
+</Project>

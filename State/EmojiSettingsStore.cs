@@ -8,7 +8,7 @@ namespace GvGPoc.State;
 public interface IEmojiSettingsStore
 {
     EmojiSettingsDto Get();
-    EmojiSettingsDto Update(EmojiSettingsDto dto);
+    Task<EmojiSettingsDto> UpdateAsync(EmojiSettingsDto dto);
     string RoleEmoji(MemberRole role);
     string TagEmoji(MemberTag tag);
 }
@@ -19,7 +19,7 @@ public interface IEmojiSettingsStore
 public class FileEmojiSettingsStore : IEmojiSettingsStore
 {
     private readonly string _filePath;
-    private readonly object _fileLock = new();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private Dictionary<MemberRole, string> _roleEmoji;
     private Dictionary<MemberTag, string> _tagEmoji;
 
@@ -77,19 +77,21 @@ public class FileEmojiSettingsStore : IEmojiSettingsStore
         }
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_fileLock)
+        await _semaphore.WaitAsync();
+        try
         {
-            try
-            {
-                var dto = Get();
-                var json = JsonSerializer.Serialize(dto, Options);
-                File.WriteAllText(_filePath, json);
-            }
-            catch
-            {
-            }
+            var dto = Get();
+            var json = JsonSerializer.Serialize(dto, Options);
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
@@ -98,14 +100,28 @@ public class FileEmojiSettingsStore : IEmojiSettingsStore
         Enum.GetValues<MemberTag>().Select(t => new TagEmojiEntryDto(t, _tagEmoji.TryGetValue(t, out var e) ? e : DefaultTagEmoji[t])).ToList()
     );
 
-    public EmojiSettingsDto Update(EmojiSettingsDto dto)
+    public async Task<EmojiSettingsDto> UpdateAsync(EmojiSettingsDto dto)
     {
-        foreach (var r in dto.Roles)
-            _roleEmoji[r.Role] = string.IsNullOrWhiteSpace(r.Emoji) ? DefaultRoleEmoji[r.Role] : r.Emoji.Trim();
-        foreach (var t in dto.Tags)
-            _tagEmoji[t.Tag] = string.IsNullOrWhiteSpace(t.Emoji) ? DefaultTagEmoji[t.Tag] : t.Emoji.Trim();
-        Save();
-        return Get();
+        await _semaphore.WaitAsync();
+        try
+        {
+            foreach (var r in dto.Roles)
+                _roleEmoji[r.Role] = string.IsNullOrWhiteSpace(r.Emoji) ? DefaultRoleEmoji[r.Role] : r.Emoji.Trim();
+            foreach (var t in dto.Tags)
+                _tagEmoji[t.Tag] = string.IsNullOrWhiteSpace(t.Emoji) ? DefaultTagEmoji[t.Tag] : t.Emoji.Trim();
+
+            var json = JsonSerializer.Serialize(Get(), Options);
+            await File.WriteAllTextAsync(_filePath, json);
+            return Get();
+        }
+        catch
+        {
+            return Get();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public string RoleEmoji(MemberRole role) => _roleEmoji.TryGetValue(role, out var e) ? e : DefaultRoleEmoji[role];

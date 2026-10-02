@@ -9,15 +9,15 @@ public interface IGoalOrderMacroStore
 {
     IReadOnlyList<GoalOrderMacroDto> All();
     GoalOrderMacroDto? Find(string id);
-    GoalOrderMacroDto Upsert(string? id, string name, string text, GoalOrderTargetDto? target, int? timerSeconds, BattlePhase? phase);
-    void Delete(string id);
+    Task<GoalOrderMacroDto> UpsertAsync(string? id, string name, string text, GoalOrderTargetDto? target, int? timerSeconds, BattlePhase? phase);
+    Task DeleteAsync(string id);
 }
 
 
 public class FileGoalOrderMacroStore : IGoalOrderMacroStore
 {
     private readonly string _filePath;
-    private readonly object _fileLock = new();
+    private readonly SemaphoreSlim _fileLock = new(1, 1);
     private List<GoalOrderMacroDto> _macros;
 
     private static readonly JsonSerializerOptions Options = new()
@@ -46,18 +46,20 @@ public class FileGoalOrderMacroStore : IGoalOrderMacroStore
         }
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_fileLock)
+        await _fileLock.WaitAsync();
+        try
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_macros, Options);
-                File.WriteAllText(_filePath, json);
-            }
-            catch
-            {
-            }
+            var json = JsonSerializer.Serialize(_macros, Options);
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _fileLock.Release();
         }
     }
 
@@ -65,7 +67,7 @@ public class FileGoalOrderMacroStore : IGoalOrderMacroStore
 
     public GoalOrderMacroDto? Find(string id) => _macros.FirstOrDefault(m => m.Id == id);
 
-    public GoalOrderMacroDto Upsert(string? id, string name, string text, GoalOrderTargetDto? target, int? timerSeconds, BattlePhase? phase)
+    public async Task<GoalOrderMacroDto> UpsertAsync(string? id, string name, string text, GoalOrderTargetDto? target, int? timerSeconds, BattlePhase? phase)
     {
         var macro = new GoalOrderMacroDto(
             string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString() : id,
@@ -76,13 +78,13 @@ public class FileGoalOrderMacroStore : IGoalOrderMacroStore
             phase
         );
         _macros = _macros.Where(m => m.Id != macro.Id).Append(macro).ToList();
-        Save();
+        await SaveAsync();
         return macro;
     }
 
-    public void Delete(string id)
+    public async Task DeleteAsync(string id)
     {
         _macros = _macros.Where(m => m.Id != id).ToList();
-        Save();
+        await SaveAsync();
     }
 }

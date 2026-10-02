@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tacnet
+      POSTGRES_USER: tacnet
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tacnet -d tacnet"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Tacnet: "Host=db;Database=tacnet;Username=tacnet;Password=${POSTGRES_PASSWORD}"
+      AdminSeedPassword: ${ADMIN_SEED_PASSWORD:?set ADMIN_SEED_PASSWORD in .env}
+      SessionSigningKey: ${SESSION_SIGNING_KEY:?set SESSION_SIGNING_KEY in .env}
+      DiscordClientSecret: ${DISCORD_CLIENT_SECRET:-}
+    ports:
+      - "8080:8080"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus:/etc/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - tacnet-net
+
+volumes:
+  pgdata:
+
+networks:
+  tacnet-net:
+    driver: bridge

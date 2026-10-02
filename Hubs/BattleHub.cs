@@ -168,21 +168,20 @@ public class BattleHub : Hub
         return Task.FromResult(_macros.All().OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
     }
 
-    public Task<OrderMacroDto> UpsertOrderMacro(UpsertOrderMacroDto dto)
+    public async Task<OrderMacroDto> UpsertOrderMacro(UpsertOrderMacroDto dto)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Name))
             throw new HubException("Give the macro a name.");
 
-        var macro = _macros.Upsert(dto.Id, dto.Name.Trim(), dto.Type, dto.SquadIds);
-        return Task.FromResult(macro);
+        var macro = await _macros.UpsertAsync(dto.Id, dto.Name.Trim(), dto.Type, dto.SquadIds);
+        return macro;
     }
 
-    public Task DeleteOrderMacro(string id)
+    public async Task DeleteOrderMacro(string id)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
-        _macros.Delete(id);
-        return Task.CompletedTask;
+        await _macros.DeleteAsync(id);
     }
 
     public async Task ExecuteOrderMacro(string id)
@@ -291,23 +290,22 @@ public class BattleHub : Hub
         return Task.FromResult(_goalMacros.All().OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
     }
 
-    public Task<GoalOrderMacroDto> UpsertGoalOrderMacro(UpsertGoalOrderMacroDto dto)
+    public async Task<GoalOrderMacroDto> UpsertGoalOrderMacro(UpsertGoalOrderMacroDto dto)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Name))
-            throw new HubException("Give the macro a name.");
+            throw new HubException("Give the macro some order text.");
         if (string.IsNullOrWhiteSpace(dto.Text))
             throw new HubException("Give the macro some order text.");
 
-        var macro = _goalMacros.Upsert(dto.Id, dto.Name.Trim(), dto.Text.Trim(), dto.Target, dto.TimerSeconds, dto.Phase);
-        return Task.FromResult(macro);
+        var macro = await _goalMacros.UpsertAsync(dto.Id, dto.Name.Trim(), dto.Text.Trim(), dto.Target, dto.TimerSeconds, dto.Phase);
+        return macro;
     }
 
-    public Task DeleteGoalOrderMacro(string id)
+    public async Task DeleteGoalOrderMacro(string id)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
-        _goalMacros.Delete(id);
-        return Task.CompletedTask;
+        await _goalMacros.DeleteAsync(id);
     }
 
     public async Task ExecuteGoalOrderMacro(string id)
@@ -358,8 +356,8 @@ public class BattleHub : Hub
     public async Task UpdateRoster(UpdateRosterDto dto)
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
-        _state.SetRoster(dto.Squads);
-        _presets.SaveMany(dto.Squads.SelectMany(s => s.Members));
+        await _state.SetRosterAsync(dto.Squads);
+        await _presets.SaveManyAsync(dto.Squads.SelectMany(s => s.Members));
         await SyncAccountSquadsWithRoster(dto.Squads);
         await Clients.All.SendAsync("RosterUpdated", dto.Squads);
     }
@@ -394,7 +392,7 @@ public class BattleHub : Hub
             if (string.Equals(oldSquadId, newSquadId, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            _accounts.Upsert(account.Username, account.Role, newSquadId, null);
+            await _accounts.UpsertAsync(account.Username, account.Role, newSquadId, null);
 
 
 
@@ -427,7 +425,7 @@ public class BattleHub : Hub
         return Task.FromResult(list);
     }
 
-    public Task<DiscordChannelDto> UpsertDiscordChannel(UpsertDiscordChannelDto dto)
+    public async Task<DiscordChannelDto> UpsertDiscordChannel(UpsertDiscordChannelDto dto)
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Name))
@@ -435,15 +433,14 @@ public class BattleHub : Hub
         if (string.IsNullOrWhiteSpace(dto.WebhookUrl) || !dto.WebhookUrl.StartsWith("https://discord.com/api/webhooks/", StringComparison.OrdinalIgnoreCase))
             throw new HubException("That doesn't look like a valid Discord webhook URL.");
 
-        var channel = _discordChannels.Upsert(dto.Id, dto.Name.Trim(), dto.WebhookUrl.Trim());
-        return Task.FromResult(channel);
+        var channel = await _discordChannels.UpsertAsync(dto.Id, dto.Name.Trim(), dto.WebhookUrl.Trim());
+        return channel;
     }
 
-    public Task DeleteDiscordChannel(string id)
+    public async Task DeleteDiscordChannel(string id)
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
-        _discordChannels.Delete(id);
-        return Task.CompletedTask;
+        await _discordChannels.DeleteAsync(id);
     }
 
 
@@ -589,10 +586,10 @@ public class BattleHub : Hub
         return Task.FromResult(_emojiSettings.Get());
     }
 
-    public Task<EmojiSettingsDto> UpdateEmojiSettings(EmojiSettingsDto dto)
+    public async Task<EmojiSettingsDto> UpdateEmojiSettings(EmojiSettingsDto dto)
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
-        return Task.FromResult(_emojiSettings.Update(dto));
+        return await _emojiSettings.UpdateAsync(dto);
     }
 
     public async Task StartBattle()
@@ -615,10 +612,10 @@ public class BattleHub : Hub
         await Clients.All.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
     }
 
-    public Task<string> SaveLogSnapshot()
+    public async Task<string> SaveLogSnapshot()
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
-        return Task.FromResult(_state.SaveLogSnapshot());
+        return await _state.SaveLogSnapshotAsync();
     }
 
     public Task<IReadOnlyList<LogFileSummaryDto>> ListLogFiles()
@@ -627,18 +624,18 @@ public class BattleHub : Hub
         return Task.FromResult(_state.ListLogFiles());
     }
 
-    public Task<string> GetLogFile(string fileName)
+    public async Task<string> GetLogFile(string fileName)
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
-        var content = _state.ReadLogFile(fileName);
+        var content = await _state.ReadLogFileAsync(fileName);
         if (content is null) throw new HubException("Log file not found.");
-        return Task.FromResult(content);
+        return content;
     }
 
     public async Task<bool> DeleteLogFile(string fileName)
     {
         RequireRole(UserRole.Admin, UserRole.Developer);
-        var deleted = _state.DeleteLogFile(fileName);
+        var deleted = await _state.DeleteLogFileAsync(fileName);
         if (deleted)
         {
             await Clients.All.SendAsync("LogFileDeleted", fileName);
@@ -663,18 +660,17 @@ public class BattleHub : Hub
     }
 
 
-    public Task UpsertAccount(UpsertAccountDto dto)
+    public async Task UpsertAccount(UpsertAccountDto dto)
     {
         RequireRole(UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Username))
             throw new HubException("Username is required.");
 
-        _accounts.Upsert(dto.Username.Trim(), dto.Role, dto.SquadId, dto.Password);
-        return Task.CompletedTask;
+        await _accounts.UpsertAsync(dto.Username.Trim(), dto.Role, dto.SquadId, dto.Password);
     }
 
 
-    public Task AssignAccountRole(AssignAccountRoleDto dto)
+    public async Task AssignAccountRole(AssignAccountRoleDto dto)
     {
         var session = RequireRole(UserRole.Admin, UserRole.Developer);
         if (string.IsNullOrWhiteSpace(dto.Username))
@@ -690,13 +686,12 @@ public class BattleHub : Hub
         if (session.Role == UserRole.Admin && dto.Role is UserRole.Admin or UserRole.Developer)
             throw new HubException("Only a Developer can grant Admin or Developer access.");
 
-        _accounts.AssignRoleAndSquad(dto.Username.Trim(), dto.Role, dto.SquadId);
-        return Task.CompletedTask;
+        await _accounts.AssignRoleAndSquadAsync(dto.Username.Trim(), dto.Role, dto.SquadId);
     }
 
 
 
-    public Task<BulkAccountResultDto> BulkAssignAccountRole(BulkAssignAccountRoleDto dto)
+    public async Task<BulkAccountResultDto> BulkAssignAccountRole(BulkAssignAccountRoleDto dto)
     {
         var session = RequireRole(UserRole.Admin, UserRole.Developer);
         var succeeded = new List<string>();
@@ -717,7 +712,7 @@ public class BattleHub : Hub
                 if (session.Role == UserRole.Admin && item.Role is UserRole.Admin or UserRole.Developer)
                     throw new HubException("Only a Developer can grant Admin or Developer access.");
 
-                _accounts.AssignRoleAndSquad(username, item.Role, item.SquadId);
+                await _accounts.AssignRoleAndSquadAsync(username, item.Role, item.SquadId);
                 succeeded.Add(username);
             }
             catch (Exception ex)
@@ -725,10 +720,10 @@ public class BattleHub : Hub
                 failed.Add(new BulkAccountErrorDto(string.IsNullOrWhiteSpace(username) ? "(blank)" : username, ex.Message));
             }
         }
-        return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
+        return new BulkAccountResultDto(succeeded, failed);
     }
 
-    public Task<BulkAccountResultDto> BulkDeleteAccounts(BulkDeleteAccountsDto dto)
+    public async Task<BulkAccountResultDto> BulkDeleteAccounts(BulkDeleteAccountsDto dto)
     {
         RequireRole(UserRole.Developer);
         var succeeded = new List<string>();
@@ -746,7 +741,7 @@ public class BattleHub : Hub
                 if (_accounts.Find(username) is null)
                     throw new HubException("Account not found.");
 
-                _accounts.Delete(username);
+                await _accounts.DeleteAsync(username);
                 succeeded.Add(username);
             }
             catch (Exception ex)
@@ -754,11 +749,11 @@ public class BattleHub : Hub
                 failed.Add(new BulkAccountErrorDto(string.IsNullOrWhiteSpace(username) ? "(blank)" : username, ex.Message));
             }
         }
-        return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
+        return new BulkAccountResultDto(succeeded, failed);
     }
 
 
-    public Task<BulkAccountResultDto> BulkCreateAccounts(BulkCreateAccountsDto dto)
+    public async Task<BulkAccountResultDto> BulkCreateAccounts(BulkCreateAccountsDto dto)
     {
         RequireRole(UserRole.Developer);
         var succeeded = new List<string>();
@@ -774,7 +769,7 @@ public class BattleHub : Hub
                 if (string.IsNullOrWhiteSpace(item.Password) || item.Password.Length < 4)
                     throw new HubException("Password is too short.");
 
-                _accounts.Upsert(username, item.Role, item.SquadId, item.Password);
+                await _accounts.UpsertAsync(username, item.Role, item.SquadId, item.Password);
                 succeeded.Add(username);
             }
             catch (Exception ex)
@@ -782,7 +777,7 @@ public class BattleHub : Hub
                 failed.Add(new BulkAccountErrorDto(string.IsNullOrWhiteSpace(username) ? "(blank)" : username, ex.Message));
             }
         }
-        return Task.FromResult(new BulkAccountResultDto(succeeded, failed));
+        return new BulkAccountResultDto(succeeded, failed);
     }
 
     public Task<MyAccountDto> GetMyAccount()
@@ -798,7 +793,7 @@ public class BattleHub : Hub
         ));
     }
 
-    public Task ChangePassword(ChangePasswordDto dto)
+    public async Task ChangePassword(ChangePasswordDto dto)
     {
         var session = RequireAuthenticated();
         var account = _accounts.Find(session.Username);
@@ -808,11 +803,10 @@ public class BattleHub : Hub
         if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 4)
             throw new HubException("New password is too short.");
 
-        _accounts.Upsert(account.Username, account.Role, account.SquadId, dto.NewPassword);
-        return Task.CompletedTask;
+        await _accounts.UpsertAsync(account.Username, account.Role, account.SquadId, dto.NewPassword);
     }
 
-    public Task RenameAccount(RenameAccountDto dto)
+    public async Task RenameAccount(RenameAccountDto dto)
     {
         RequireRole(UserRole.Developer);
         var oldUsername = (dto.OldUsername ?? "").Trim();
@@ -825,14 +819,12 @@ public class BattleHub : Hub
 
         try
         {
-            _accounts.Rename(oldUsername, newUsername);
+            await _accounts.RenameAsync(oldUsername, newUsername);
         }
         catch (InvalidOperationException ex)
         {
             throw new HubException(ex.Message);
         }
-
-        return Task.CompletedTask;
     }
 
 
@@ -841,13 +833,12 @@ public class BattleHub : Hub
 
     private static readonly HashSet<string> ProtectedAccounts = new(StringComparer.OrdinalIgnoreCase) { "morda", "admin" };
 
-    public Task DeleteAccount(string username)
+    public async Task DeleteAccount(string? username)
     {
         RequireRole(UserRole.Developer);
-        if (ProtectedAccounts.Contains(username?.Trim() ?? string.Empty))
-            throw new HubException("This account is protected and cannot be deleted.");
-        _accounts.Delete(username);
-        return Task.CompletedTask;
+        if (string.IsNullOrWhiteSpace(username) || ProtectedAccounts.Contains(username.Trim()))
+            throw new HubException("This account is protected or invalid.");
+        await _accounts.DeleteAsync(username.Trim());
     }
 
     private SessionInfo RequireRole(params UserRole[] allowedRoles)

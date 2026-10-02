@@ -23,22 +23,22 @@ public class PostgresAccountStore : IAccountStore
     public PostgresAccountStore(IDbConnectionFactory db, IConfiguration config)
     {
         _db = db;
-        EnsureSeedAdmin(config);
+        Task.Run(() => EnsureSeedAdminAsync(config)).GetAwaiter().GetResult();
     }
 
 
-    private void EnsureSeedAdmin(IConfiguration config)
+    private async Task EnsureSeedAdminAsync(IConfiguration config)
     {
         if (All().Count > 0) return;
 
         var seedLogin = config["AdminSeedLogin"] ?? "admin";
         var seedPassword = config["AdminSeedPassword"] ?? "changeme";
-        Upsert(seedLogin, UserRole.Admin, null, seedPassword);
+        await UpsertAsync(seedLogin, UserRole.Admin, null, seedPassword);
 
         var devLogin = config["DeveloperSeedLogin"];
         var devPassword = config["DeveloperSeedPassword"];
         if (!string.IsNullOrWhiteSpace(devLogin) && !string.IsNullOrWhiteSpace(devPassword))
-            Upsert(devLogin, UserRole.Developer, null, devPassword);
+            await UpsertAsync(devLogin, UserRole.Developer, null, devPassword);
     }
 
     private static UserAccount Map(UserRow row) => new()
@@ -78,7 +78,7 @@ public class PostgresAccountStore : IAccountStore
         return rows.Select(Map).ToList();
     }
 
-    public void Upsert(string username, UserRole role, string? squadId, string? plainPassword)
+    public async Task UpsertAsync(string username, UserRole role, string? squadId, string? plainPassword)
     {
         var existing = Find(username);
         string passwordHash;
@@ -105,7 +105,7 @@ public class PostgresAccountStore : IAccountStore
 
         if (existing is null)
         {
-            conn.Execute(
+            await conn.ExecuteAsync(
                 """
                 INSERT INTO users (username, password_hash, password_salt, role, squad_id)
                 VALUES (@username, @passwordHash, @salt, @role, @squadId)
@@ -115,7 +115,7 @@ public class PostgresAccountStore : IAccountStore
         else
         {
 
-            conn.Execute(
+            await conn.ExecuteAsync(
                 """
                 UPDATE users
                 SET password_hash = @passwordHash, password_salt = @salt,
@@ -126,16 +126,16 @@ public class PostgresAccountStore : IAccountStore
         }
     }
 
-    public void AssignRoleAndSquad(string username, UserRole role, string? squadId)
+    public async Task AssignRoleAndSquadAsync(string username, UserRole role, string? squadId)
     {
         var existing = Find(username) ?? throw new InvalidOperationException("Account not found.");
         using var conn = _db.Create();
-        conn.Execute(
+        await conn.ExecuteAsync(
             "UPDATE users SET role = @role, squad_id = @squadId WHERE id = @id",
             new { id = Guid.Parse(existing.Id), role = role.ToString(), squadId });
     }
 
-    public void Rename(string oldUsername, string newUsername)
+    public async Task RenameAsync(string oldUsername, string newUsername)
     {
         var existing = Find(oldUsername) ?? throw new InvalidOperationException("Account not found.");
 
@@ -146,23 +146,23 @@ public class PostgresAccountStore : IAccountStore
             throw new InvalidOperationException("That username is already taken.");
 
         using var conn = _db.Create();
-        conn.Execute(
+        await conn.ExecuteAsync(
             "UPDATE users SET username = @newUsername WHERE id = @id",
             new { id = Guid.Parse(existing.Id), newUsername });
     }
 
-    public void RecordLogin(string username, string ip)
+    public async Task RecordLoginAsync(string username, string ip)
     {
         using var conn = _db.Create();
-        conn.Execute(
+        await conn.ExecuteAsync(
             "UPDATE users SET last_login_at = @now, last_login_ip = @ip WHERE lower(username) = lower(@username)",
             new { now = DateTimeOffset.UtcNow, ip, username });
     }
 
-    public void Delete(string username)
+    public async Task DeleteAsync(string username)
     {
         using var conn = _db.Create();
-        conn.Execute("DELETE FROM users WHERE lower(username) = lower(@username)", new { username });
+        await conn.ExecuteAsync("DELETE FROM users WHERE lower(username) = lower(@username)", new { username });
     }
 
     public bool VerifyPassword(UserAccount account, string plainPassword)
@@ -181,11 +181,11 @@ public class PostgresAccountStore : IAccountStore
         return row is null ? null : Map(row);
     }
 
-    public void LinkDiscord(string username, string discordId, string discordUsername)
+    public async Task LinkDiscordAsync(string username, string discordId, string discordUsername)
     {
         var existing = Find(username) ?? throw new InvalidOperationException("Account not found.");
         using var conn = _db.Create();
-        conn.Execute(
+        await conn.ExecuteAsync(
             "UPDATE users SET discord_id = @discordId, discord_username = @discordUsername WHERE id = @id",
             new { id = Guid.Parse(existing.Id), discordId, discordUsername });
     }

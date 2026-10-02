@@ -9,8 +9,8 @@ public interface IMemberPresetStore
 {
     MemberPresetDto? Find(string nickname);
     IReadOnlyDictionary<string, MemberPresetDto> All();
-    void Save(SquadMemberDto member);
-    void SaveMany(IEnumerable<SquadMemberDto> members);
+    Task SaveAsync(SquadMemberDto member);
+    Task SaveManyAsync(IEnumerable<SquadMemberDto> members);
 }
 
 
@@ -19,7 +19,7 @@ public interface IMemberPresetStore
 public class FileMemberPresetStore : IMemberPresetStore
 {
     private readonly string _filePath;
-    private readonly object _fileLock = new();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private Dictionary<string, MemberPresetDto> _presets;
 
     private static readonly JsonSerializerOptions Options = new() {
@@ -48,18 +48,20 @@ public class FileMemberPresetStore : IMemberPresetStore
         }
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_fileLock)
+        await _semaphore.WaitAsync();
+        try
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_presets.Values.ToList(), Options);
-                File.WriteAllText(_filePath, json);
-            }
-            catch
-            {
-            }
+            var json = JsonSerializer.Serialize(_presets.Values.ToList(), Options);
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
@@ -68,16 +70,40 @@ public class FileMemberPresetStore : IMemberPresetStore
 
     public IReadOnlyDictionary<string, MemberPresetDto> All() => _presets;
 
-    public void Save(SquadMemberDto member)
+    public async Task SaveAsync(SquadMemberDto member)
     {
-        _presets[member.Nickname] = new MemberPresetDto(member.Nickname, member.Role, member.Bulwark, member.Build);
-        Save();
+        await _semaphore.WaitAsync();
+        try
+        {
+            _presets[member.Nickname] = new MemberPresetDto(member.Nickname, member.Role, member.Bulwark, member.Build);
+            var json = JsonSerializer.Serialize(_presets.Values.ToList(), Options);
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
-    public void SaveMany(IEnumerable<SquadMemberDto> members)
+    public async Task SaveManyAsync(IEnumerable<SquadMemberDto> members)
     {
-        foreach (var m in members)
-            _presets[m.Nickname] = new MemberPresetDto(m.Nickname, m.Role, m.Bulwark, m.Build);
-        Save();
+        await _semaphore.WaitAsync();
+        try
+        {
+            foreach (var m in members)
+                _presets[m.Nickname] = new MemberPresetDto(m.Nickname, m.Role, m.Bulwark, m.Build);
+            var json = JsonSerializer.Serialize(_presets.Values.ToList(), Options);
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 }

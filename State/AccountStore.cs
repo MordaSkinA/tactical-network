@@ -10,25 +10,20 @@ public interface IAccountStore
 {
     UserAccount? Find(string username);
     IReadOnlyList<UserAccount> All();
-    void Upsert(string username, UserRole role, string? squadId, string? plainPassword);
-
-
-
-    void AssignRoleAndSquad(string username, UserRole role, string? squadId);
-    void Rename(string oldUsername, string newUsername);
-    void Delete(string username);
+    Task UpsertAsync(string username, UserRole role, string? squadId, string? plainPassword);
+    Task AssignRoleAndSquadAsync(string username, UserRole role, string? squadId);
+    Task RenameAsync(string oldUsername, string newUsername);
+    Task DeleteAsync(string username);
     bool VerifyPassword(UserAccount account, string plainPassword);
     UserAccount? FindByDiscordId(string discordId);
-    void LinkDiscord(string username, string discordId, string discordUsername);
-    void RecordLogin(string username, string ip);
-
+    Task LinkDiscordAsync(string username, string discordId, string discordUsername);
+    Task RecordLoginAsync(string username, string ip);
 }
-
 
 public class FileAccountStore : IAccountStore
 {
     private readonly string _filePath;
-    private readonly object _fileLock = new();
+    private readonly SemaphoreSlim _fileLock = new(1, 1);
     private List<UserAccount> _accounts;
 
     private const int Pbkdf2Iterations = 100_000;
@@ -40,18 +35,16 @@ public class FileAccountStore : IAccountStore
         _filePath = Path.Combine(env.ContentRootPath, "accounts.json");
         _accounts = Load();
 
-
         if (_accounts.Count == 0)
         {
             var seedLogin = config["AdminSeedLogin"] ?? "admin";
             var seedPassword = config["AdminSeedPassword"] ?? "changeme";
-            Upsert(seedLogin, UserRole.Admin, null, seedPassword);
+            UpsertAsync(seedLogin, UserRole.Admin, null, seedPassword).GetAwaiter().GetResult();
 
- 
             var devLogin = config["DeveloperSeedLogin"];
             var devPassword = config["DeveloperSeedPassword"];
             if (!string.IsNullOrWhiteSpace(devLogin) && !string.IsNullOrWhiteSpace(devPassword))
-                Upsert(devLogin, UserRole.Developer, null, devPassword);
+                UpsertAsync(devLogin, UserRole.Developer, null, devPassword).GetAwaiter().GetResult();
         }
     }
 
@@ -69,12 +62,17 @@ public class FileAccountStore : IAccountStore
         }
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_fileLock)
+        await _fileLock.WaitAsync();
+        try
         {
             var json = JsonSerializer.Serialize(_accounts, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(_filePath, json);
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        finally
+        {
+            _fileLock.Release();
         }
     }
 
@@ -83,7 +81,7 @@ public class FileAccountStore : IAccountStore
 
     public IReadOnlyList<UserAccount> All() => _accounts;
 
-    public void Upsert(string username, UserRole role, string? squadId, string? plainPassword)
+    public async Task UpsertAsync(string username, UserRole role, string? squadId, string? plainPassword)
     {
         var existing = Find(username);
         string passwordHash;
@@ -123,10 +121,10 @@ public class FileAccountStore : IAccountStore
             .Where(a => !string.Equals(a.Username, username, StringComparison.OrdinalIgnoreCase))
             .Append(account)
             .ToList();
-        Save();
+        await SaveAsync();
     }
 
-    public void AssignRoleAndSquad(string username, UserRole role, string? squadId)
+    public async Task AssignRoleAndSquadAsync(string username, UserRole role, string? squadId)
     {
         var existing = Find(username) ?? throw new InvalidOperationException("Account not found.");
 
@@ -146,10 +144,10 @@ public class FileAccountStore : IAccountStore
             .Where(a => a.Id != existing.Id)
             .Append(updated)
             .ToList();
-        Save();
+        await SaveAsync();
     }
 
-    public void Rename(string oldUsername, string newUsername)
+    public async Task RenameAsync(string oldUsername, string newUsername)
     {
         var existing = Find(oldUsername) ?? throw new InvalidOperationException("Account not found.");
 
@@ -175,25 +173,25 @@ public class FileAccountStore : IAccountStore
             .Where(a => a.Id != existing.Id)
             .Append(updated)
             .ToList();
-        Save();
+        await SaveAsync();
     }
 
-    public void RecordLogin(string username, string ip)
+    public async Task RecordLoginAsync(string username, string ip)
     {
         var existing = Find(username);
         if (existing is null) return;
 
         existing.LastLoginAt = DateTimeOffset.UtcNow;
         existing.LastLoginIp = ip;
-        Save();
+        await SaveAsync();
     }
 
-    public void Delete(string username)
+    public async Task DeleteAsync(string username)
     {
         _accounts = _accounts
             .Where(a => !string.Equals(a.Username, username, StringComparison.OrdinalIgnoreCase))
             .ToList();
-        Save();
+        await SaveAsync();
     }
 
     public bool VerifyPassword(UserAccount account, string plainPassword)
@@ -206,7 +204,7 @@ public class FileAccountStore : IAccountStore
 
     public UserAccount? FindByDiscordId(string discordId) => _accounts.FirstOrDefault(a => a.DiscordId == discordId);
 
-    public void LinkDiscord(string username, string discordId, string discordUsername)
+    public async Task LinkDiscordAsync(string username, string discordId, string discordUsername)
     {
         var existing = Find(username) ?? throw new InvalidOperationException("Account not found.");
 
@@ -226,6 +224,6 @@ public class FileAccountStore : IAccountStore
             .Where(a => a.Id != existing.Id)
             .Append(updated)
             .ToList();
-        Save();
+        await SaveAsync();
     }
 }

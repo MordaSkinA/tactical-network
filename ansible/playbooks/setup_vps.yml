@@ -1,0 +1,77 @@
+---
+- name: Setup Tactical Network VPS
+  hosts: all
+  become: yes
+  vars:
+    project_root: /opt/tactical-network
+    repo_url: "https://github.com/your-username/tactical-network.git"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install basic dependencies
+      apt:
+        name:
+          - curl
+          - git
+          - ufw
+          - htop
+        state: present
+
+    - name: Configure Firewall (UFW)
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - '22'   # SSH
+        - '80'   # HTTP
+        - '443'  # HTTPS
+
+    - name: Enable Firewall
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Install Docker
+      shell: curl -fsSL https://get.docker.com | sh
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Docker Compose plugin
+      apt:
+        name: docker-compose-plugin
+        state: present
+
+    - name: Create project directory
+      file:
+        path: "{{ project_root }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+
+    - name: Clone repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ project_root }}"
+        version: main
+
+    - name: Create .env file from template
+      template:
+        src: ../templates/env.j2
+        dest: "{{ project_root }}/.env"
+        mode: '0600'
+
+    - name: Deploy application using Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_root }}"
+        state: present
+        pull: always

@@ -83,6 +83,26 @@ mid-fight - these persist to `goal-order-macros.json`
 Note: the older `FallBack`, `Rotate` and `ProtectHealer` team order types have been
 removed - that kind of ad hoc callout is now better served by a goal order instead.
 
+## Architecture & Engineering
+
+### Core Features Implemented:
+
+1. **Real-time Communication**: Using SignalR for low-latency updates across all client roles
+2. **Role-based Access Control**: Distinct views and permissions based on user roles (Player, Leader, Commander, Admin)
+3. **Secure Authentication**: Discord OAuth integration with session token validation
+4. **Database Migration**: From local JSON files to PostgreSQL for data integrity
+5. **Concurrency Handling**: Proper async/await patterns and SemaphoreSlim for thread pool management
+6. **Security Hardening**: XSS prevention, path traversal protection, secure session management
+
+### Technical Highlights:
+
+- **Multi-stage Docker Builds** for optimized production images
+- **Docker Compose** with PostgreSQL and Prometheus/Grafana monitoring
+- **Ansible playbooks** for reproducible infrastructure deployment
+- **Integration Testing** using WebApplicationFactory and Moq
+- **Rate Limiting** to prevent abuse of the system
+- **SignalR Groups** for efficient message routing
+
 ## Releases
 
 Tagged versions so far, oldest to newest:

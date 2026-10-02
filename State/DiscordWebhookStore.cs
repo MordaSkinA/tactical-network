@@ -8,15 +8,15 @@ public interface IDiscordWebhookStore
 {
     IReadOnlyList<DiscordChannelDto> All();
     DiscordChannelDto? Find(string id);
-    DiscordChannelDto Upsert(string? id, string name, string webhookUrl);
-    void Delete(string id);
+    Task<DiscordChannelDto> UpsertAsync(string? id, string name, string webhookUrl);
+    Task DeleteAsync(string id);
 }
 
 
 public class FileDiscordWebhookStore : IDiscordWebhookStore
 {
     private readonly string _filePath;
-    private readonly object _fileLock = new();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
     private List<DiscordChannelDto> _channels;
 
     public FileDiscordWebhookStore(IHostEnvironment env)
@@ -39,18 +39,20 @@ public class FileDiscordWebhookStore : IDiscordWebhookStore
         }
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_fileLock)
+        await _semaphore.WaitAsync();
+        try
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_channels, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, json);
-            }
-            catch
-            {
-            }
+            var json = JsonSerializer.Serialize(_channels, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
@@ -58,7 +60,7 @@ public class FileDiscordWebhookStore : IDiscordWebhookStore
 
     public DiscordChannelDto? Find(string id) => _channels.FirstOrDefault(c => c.Id == id);
 
-    public DiscordChannelDto Upsert(string? id, string name, string webhookUrl)
+    public async Task<DiscordChannelDto> UpsertAsync(string? id, string name, string webhookUrl)
     {
         var channel = new DiscordChannelDto(
             string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString() : id,
@@ -66,13 +68,13 @@ public class FileDiscordWebhookStore : IDiscordWebhookStore
             webhookUrl
         );
         _channels = _channels.Where(c => c.Id != channel.Id).Append(channel).ToList();
-        Save();
+        await SaveAsync();
         return channel;
     }
 
-    public void Delete(string id)
+    public async Task DeleteAsync(string id)
     {
         _channels = _channels.Where(c => c.Id != id).ToList();
-        Save();
+        await SaveAsync();
     }
 }

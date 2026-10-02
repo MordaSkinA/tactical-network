@@ -8,14 +8,14 @@ public interface IOrderMacroStore
 {
     IReadOnlyList<OrderMacroDto> All();
     OrderMacroDto? Find(string id);
-    OrderMacroDto Upsert(string? id, string name, OrderType type, List<string>? squadIds);
-    void Delete(string id);
+    Task<OrderMacroDto> UpsertAsync(string? id, string name, OrderType type, List<string>? squadIds);
+    Task DeleteAsync(string id);
 }
 
 public class FileOrderMacroStore : IOrderMacroStore
 {
     private readonly string _filePath;
-    private readonly object _fileLock = new();
+    private readonly SemaphoreSlim _fileLock = new(1, 1);
     private List<OrderMacroDto> _macros;
 
     public FileOrderMacroStore(IHostEnvironment env)
@@ -38,18 +38,20 @@ public class FileOrderMacroStore : IOrderMacroStore
         }
     }
 
-    private void Save()
+    private async Task SaveAsync()
     {
-        lock (_fileLock)
+        await _fileLock.WaitAsync();
+        try
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(_macros, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, json);
-            }
-            catch
-            {
-            }
+            var json = JsonSerializer.Serialize(_macros, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(_filePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _fileLock.Release();
         }
     }
 
@@ -57,7 +59,7 @@ public class FileOrderMacroStore : IOrderMacroStore
 
     public OrderMacroDto? Find(string id) => _macros.FirstOrDefault(m => m.Id == id);
 
-    public OrderMacroDto Upsert(string? id, string name, OrderType type, List<string>? squadIds)
+    public async Task<OrderMacroDto> UpsertAsync(string? id, string name, OrderType type, List<string>? squadIds)
     {
         var macro = new OrderMacroDto(
             string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString() : id,
@@ -66,13 +68,13 @@ public class FileOrderMacroStore : IOrderMacroStore
             squadIds ?? new()
         );
         _macros = _macros.Where(m => m.Id != macro.Id).Append(macro).ToList();
-        Save();
+        await SaveAsync();
         return macro;
     }
 
-    public void Delete(string id)
+    public async Task DeleteAsync(string id)
     {
         _macros = _macros.Where(m => m.Id != id).ToList();
-        Save();
+        await SaveAsync();
     }
 }

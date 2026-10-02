@@ -17,13 +17,13 @@ public interface IBattleState
     IReadOnlyList<object> GetRecentHistory();
 
     IReadOnlyList<SquadRosterDto> GetRoster();
-    void SetRoster(IReadOnlyList<SquadRosterDto> roster);
+    Task SetRosterAsync(IReadOnlyList<SquadRosterDto> roster);
     IReadOnlyList<LogFileSummaryDto> ListLogFiles();
-    string? ReadLogFile(string fileName);
-    byte[]? ReadLogFileBytes(string fileName);
-    bool DeleteLogFile(string fileName);
+    Task<string?> ReadLogFileAsync(string fileName);
+    Task<byte[]?> ReadLogFileBytesAsync(string fileName);
+    Task<bool> DeleteLogFileAsync(string fileName);
 
-    string SaveLogSnapshot();
+    Task<string> SaveLogSnapshotAsync();
 
     SquadStatusPushDto AddSquadStatus(ReportSquadStatusDto dto, string reporterName, string squadId);
 
@@ -39,13 +39,12 @@ public class InMemoryBattleState : IBattleState
 
     private readonly string _rosterFilePath;
     private readonly string _logsDirectory;
-    private readonly object _rosterFileLock = new();
-    private readonly object _logFileLock = new();
+    private readonly SemaphoreSlim _rosterFileLock = new(1, 1);
+    private readonly SemaphoreSlim _logFileLock = new(1, 1);
     private static readonly JsonSerializerOptions ReadOptions = new() {
         PropertyNameCaseInsensitive = true,
         Converters = { new JsonStringEnumConverter() }
     };
-
     private static readonly JsonSerializerOptions WriteOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() }
@@ -92,6 +91,13 @@ public class InMemoryBattleState : IBattleState
         );
         Track(evt);
         return evt;
+    }
+
+    private EventSeverity EscalateSeverity(ReportEventDto dto)
+    {
+        if (dto.EnemyRole?.ToString() == "Commander" || dto.EnemyRole?.ToString() == "Officer") return EventSeverity.Critical;
+        if (dto.EnemyRole?.ToString() == "Specialist") return EventSeverity.Warning;
+        return EventSeverity.Info;
     }
 
     public OrderPushDto AddOrder(IssueOrderDto dto, string issuerName, string targetSquadId)
@@ -154,28 +160,31 @@ public class InMemoryBattleState : IBattleState
 
     public IReadOnlyList<SquadRosterDto> GetRoster() => _roster;
 
-    public void SetRoster(IReadOnlyList<SquadRosterDto> roster)
+    public async Task SetRosterAsync(IReadOnlyList<SquadRosterDto> roster)
     {
         _roster = roster;
-        lock (_rosterFileLock)
+        await _rosterFileLock.WaitAsync();
+        try
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(roster, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_rosterFilePath, json);
-            }
-            catch
-            {
-            }
+            var json = JsonSerializer.Serialize(roster, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(_rosterFilePath, json);
+        }
+        catch
+        {
+        }
+        finally
+        {
+            _rosterFileLock.Release();
         }
     }
 
-    public string SaveLogSnapshot()
+    public async Task<string> SaveLogSnapshotAsync()
     {
         var baseName = $"battle-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}";
         var jsonPath = Path.Combine(_logsDirectory, baseName + ".json");
         var txtPath = Path.Combine(_logsDirectory, baseName + ".txt");
-        lock (_logFileLock)
+        await _logFileLock.WaitAsync();
+        try
         {
             var items = _history.ToArray();
             var json = JsonSerializer.Serialize(items, new JsonSerializerOptions {
@@ -183,9 +192,13 @@ public class InMemoryBattleState : IBattleState
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 Converters = { new JsonStringEnumConverter() }
             });
-            File.WriteAllText(jsonPath, json);
-            File.WriteAllText(txtPath, FormatReadableLog(items));
+            await File.WriteAllTextAsync(jsonPath, json);
+            await File.WriteAllTextAsync(txtPath, FormatReadableLog(items));
         }
+        finally
+        {
+        }
+        _logFileLock.Release();
         return baseName + ".txt";
     }
 
@@ -198,7 +211,7 @@ public class InMemoryBattleState : IBattleState
             .ToList();
     }
 
-    public string? ReadLogFile(string fileName)
+    public async Task<string?> ReadLogFileAsync(string fileName)
     {
         var safeName = Path.GetFileName(fileName);
         if (string.IsNullOrEmpty(safeName) || !safeName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
@@ -207,8 +220,8 @@ public class InMemoryBattleState : IBattleState
         var path = Path.Combine(_logsDirectory, safeName);
         if (!File.Exists(path)) return null;
 
-
-        var raw = File.ReadAllText(path).Replace("\"StandingBy\"", "\"Autonomous\"");
+        var raw = await File.ReadAllTextAsync(path);
+        raw = raw.Replace("\"StandingBy\"", "\"Autonomous\"");
 
         using var doc = JsonDocument.Parse(raw);
         var items = new List<object>();
@@ -228,31 +241,33 @@ public class InMemoryBattleState : IBattleState
         return JsonSerializer.Serialize(items, WriteOptions);
     }
 
-    public byte[]? ReadLogFileBytes(string fileName)
+    public async Task<byte[]?> ReadLogFileBytesAsync(string fileName)
     {
         var path = ResolveSafeLogPath(fileName);
         if (path is null || !File.Exists(path)) return null;
-        return File.ReadAllBytes(path);
+        return await File.ReadAllBytesAsync(path);
     }
 
-    public bool DeleteLogFile(string fileName)
+    public async Task<bool> DeleteLogFileAsync(string fileName)
     {
         var path = ResolveSafeLogPath(fileName);
         if (path is null || !File.Exists(path)) return false;
 
-        lock (_logFileLock)
+        await _logFileLock.WaitAsync();
+        try
         {
-            try
-            {
-                File.Delete(path);
-                var txtPath = Path.ChangeExtension(path, ".txt");
-                if (File.Exists(txtPath)) File.Delete(txtPath);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
+            File.Delete(path);
+            var txtPath = Path.ChangeExtension(path, ".txt");
+            if (File.Exists(txtPath)) File.Delete(txtPath);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            _logFileLock.Release();
         }
     }
 
@@ -295,7 +310,6 @@ public class InMemoryBattleState : IBattleState
         return sb.ToString();
     }
 
-
     public BattleStatusDto GetBattleStatus() => new(_battleActive, _battleStartedAt);
 
     public BattleStatusDto StartBattle()
@@ -307,7 +321,7 @@ public class InMemoryBattleState : IBattleState
 
     public void EndBattle()
     {
-        if (!_history.IsEmpty) SaveLogSnapshot();
+        if (!_history.IsEmpty) _ = SaveLogSnapshotAsync();
         while (_history.TryDequeue(out _))
         {
         }
@@ -322,13 +336,4 @@ public class InMemoryBattleState : IBattleState
         {
         }
     }
-
-    private static EventSeverity EscalateSeverity(ReportEventDto dto) =>
-        dto.EnemyRole switch {
-            EnemyRole.TwinBlades => EventSeverity.Critical,
-            EnemyRole.Tank => EventSeverity.Critical,
-            EnemyRole.Nameless => EventSeverity.Warning,
-            EnemyRole.Healer => EventSeverity.Warning,
-            _ => EventSeverity.Info
-        };
 }
