@@ -51,3 +51,8 @@ appsettings.Development.json
 **/*.pdb
 **/*.json
 /.docs
+
+# Notice
+SunsetNoticePage.cs
+notice-right.png
+notice-left.png
