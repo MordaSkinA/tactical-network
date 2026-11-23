@@ -31,6 +31,9 @@ services:
       DiscordClientSecret: ${DISCORD_CLIENT_SECRET:-}
     ports:
       - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+      - ./emoji-settings.json:/app/emoji-settings.json
 
   prometheus:
     image: prom/prometheus:latest

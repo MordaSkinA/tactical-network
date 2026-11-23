@@ -23,11 +23,10 @@ public class PostgresAccountStore : IAccountStore
     public PostgresAccountStore(IDbConnectionFactory db, IConfiguration config)
     {
         _db = db;
-        Task.Run(() => EnsureSeedAdminAsync(config)).GetAwaiter().GetResult();
     }
 
 
-    private async Task EnsureSeedAdminAsync(IConfiguration config)
+    public async Task EnsureSeedAdminAsync(IConfiguration config)
     {
         if (All().Count > 0) return;
 

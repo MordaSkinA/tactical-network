@@ -25,7 +25,7 @@ jobs:
         run: dotnet build --no-restore -c Release
 
       - name: Test
-        run: dotnet test --no-build -c Release
+        run: dotnet test Tacnet.Tests/Tacnet.Tests.csproj -c Release --no-build
 
       - name: Docker Build Check
         run: docker build .

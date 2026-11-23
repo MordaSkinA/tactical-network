@@ -3,6 +3,7 @@ namespace GvGPoc.Endpoints;
 using GvGPoc.Extensions;
 using GvGPoc.Models;
 using GvGPoc.State;
+using Microsoft.AspNetCore.Http.Json;
 using GvGPoc.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -10,13 +11,18 @@ using Microsoft.AspNetCore.Routing;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text;
 
 public static class DiscordEndpoints
 {
     public static void MapDiscordEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/config", (IConfiguration config) =>
-            Results.Ok(new DiscordConfigDto(config["DiscordClientId"] ?? "", config["DiscordRedirectUri"] ?? "")));
+        app.MapGet("/config", (HttpContext context) => {
+            var config = context.RequestServices.GetRequiredService<IConfiguration>();
+            var id = config["DiscordClientId"] ?? "";
+            var uri = config["DiscordRedirectUri"] ?? "";
+            return Results.Ok(new DiscordConfigDto(id, uri));
+        });
 
         app.MapGet("/login-start", (ISessionStore sessions) => {
             var state = sessions.CreateSession(new SessionInfo("", UserRole.Player, null));

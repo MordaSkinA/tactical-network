@@ -19,7 +19,7 @@ public static class ReplayEndpoints
             var session = access_token is not null ? sessions.Get(access_token) : null;
             if (session is null) return Results.Unauthorized();
             if (session.Role is not (UserRole.Commander or UserRole.Admin or UserRole.Developer))
-                return Results.Forbid();
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
 
             var safeName = Path.GetFileName(fileName);
             var bytes = await state.ReadLogFileBytesAsync(safeName);

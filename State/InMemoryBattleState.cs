@@ -29,7 +29,7 @@ public interface IBattleState
 
     BattleStatusDto GetBattleStatus();
     BattleStatusDto StartBattle();
-    void EndBattle();
+    Task EndBattle();
 }
 
 public class InMemoryBattleState : IBattleState
@@ -37,9 +37,8 @@ public class InMemoryBattleState : IBattleState
     private readonly ConcurrentQueue<object> _history = new();
     private const int MaxHistory = 200;
 
-    private readonly string _rosterFilePath;
+    private readonly IRosterStore _rosterStore;
     private readonly string _logsDirectory;
-    private readonly SemaphoreSlim _rosterFileLock = new(1, 1);
     private readonly SemaphoreSlim _logFileLock = new(1, 1);
     private static readonly JsonSerializerOptions ReadOptions = new() {
         PropertyNameCaseInsensitive = true,
@@ -55,27 +54,12 @@ public class InMemoryBattleState : IBattleState
     private bool _battleActive;
     private DateTimeOffset? _battleStartedAt;
 
-    public InMemoryBattleState(IHostEnvironment env)
+    public InMemoryBattleState(IHostEnvironment env, IRosterStore rosterStore)
     {
-        _rosterFilePath = Path.Combine(env.ContentRootPath, "roster.json");
+        _rosterStore = rosterStore;
         _logsDirectory = Path.Combine(env.ContentRootPath, "logs");
         Directory.CreateDirectory(_logsDirectory);
-        _roster = LoadRosterFromDisk();
-    }
-
-    private IReadOnlyList<SquadRosterDto> LoadRosterFromDisk()
-    {
-        try
-        {
-            if (!File.Exists(_rosterFilePath)) return Array.Empty<SquadRosterDto>();
-            var json = File.ReadAllText(_rosterFilePath);
-            var roster = JsonSerializer.Deserialize<List<SquadRosterDto>>(json);
-            return roster ?? new List<SquadRosterDto>();
-        }
-        catch
-        {
-            return Array.Empty<SquadRosterDto>();
-        }
+        _roster = _rosterStore.GetRoster();
     }
 
     public BattleEventPushDto AddEvent(ReportEventDto dto, string reporterName, string targetSquadId)
@@ -163,19 +147,7 @@ public class InMemoryBattleState : IBattleState
     public async Task SetRosterAsync(IReadOnlyList<SquadRosterDto> roster)
     {
         _roster = roster;
-        await _rosterFileLock.WaitAsync();
-        try
-        {
-            var json = JsonSerializer.Serialize(roster, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(_rosterFilePath, json);
-        }
-        catch
-        {
-        }
-        finally
-        {
-            _rosterFileLock.Release();
-        }
+        await _rosterStore.SetRosterAsync(roster);
     }
 
     public async Task<string> SaveLogSnapshotAsync()
@@ -195,10 +167,13 @@ public class InMemoryBattleState : IBattleState
             await File.WriteAllTextAsync(jsonPath, json);
             await File.WriteAllTextAsync(txtPath, FormatReadableLog(items));
         }
-        finally
+        catch
         {
         }
-        _logFileLock.Release();
+        finally
+        {
+            _logFileLock.Release();
+        }
         return baseName + ".txt";
     }
 
@@ -319,9 +294,9 @@ public class InMemoryBattleState : IBattleState
         return GetBattleStatus();
     }
 
-    public void EndBattle()
+    public async Task EndBattle()
     {
-        if (!_history.IsEmpty) _ = SaveLogSnapshotAsync();
+        if (!_history.IsEmpty) await SaveLogSnapshotAsync();
         while (_history.TryDequeue(out _))
         {
         }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace GvGPoc.Models;
 
 public enum UserRole
@@ -178,7 +180,7 @@ public static class RosterConstants
 public record SquadMemberDto(
     string Nickname,
     MemberRole Role,
-    BulwarkPosition Bulwark,
+    BulwarkPosition? Bulwark,
     string? Build = null
 );
 
@@ -200,7 +202,7 @@ public record UpdateRosterDto(
 public record MemberPresetDto(
     string Nickname,
     MemberRole Role,
-    BulwarkPosition Bulwark,
+    BulwarkPosition? Bulwark,
     string? Build = null
 );
 
@@ -289,8 +291,12 @@ public record MyAccountDto(string Username, UserRole Role, string? SquadId, bool
 
 
 
-public record DiscordLoginStartDto(string State);
-public record DiscordRegisterDto(string PendingToken, string Nickname);
+
+
+
+public record DiscordLoginStartDto([property: JsonPropertyName("state")] string State);
+public record DiscordRegisterDto([property: JsonPropertyName("pendingToken")] string PendingToken, string Nickname);
+
 
 
 

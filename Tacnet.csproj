@@ -10,10 +10,14 @@
   <ItemGroup>
     <PackageReference Include="Npgsql" Version="8.0.5" />
     <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Remove="Tacnet.Tests/**/*.cs" />
+    <Content Remove="Tacnet.Tests/**" />
+    <None Remove="Tacnet.Tests/**" />
+    <EmbeddedResource Remove="Tacnet.Tests/**" />
   </ItemGroup>
 
   <ItemGroup>

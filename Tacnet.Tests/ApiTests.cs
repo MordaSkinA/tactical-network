@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using GvGPoc.Models;
 using GvGPoc.State;
 using GvGPoc.Data;
@@ -18,6 +20,10 @@ public class ApiTests : IClassFixture<ApiTests.CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
     private readonly ApiTests.CustomWebApplicationFactory _factory;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public ApiTests(ApiTests.CustomWebApplicationFactory factory)
     {
@@ -44,21 +50,22 @@ public class ApiTests : IClassFixture<ApiTests.CustomWebApplicationFactory>
 
         protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
         {
-            builder.ConfigureAppConfiguration((context, config) =>
+            builder.ConfigureServices(services =>
             {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    { "ConnectionStrings:Tacnet", "Host=localhost;Database=tacnet;Username=postgres;Password=postgres" },
-                    { "SessionSigningKey", "ZHVtbXlrZXk=ZHVtbXlrZXk=ZHVtbXlrZXk=" }, // Dummy 32-byte base64
-                    { "DISCORD_CLIENT_ID", "test_id" },
-                    { "DISCORD_CLIENT_SECRET", "test_secret" },
-                    { "DISCORD_REDIRECT_URI", "http://localhost/callback" },
-                    { "DISCORD_GUILD_ID", "test_guild" }
-                });
-            });
+                var configuration = new ConfigurationBuilder()
+                    .AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        { "ConnectionStrings:Tacnet", "Host=localhost;Database=tacnet;Username=postgres;Password=postgres" },
+                        { "SessionSigningKey", "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=" },
+                        { "TestKey", "test_id" },
+                        { "DiscordClientId", "test_id" },
+                        { "DiscordClientSecret", "test_secret" },
+                        { "DiscordRedirectUri", "http://localhost/callback" },
+                        { "DiscordGuildId", "test_guild" }
+                    })
+                    .Build();
+                services.AddSingleton<IConfiguration>(configuration);
 
-            builder.ConfigureTestServices(services =>
-            {
                 services.AddSingleton<IAccountStore>(AccountStoreMock.Object);
                 services.AddSingleton<IDbConnectionFactory>(DbConnectionFactoryMock.Object);
                 services.AddSingleton<IDiscordAuthService>(DiscordAuthServiceMock.Object);
@@ -77,21 +84,22 @@ public class ApiTests : IClassFixture<ApiTests.CustomWebApplicationFactory>
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var config = await response.Content.ReadFromJsonAsync<DiscordConfigDto>();
+        var config = await response.Content.ReadFromJsonAsync<DiscordConfigDto>(JsonOptions);
         Assert.NotNull(config);
-        Assert.NotNull(config.ClientId);
-        Assert.NotNull(config.RedirectUri);
+        Assert.Equal("test_id", config.ClientId);
+        Assert.Equal("http://localhost/callback", config.RedirectUri);
     }
 
     [Fact]
     public async Task LoginStart_ReturnsToken()
     {
+        _factory.SessionStoreMock.Setup(s => s.CreateSession(It.IsAny<SessionInfo>())).Returns("state_token");
         // Act
         var response = await _client.GetAsync("/api/auth/discord/login-start");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var dto = await response.Content.ReadFromJsonAsync<DiscordLoginStartDto>();
+        var dto = await response.Content.ReadFromJsonAsync<DiscordLoginStartDto>(JsonOptions);
         Assert.NotNull(dto);
         Assert.False(string.IsNullOrEmpty(dto.State));
     }
@@ -141,7 +149,7 @@ public class ApiTests : IClassFixture<ApiTests.CustomWebApplicationFactory>
         var nickname = "new_user";
         var discordId = "discord_123";
         var discordUsername = "test_user";
-        var pending = new PendingDiscordRegistration(discordId, discordUsername);
+        var pending = new PendingDiscordRegistration(discordId, discordUsername, DateTimeOffset.UtcNow.AddMinutes(10));
 
         _factory.PendingDiscordStoreMock.Setup(p => p.Get(token)).Returns(pending);
         _factory.AccountStoreMock.Setup(a => a.Find(nickname)).Returns((UserAccount?)null);
@@ -153,7 +161,7 @@ public class ApiTests : IClassFixture<ApiTests.CustomWebApplicationFactory>
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponseDto>();
+        var authResponse = await response.Content.ReadFromJsonAsync<AuthResponseDto>(JsonOptions);
         Assert.True(authResponse!.Success);
         Assert.Equal(nickname, authResponse.Username);
         _factory.AccountStoreMock.Verify(a => a.UpsertAsync(nickname, UserRole.Player, null, It.IsAny<string>()), Times.Once);

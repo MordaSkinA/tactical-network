@@ -9,6 +9,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.HttpOverrides;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddSignalR(options =>
     });
 
 builder.Services.ConfigureHttpJsonOptions(options => {
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
@@ -51,11 +53,12 @@ builder.Services.AddSingleton(new SessionTokenOptions(sessionSigningKey, TimeSpa
 builder.Services.AddSingleton<ISessionStore, SignedSessionStore>();
 
 builder.Services.AddSingleton<IPendingDiscordStore, InMemoryPendingDiscordStore>();
-builder.Services.AddSingleton<IMemberPresetStore, FileMemberPresetStore>();
-builder.Services.AddSingleton<IDiscordWebhookStore, FileDiscordWebhookStore>();
+builder.Services.AddSingleton<IMemberPresetStore, PostgresMemberPresetStore>();
+builder.Services.AddSingleton<IDiscordWebhookStore, PostgresDiscordWebhookStore>();
 builder.Services.AddSingleton<IEmojiSettingsStore, FileEmojiSettingsStore>();
-builder.Services.AddSingleton<IOrderMacroStore, FileOrderMacroStore>();
-builder.Services.AddSingleton<IGoalOrderMacroStore, FileGoalOrderMacroStore>();
+builder.Services.AddSingleton<IOrderMacroStore, PostgresOrderMacroStore>();
+builder.Services.AddSingleton<IGoalOrderMacroStore, PostgresGoalOrderMacroStore>();
+builder.Services.AddSingleton<IRosterStore, PostgresRosterStore>();
 builder.Services.AddSingleton<IConnectionTracker, InMemoryConnectionTracker>();
 builder.Services.AddSingleton<HubActionRateLimiter>();
 builder.Services.AddSingleton<LoginAttemptRateLimiter>();
@@ -82,7 +85,11 @@ builder.Services.AddCors(options => {
 
 var app = builder.Build();
 
-app.Services.GetRequiredService<IAccountStore>();
+var accountStore = app.Services.GetRequiredService<IAccountStore>();
+if (accountStore is PostgresAccountStore postgresStore)
+{
+    await postgresStore.EnsureSeedAdminAsync(app.Configuration);
+}
 
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
@@ -94,6 +101,7 @@ forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseCors();
+app.UseHttpMetrics();
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions {
     OnPrepareResponse = context => {
@@ -111,6 +119,7 @@ app.MapGroup("/api/auth/discord").MapDiscordEndpoints();
 app.MapGroup("/api/replays").MapReplayEndpoints();
 
 app.MapHub<BattleHub>("/battleHub");
+app.MapMetrics();
 
 app.Run();
 

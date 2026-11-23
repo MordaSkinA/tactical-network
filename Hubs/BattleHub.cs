@@ -568,7 +568,7 @@ public class BattleHub : Hub
 
 
 
-    private static string BulwarkSymbol(BulwarkPosition pos) => pos switch {
+    private static string BulwarkSymbol(BulwarkPosition? pos) => pos switch {
         BulwarkPosition.Top => " ♜↑",
         BulwarkPosition.Center => " ♜",
         BulwarkPosition.Bottom => " ♜↓",
@@ -607,7 +607,7 @@ public class BattleHub : Hub
     public async Task EndBattle()
     {
         RequireRole(UserRole.Commander, UserRole.Admin, UserRole.Developer);
-        _state.EndBattle();
+        await _state.EndBattle();
         await Clients.All.SendAsync("HistoryReset");
         await Clients.All.SendAsync("BattleStatusChanged", _state.GetBattleStatus());
     }
